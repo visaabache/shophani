@@ -1,13 +1,13 @@
 {
-  "name": "maroc-store",
+  "name": "shophani",
   "version": "1.0.0",
   "description": "Multilingual (AR/FR/EN) cash-on-delivery store for Morocco on Cloudflare Workers + D1",
   "scripts": {
     "dev": "wrangler dev",
-    "db:migrate:local": "wrangler d1 migrations apply maroc-store --local",
-    "db:seed:local": "wrangler d1 execute maroc-store --local --file seed/sample.sql",
-    "db:migrate": "wrangler d1 migrations apply maroc-store --remote",
-    "db:seed": "wrangler d1 execute maroc-store --remote --file seed/sample.sql",
+    "db:migrate:local": "wrangler d1 migrations apply shophani --local",
+    "db:seed:local": "wrangler d1 execute shophani --local --file seed/sample.sql",
+    "db:migrate": "wrangler d1 migrations apply shophani --remote",
+    "db:seed": "wrangler d1 execute shophani --remote --file seed/sample.sql",
     "deploy": "wrangler deploy",
     "test": "node --test test/*.test.js"
   },

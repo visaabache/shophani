@@ -18,7 +18,7 @@ function waLink(number, text) {
 export function layout(ctx, { title, description = '', path, body, noindex = false, image = '' }) {
   const { lang, settings, origin, categories = [] } = ctx;
   const t = T[lang];
-  const store = settings.store_name || 'Souk';
+  const store = settings.store_name || 'Shophani';
   const fullTitle = title ? `${title} · ${store}` : store;
   const announcement = settings[`announcement_${lang}`] || '';
   const wa = waLink(settings.whatsapp);

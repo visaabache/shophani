@@ -1,6 +1,6 @@
 // Cloudflare Worker for the store. See README.md for first-time setup.
 {
-  "name": "maroc-store",
+  "name": "shophani",
   "main": "src/worker.js",
   "compatibility_date": "2026-10-01",
   "assets": {
@@ -12,13 +12,18 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "maroc-store",
-      // Paste the id printed by: npx wrangler d1 create maroc-store
+      "database_name": "shophani",
+      // Paste the id printed by: npx wrangler d1 create shophani
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
   ],
-  // Product photos uploaded from the admin. Create it once with: npx wrangler r2 bucket create maroc-store-images
-  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "maroc-store-images" }],
+  // Product photos uploaded from the admin. Create it once with: npx wrangler r2 bucket create shophani-images
+  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "shophani-images" }],
+  // Serves the store on shophani.shop. The domain must be added to the same Cloudflare account first.
+  "routes": [
+    { "pattern": "shophani.shop", "custom_domain": true },
+    { "pattern": "www.shophani.shop", "custom_domain": true }
+  ],
   "observability": { "enabled": true }
 }

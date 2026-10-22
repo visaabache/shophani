@@ -70,7 +70,7 @@ CREATE TABLE settings (
 );
 
 INSERT INTO settings (key, value) VALUES
-  ('store_name', 'Souk Maroc'),
+  ('store_name', 'Shophani'),
   ('whatsapp', ''),
   ('contact_email', ''),
   ('shipping_fee', '35'),

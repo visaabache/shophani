@@ -1,4 +1,4 @@
-# Souk Maroc: online store for Morocco
+# Shophani: online store for Morocco (shophani.shop)
 
 A fast, mobile-first online store for Moroccan customers:
 
@@ -28,15 +28,15 @@ The admin is at http://localhost:8787/admin/.
 
 ```bash
 npx wrangler login
-npx wrangler d1 create maroc-store             # copy the database_id it prints into wrangler.jsonc
-npx wrangler r2 bucket create maroc-store-images
+npx wrangler d1 create shophani             # copy the database_id it prints into wrangler.jsonc
+npx wrangler r2 bucket create shophani-images
 npm run db:migrate                             # creates the tables online
 npm run db:seed                                # optional: the sample products
 npx wrangler secret put ADMIN_PASSWORD         # choose a long password
 npm run deploy
 ```
 
-Then add your domain in the Cloudflare dashboard (Workers → maroc-store → Settings → Domains & Routes). In the admin, go to **Réglages** and set the store name, your WhatsApp number, the shipping prices and the announcement bar.
+`wrangler.jsonc` already connects **shophani.shop** and **www.shophani.shop**. For that to work, the domain must be on your Cloudflare account: add the site in the Cloudflare dashboard and point the domain's nameservers to Cloudflare at your registrar (Namecheap → Domain → Nameservers → Custom DNS). If you deploy before the domain is on Cloudflare, remove the `routes` block for now. In the admin, go to **Réglages** and set the store name, your WhatsApp number, the shipping prices and the announcement bar.
 
 When you change the database later, add a new file to `migrations/` (for example `0002_….sql`) and run `npm run db:migrate`.
 
