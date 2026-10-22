@@ -14,7 +14,7 @@
       "binding": "DB",
       "database_name": "shophani",
       // Paste the id printed by: npx wrangler d1 create shophani
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "018a52d1-ae99-4901-a3c2-c79f402a3772",
       "migrations_dir": "migrations"
     }
   ],
