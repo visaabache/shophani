@@ -8,6 +8,8 @@ A fast, mobile-first online store for Moroccan customers:
 - **Shipping by city**: a default fee, per-city rates (for example Casablanca 20 DH) and free delivery above an amount you choose.
 - **Catalogue**: categories, search, product photos (swipeable on mobile), options such as sizes, sale prices, stock with "only 3 left", and featured products.
 - **Admin at `/admin/`** (in French): orders with status (new → confirmed → shipped → delivered / cancelled / returned), a one-tap WhatsApp confirmation message in the customer's language, call buttons, internal notes, CSV export for delivery companies, products, categories, photo upload and settings.
+- **Design**: a full-screen photo slideshow, collections shown as Moroccan arches, story and banner sections, zellige patterns, product galleries with thumbnails, quick add to cart, a sticky "order now" bar and a bottom tab bar on phones, a free-delivery progress bar in the cart, and subtle scroll animations (turned off for visitors who ask their device for less motion). Typefaces: Fraunces and Manrope for French and English, Reem Kufi and IBM Plex Sans Arabic for Arabic.
+- **Photos** from Unsplash, free for commercial use (see `CREDITS.md`, and the `/fr/credits` page).
 - Built for search engines: pages are rendered on the server, with hreflang links between languages, product structured data (`Product` with the `MAD` price), a sitemap and robots.txt.
 
 It runs on **Cloudflare Workers** with a **D1** database (orders, products) and **R2** storage (photos). The free plan is enough to start. It's plain JavaScript with no framework and no build step.
@@ -18,11 +20,13 @@ It runs on **Cloudflare Workers** with a **D1** database (orders, products) and 
 npm install
 cp .dev.vars.example .dev.vars        # sets the local admin password to "change-me"
 npm run db:migrate:local              # creates the tables
-npm run db:seed:local                 # optional: 9 sample products in 4 categories
+npm run db:seed:local                 # optional: 11 sample products in 4 categories, with photos
 npm run dev                           # http://localhost:8787
 ```
 
 The admin is at http://localhost:8787/admin/.
+
+To start over with a clean local database and the sample products, run `npm run db:reset:local`. This deletes every local order and product.
 
 ## Put it online (first time)
 

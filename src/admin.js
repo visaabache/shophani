@@ -283,12 +283,14 @@ async function saveCategory(db, id, b) {
   const name_en = String(b.name_en || '').trim();
   if (!name_fr && !name_ar && !name_en) return json({ error: 'name_required' }, 422);
   const slug = slugify(b.slug || name_fr || name_en) || `categorie-${Date.now().toString(36)}`;
+  const image = String(b.image || '').trim();
+  const imageOk = image === '' || image.startsWith('/') || image.startsWith('https://') ? image.slice(0, 500) : '';
   try {
     if (id) {
-      await db.prepare('UPDATE categories SET slug=?, name_ar=?, name_fr=?, name_en=?, sort=? WHERE id=?').bind(slug, name_ar, name_fr, name_en, int(b.sort, 0), id).run();
+      await db.prepare('UPDATE categories SET slug=?, name_ar=?, name_fr=?, name_en=?, sort=?, image=? WHERE id=?').bind(slug, name_ar, name_fr, name_en, int(b.sort, 0), imageOk, id).run();
       return json({ ok: true, id });
     }
-    const row = await db.prepare('INSERT INTO categories (slug, name_ar, name_fr, name_en, sort) VALUES (?,?,?,?,?) RETURNING id').bind(slug, name_ar, name_fr, name_en, int(b.sort, 0)).first();
+    const row = await db.prepare('INSERT INTO categories (slug, name_ar, name_fr, name_en, sort, image) VALUES (?,?,?,?,?,?) RETURNING id').bind(slug, name_ar, name_fr, name_en, int(b.sort, 0), imageOk).first();
     return json({ ok: true, id: row.id }, 201);
   } catch (err) {
     if (String(err).includes('UNIQUE')) return json({ error: 'slug_taken' }, 409);

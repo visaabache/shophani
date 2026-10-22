@@ -294,9 +294,9 @@
   async function categories() {
     state.categories = (await api('/categories')).categories;
     shell(`<div class="toolbar"><h1>Catégories</h1></div>
-      <div class="table-wrap"><table class="table"><thead><tr><th>Français</th><th>العربية</th><th>English</th><th>Ordre</th><th>Produits</th><th></th></tr></thead><tbody>
-      ${state.categories.map((c) => `<tr data-cat="${c.id}"><td><input name="name_fr" value="${esc(c.name_fr)}"></td><td><input name="name_ar" dir="rtl" value="${esc(c.name_ar)}"></td><td><input name="name_en" value="${esc(c.name_en)}"></td><td><input name="sort" type="number" value="${c.sort}" class="num"></td><td>${c.products}</td><td class="nowrap"><button class="btn small" data-save>OK</button> <button class="link" data-del>Supprimer</button></td></tr>`).join('')}
-      <tr data-cat=""><td><input name="name_fr" placeholder="Nouvelle catégorie"></td><td><input name="name_ar" dir="rtl"></td><td><input name="name_en"></td><td><input name="sort" type="number" value="0" class="num"></td><td></td><td><button class="btn small" data-save>Ajouter</button></td></tr>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Français</th><th>العربية</th><th>English</th><th>Lien de la photo</th><th>Ordre</th><th>Produits</th><th></th></tr></thead><tbody>
+      ${state.categories.map((c) => `<tr data-cat="${c.id}"><td><img class="thumb" src="${esc(c.image || '/assets/placeholder.svg')}" alt=""></td><td><input name="name_fr" value="${esc(c.name_fr)}"></td><td><input name="name_ar" dir="rtl" value="${esc(c.name_ar)}"></td><td><input name="name_en" value="${esc(c.name_en)}"></td><td><input name="image" value="${esc(c.image || '')}" placeholder="/img/… ou https://…"></td><td><input name="sort" type="number" value="${c.sort}" class="num"></td><td>${c.products}</td><td class="nowrap"><button class="btn small" data-save>OK</button> <button class="link" data-del>Supprimer</button></td></tr>`).join('')}
+      <tr data-cat=""><td></td><td><input name="name_fr" placeholder="Nouvelle catégorie"></td><td><input name="name_ar" dir="rtl"></td><td><input name="name_en"></td><td><input name="image" placeholder="/img/… ou https://…"></td><td><input name="sort" type="number" value="0" class="num"></td><td></td><td><button class="btn small" data-save>Ajouter</button></td></tr>
       </tbody></table></div>`);
     app.querySelectorAll('[data-cat]').forEach((tr) => {
       const id = tr.dataset.cat;

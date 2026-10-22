@@ -3,7 +3,9 @@
 
 import { T } from './i18n.js';
 import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName } from './lib.js';
-import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, catName } from './render.js';
+import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, catName } from './render.js';
+
+const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
 import { handleAdmin } from './admin.js';
 
 const SECURITY_HEADERS = {
@@ -75,26 +77,46 @@ async function storefront(request, env, url, lang, rest) {
 
   if (rest === '/') {
     const featured = await db.prepare('SELECT * FROM products WHERE active = 1 AND featured = 1 ORDER BY sort, id DESC LIMIT 8').all();
-    const latest = await db.prepare('SELECT * FROM products WHERE active = 1 ORDER BY id DESC LIMIT 12').all();
-    res = html(homePage(ctx, featured.results, latest.results));
-  } else if (rest === '/shop') {
-    const q = (url.searchParams.get('q') || '').trim().slice(0, 60);
-    let rows;
-    if (q) {
-      const like = `%${q.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
-      rows = await db
-        .prepare("SELECT * FROM products WHERE active = 1 AND (name_ar LIKE ?1 ESCAPE '\\' OR name_fr LIKE ?1 ESCAPE '\\' OR name_en LIKE ?1 ESCAPE '\\') ORDER BY sort, id DESC LIMIT 100")
-        .bind(like)
-        .all();
-    } else {
-      rows = await db.prepare('SELECT * FROM products WHERE active = 1 ORDER BY sort, id DESC LIMIT 200').all();
+    // "New arrivals" leaves out what is already shown as a favourite, unless that would leave it empty.
+    const latest = await db.prepare('SELECT * FROM products WHERE active = 1 ORDER BY id DESC LIMIT 16').all();
+    const ids = new Set(featured.results.map((p) => p.id));
+    const fresh = latest.results.filter((p) => !ids.has(p.id));
+    // Rows of four look tidy on every screen size (2 × 2 on phones), so trim to a multiple of 4.
+    const rows4 = (list) => (list.length >= 4 ? list.slice(0, list.length - (list.length % 4)) : list);
+    res = html(homePage(ctx, rows4(featured.results), rows4((fresh.length >= 4 ? fresh : latest.results).slice(0, 8))));
+  } else if (rest === '/shop' || rest.startsWith('/c/')) {
+    let cat = null;
+    if (rest.startsWith('/c/')) {
+      cat = categories.find((c) => c.slug === decodeURIComponent(rest.slice(3)));
+      if (!cat) return html(notFoundPage(ctx), 404);
     }
-    res = html(listingPage(ctx, { title: t.allProducts, path: '/shop', products: rows.results, q }));
-  } else if (rest.startsWith('/c/')) {
-    const cat = categories.find((c) => c.slug === decodeURIComponent(rest.slice(3)));
-    if (!cat) return html(notFoundPage(ctx), 404);
-    const rows = await db.prepare('SELECT * FROM products WHERE active = 1 AND category_id = ? ORDER BY sort, id DESC LIMIT 200').bind(cat.id).all();
-    res = html(listingPage(ctx, { title: catName(cat, lang), path: `/c/${cat.slug}`, products: rows.results }));
+    const q = (url.searchParams.get('q') || '').trim().slice(0, 60);
+    const sort = ORDER_BY[url.searchParams.get('sort')] ? url.searchParams.get('sort') : '';
+    const where = ['active = 1'];
+    const args = [];
+    if (cat) {
+      where.push('category_id = ?');
+      args.push(cat.id);
+    }
+    if (q) {
+      where.push("(name_ar LIKE ? ESCAPE '\\' OR name_fr LIKE ? ESCAPE '\\' OR name_en LIKE ? ESCAPE '\\')");
+      const like = `%${q.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
+      args.push(like, like, like);
+    }
+    const rows = await db
+      .prepare(`SELECT * FROM products WHERE ${where.join(' AND ')} ORDER BY ${ORDER_BY[sort] || 'sort, id DESC'} LIMIT 200`)
+      .bind(...args)
+      .all();
+    res = html(
+      listingPage(ctx, {
+        title: cat ? catName(cat, lang) : t.allProducts,
+        path: cat ? `/c/${cat.slug}` : '/shop',
+        products: rows.results,
+        q,
+        sort,
+        image: cat?.image || (cat ? '' : '/assets/photos/souk-alley.webp'),
+      }),
+    );
   } else if (rest.startsWith('/p/')) {
     const p = await db.prepare('SELECT * FROM products WHERE active = 1 AND slug = ?').bind(decodeURIComponent(rest.slice(3))).first();
     if (!p) return html(notFoundPage(ctx), 404);
@@ -103,6 +125,8 @@ async function storefront(request, env, url, lang, rest) {
       .bind(p.id, p.category_id)
       .all();
     res = html(productPage(ctx, p, categories.find((c) => c.id === p.category_id), related.results));
+  } else if (rest === '/credits') {
+    res = html(creditsPage(ctx));
   } else if (rest === '/cart') {
     res = html(cartPage(ctx));
   } else if (rest === '/checkout') {
@@ -227,7 +251,7 @@ async function sitemap(env, origin) {
     env.DB.prepare('SELECT slug FROM products WHERE active = 1').all(),
     env.DB.prepare('SELECT slug FROM categories').all(),
   ]);
-  const paths = ['/', '/shop', ...cats.results.map((c) => `/c/${c.slug}`), ...products.results.map((p) => `/p/${p.slug}`)];
+  const paths = ['/', '/shop', '/credits', ...cats.results.map((c) => `/c/${c.slug}`), ...products.results.map((p) => `/p/${p.slug}`)];
   const urls = paths
     .map((p) => {
       const alts = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${esc(origin)}/${l}${esc(p)}"/>`).join('');
