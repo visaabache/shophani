@@ -174,7 +174,11 @@
     if (bar) {
       $('[data-buy-now]', bar).addEventListener('click', () => submitBuy(form, 'checkout'));
       if ('IntersectionObserver' in window) {
-        new IntersectionObserver(([e]) => bar.classList.toggle('show', !e.isIntersecting && e.boundingClientRect.top < 0)).observe(form);
+        new IntersectionObserver(([e]) => {
+          const show = !e.isIntersecting && e.boundingClientRect.top < 0;
+          bar.classList.toggle('show', show);
+          document.body.classList.toggle('bar-up', show);
+        }).observe(form);
       }
     }
   });
@@ -378,6 +382,50 @@
       btn.textContent = label;
     });
   }
+
+  // WhatsApp button: a small panel of ready-made messages instead of jumping straight to the app.
+  const wa = $('[data-wa]');
+  if (wa) {
+    const panel = $('.wa-panel', wa);
+    const toggle = $('[data-wa-toggle]', wa);
+    const setOpen = (open) => {
+      panel.hidden = !open;
+      wa.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      if (open) {
+        try { localStorage.setItem('wa_seen', '1'); } catch {}
+        wa.classList.add('seen');
+        $('.wa-chips a', panel)?.focus({ preventScroll: true });
+      }
+    };
+    try { if (localStorage.getItem('wa_seen')) wa.classList.add('seen'); } catch {}
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      setOpen(panel.hidden);
+    });
+    $('[data-wa-close]', wa).addEventListener('click', () => { setOpen(false); toggle.focus(); });
+    $$('a', panel).forEach((a) => a.addEventListener('click', () => setOpen(false)));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { setOpen(false); toggle.focus(); } });
+    document.addEventListener('click', (e) => { if (!panel.hidden && !wa.contains(e.target)) setOpen(false); });
+  }
+
+  // Hide floating buttons while the keyboard is up, so they never sit on top of a text box.
+  const typing = (e) => e.target.matches?.('input:not([type=radio]):not([type=checkbox]), textarea, select');
+  document.addEventListener('focusin', (e) => { if (typing(e)) document.body.classList.add('typing'); });
+  document.addEventListener('focusout', (e) => { if (typing(e)) document.body.classList.remove('typing'); });
+
+  // Search tab: focus the shop's search box (on the shop page the tap itself opens the keyboard).
+  $$('[data-search-tab]').forEach((a) =>
+    a.addEventListener('click', (e) => {
+      const q = $('#q');
+      if (q) {
+        e.preventDefault();
+        q.scrollIntoView({ block: 'center' });
+        q.focus();
+      }
+    }),
+  );
+  if (location.hash === '#q') $('#q')?.focus({ preventScroll: true });
 
   badge();
   window.addEventListener('storage', () => badge());

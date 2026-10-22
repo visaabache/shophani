@@ -4,6 +4,7 @@
 import { T } from './i18n.js';
 import { PHOTO_CREDITS } from './credits.js';
 import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
+import { legalDoc } from './legal.js';
 import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
@@ -32,6 +33,60 @@ const ICONS = {
 const WA_PATH =
   'M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3Zm0 23.8c-2 0-4-.5-5.7-1.6l-.4-.2-3.9 1 1-3.8-.3-.4A10.8 10.8 0 1 1 16 26.8Zm6-8.1c-.3-.2-1.9-1-2.2-1-.3-.2-.5-.2-.7.1l-1 1.3c-.2.2-.4.2-.7.1a8.8 8.8 0 0 1-4.4-3.8c-.3-.6.3-.5 1-1.7.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.6-.5-.8-.5h-.6c-.2 0-.6 0-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.4c.2.2 2.4 3.6 5.7 5 2.1.9 3 1 4 .8.7-.1 1.9-.8 2.2-1.5.3-.8.3-1.4.2-1.5l-.6-.4Z';
 
+// Brand marks for the footer's social links (filled, 24×24).
+const SOCIAL = {
+  instagram: '<path d="M12 7.3a4.7 4.7 0 1 0 0 9.4 4.7 4.7 0 0 0 0-9.4Zm0 7.7a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm6-7.9a1.1 1.1 0 1 1-2.2 0 1.1 1.1 0 0 1 2.2 0ZM21.1 8c-.1-1.5-.4-2.8-1.5-3.9S17.2 2.7 15.7 2.6C14.2 2.5 9.8 2.5 8.3 2.6 6.8 2.7 5.5 3 4.4 4.1S3 6.5 2.9 8c-.1 1.5-.1 6 0 7.5.1 1.5.4 2.8 1.5 3.9s2.4 1.4 3.9 1.5c1.5.1 6 .1 7.5 0 1.5-.1 2.8-.4 3.9-1.5s1.4-2.4 1.5-3.9c.1-1.5.1-6 0-7.5Zm-2 9.4a3 3 0 0 1-1.7 1.7c-1.2.5-4 .4-5.4.4s-4.2.1-5.4-.4a3 3 0 0 1-1.7-1.7c-.5-1.2-.4-4-.4-5.4s-.1-4.2.4-5.4a3 3 0 0 1 1.7-1.7c1.2-.5 4-.4 5.4-.4s4.2-.1 5.4.4a3 3 0 0 1 1.7 1.7c.5 1.2.4 4 .4 5.4s.1 4.2-.4 5.4Z"/>',
+  facebook: '<path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.3v7A10 10 0 0 0 22 12Z"/>',
+  tiktok: '<path d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.1v12.4a2.6 2.6 0 1 1-1.8-2.5V9.7a5.7 5.7 0 1 0 4.9 5.7V9.1a7.3 7.3 0 0 0 4.3 1.4V7.4s-1.9.1-3.2-1.6Z"/>',
+};
+const SOCIAL_NAMES = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok' };
+
+// Accepts a full URL or a bare handle ("@shophani" / "shophani").
+export function socialUrl(kind, value) {
+  const v = String(value || '').trim();
+  if (!v) return '';
+  if (/^https:\/\//i.test(v)) return v;
+  const handle = v.replace(/^@/, '').replace(/[^A-Za-z0-9._-]/g, '');
+  if (!handle) return '';
+  return kind === 'tiktok' ? `https://www.tiktok.com/@${handle}` : `https://www.${kind}.com/${handle}`;
+}
+
+function socialLinks(settings) {
+  const links = Object.keys(SOCIAL)
+    .map((k) => [k, socialUrl(k, settings[k])])
+    .filter(([, u]) => u)
+    .map(([k, u]) => `<a href="${esc(u)}" rel="noopener me" target="_blank" aria-label="${SOCIAL_NAMES[k]}" class="social-${k}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><g fill="currentColor">${SOCIAL[k]}</g></svg></a>`);
+  return links.length ? `<div class="socials">${links.join('')}</div>` : '';
+}
+
+// Floating WhatsApp button: opens a small panel of ready-made messages. On a product page the
+// messages mention that product; without JavaScript the button is a plain wa.me link.
+function waWidget(ctx, product) {
+  const { lang, settings, origin } = ctx;
+  const t = T[lang];
+  const number = settings.whatsapp;
+  if (!waLink(number)) return '';
+  const store = settings.store_name || 'Shophani';
+  const ref = product ? `\n${product.name} — ${product.price}\n${origin}/${lang}/p/${product.slug}` : '';
+  const chips = (product ? t.waChipsProduct : t.waChips).map((c) => [c, `${c}${ref}`]);
+  return `<div class="wa-widget" data-wa>
+  <div class="wa-panel" id="wa-panel" role="dialog" aria-labelledby="wa-title" hidden>
+    <div class="wa-head">
+      <span class="wa-avatar">${waIcon(22)}</span>
+      <div><strong id="wa-title">${esc(store)}</strong><small><span class="wa-dot"></span>${esc(t.waReplies)}</small></div>
+      <button type="button" class="wa-close" data-wa-close aria-label="${esc(t.close)}">×</button>
+    </div>
+    <div class="wa-body">
+      <p class="wa-bubble">${esc(t.waHello)}</p>
+      ${product ? `<p class="wa-product">${esc(product.name)} · <strong>${esc(product.price)}</strong></p>` : ''}
+      <div class="wa-chips">${chips.map(([label, text]) => `<a href="${esc(waLink(number, text))}" rel="noopener" target="_blank">${esc(label)}</a>`).join('')}</div>
+    </div>
+    <a class="wa-start" href="${esc(waLink(number, product ? ref.trim() : ''))}" rel="noopener" target="_blank">${waIcon(18)} ${esc(t.waStart)}</a>
+  </div>
+  <a class="wa-float" href="${esc(waLink(number, product ? ref.trim() : ''))}" rel="noopener" target="_blank" aria-label="${esc(t.whatsappUs)}" aria-controls="wa-panel" aria-expanded="false" data-wa-toggle>${waIcon(28)}<span class="wa-ping" aria-hidden="true"></span></a>
+</div>`;
+}
+
 function icon(name, size = 24) {
   return `<svg class="icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
 }
@@ -57,7 +112,7 @@ function srcset(url) {
   return s !== url ? ` srcset="${esc(s)} 480w, ${esc(url)} 1000w"` : '';
 }
 
-export function layout(ctx, { title, description = '', path, body, noindex = false, image = '', page = '' }) {
+export function layout(ctx, { title, description = '', path, body, noindex = false, image = '', page = '', product = null }) {
   const { lang, settings, origin, categories = [] } = ctx;
   const t = T[lang];
   const store = settings.store_name || 'Shophani';
@@ -98,9 +153,9 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=3">
+<link rel="stylesheet" href="/assets/style.css?v=4">
 <script src="/assets/js-on.js"></script>
-<script src="/assets/store.js?v=3" defer></script>
+<script src="/assets/store.js?v=4" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>
@@ -127,6 +182,7 @@ ${body}
       <a class="logo logo-light" href="/${lang}/" aria-label="${esc(store)}">${brandLogo(store, lang)}</a>
       <p>${esc(t.tagline)}</p>
       <p class="cod-badge">${icon('cash', 20)} ${esc(t.cod)}</p>
+      ${socialLinks(settings)}
     </div>
     <div>
       <h3>${esc(t.shop)}</h3>
@@ -139,6 +195,8 @@ ${body}
         <li>${esc(t.confirm)}</li>
         ${wa ? `<li><a href="${esc(wa)}" rel="noopener">${esc(t.whatsappUs)}</a></li>` : ''}
         ${settings.contact_email ? `<li><a href="mailto:${esc(settings.contact_email)}">${esc(settings.contact_email)}</a></li>` : ''}
+        <li><a href="/${lang}/terms">${esc(t.terms)}</a></li>
+        <li><a href="/${lang}/privacy">${esc(t.privacy)}</a></li>
         <li><a href="/${lang}/credits">${esc(t.credits)}</a></li>
       </ul>
     </div>
@@ -149,9 +207,9 @@ ${body}
   <a href="/${lang}/"${page === 'home' ? ' aria-current="page"' : ''}>${icon('home')}<span>${esc(t.home)}</span></a>
   <a href="/${lang}/shop"${page === 'shop' ? ' aria-current="page"' : ''}>${icon('grid')}<span>${esc(t.shop)}</span></a>
   <a href="/${lang}/cart"${page === 'cart' ? ' aria-current="page"' : ''} class="tab-cart">${icon('cart')}<span>${esc(t.cart)}</span><span class="cart-count" hidden>0</span></a>
-  ${wa ? `<a href="${esc(wa)}" rel="noopener" class="tab-wa">${waIcon(24)}<span>${esc(t.whatsapp)}</span></a>` : ''}
+  <a href="/${lang}/shop#q"${page === 'search' ? ' aria-current="page"' : ''} data-search-tab>${icon('search')}<span>${esc(t.searchTab)}</span></a>
 </nav>
-${wa ? `<a class="wa-float" href="${esc(wa)}" rel="noopener" aria-label="${esc(t.whatsappUs)}">${waIcon(28)}</a>` : ''}
+${waWidget(ctx, product)}
 <div class="toast" role="status" aria-live="polite" hidden></div>
 <script type="application/json" id="i18n">${JSON.stringify({ ...t.js, lang }).replace(/</g, '\\u003c')}</script>
 </body>
@@ -286,7 +344,7 @@ export function listingPage(ctx, { title, path, products, q = '', sort = '', des
 </section>
 <section class="wrap section listing">
   <form class="filters" action="/${lang}${esc(path)}" method="get">
-    <label class="search">${icon('search', 20)}<input type="search" name="q" value="${esc(q)}" placeholder="${esc(t.search)}" aria-label="${esc(t.search)}"></label>
+    <label class="search">${icon('search', 20)}<input id="q" type="search" name="q" enterkeyhint="search" value="${esc(q)}" placeholder="${esc(t.search)}" aria-label="${esc(t.search)}"></label>
     <label class="sort"><span>${esc(t.sort)}</span><select name="sort" data-autosubmit>${sortOpts.map(([v, l]) => `<option value="${v}"${v === sort ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
     <noscript><button class="btn btn-small">OK</button></noscript>
   </form>
@@ -358,7 +416,7 @@ ${soldOut ? '' : `<div class="buy-bar" aria-hidden="true"><div><strong>${esc(mon
 <div class="wrap">${trust(lang, 'trust-row')}</div>
 ${related.length ? `<section class="section wrap">${sectionHead(t.featured, t.shop, `/${lang}/shop`, t.viewAll)}${grid(related, lang, '')}</section>` : ''}
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
-  return layout(ctx, { title: name, description: desc.slice(0, 160), path: `/p/${p.slug}`, body, image: images[0], page: 'product' });
+  return layout(ctx, { title: name, description: desc.slice(0, 160), path: `/p/${p.slug}`, body, image: images[0], page: 'product', product: { name, price: money(p.price, lang), slug: p.slug } });
 }
 
 function stepsBar(lang, current) {
@@ -402,6 +460,7 @@ export function checkoutPage(ctx) {
       <div id="cart" data-view="summary"><div class="skeleton"></div></div>
       <p class="cod-note">${icon('cash', 22)} ${esc(t.payOnDelivery)}</p>
       <button class="btn btn-block btn-accent btn-lg" type="submit">${esc(t.placeOrder)}</button>
+      <p class="consent">${t.consent(`/${lang}/terms`, `/${lang}/privacy`)}</p>
       <p class="form-error" role="alert" hidden></p>
     </aside>
   </form>
@@ -453,6 +512,21 @@ export function creditsPage(ctx) {
   <p><a href="https://unsplash.com/license" rel="noopener">Unsplash License</a></p>
 </section>`;
   return layout(ctx, { title: t.credits, path: '/credits', body });
+}
+
+export function legalPage(ctx, kind) {
+  const { lang, settings } = ctx;
+  const t = T[lang];
+  const doc = legalDoc(kind, lang, settings);
+  const body = `<section class="wrap section narrow legal">
+  <h1>${esc(doc.title)}</h1>
+  <p class="legal-updated">${esc(t.updated)} <time datetime="${doc.updated}">${esc(new Date(doc.updated + 'T12:00:00Z').toLocaleDateString(lang === 'ar' ? 'ar-MA' : lang === 'fr' ? 'fr-MA' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }))}</time></p>
+  ${['legal_name', 'legal_ice', 'legal_address'].some((k) => !settings[k]) ? `<p class="legal-draft" role="note">${esc(doc.draft)}</p>` : ''}
+  <nav class="legal-toc" aria-label="${esc(doc.title)}"><ol>${doc.sections.map(([h], i) => `<li><a href="#s${i + 1}">${esc(h)}</a></li>`).join('')}</ol></nav>
+  ${doc.sections.map(([h, html], i) => `<section id="s${i + 1}"><h2>${esc(h)}</h2>${html}</section>`).join('\n  ')}
+  <p class="legal-switch"><a href="/${lang}/${kind === 'privacy' ? 'terms' : 'privacy'}">${esc(kind === 'privacy' ? t.terms : t.privacy)} →</a></p>
+</section>`;
+  return layout(ctx, { title: doc.title, description: doc.title, path: `/${kind}`, body, page: 'legal' });
 }
 
 export function notFoundPage(ctx) {

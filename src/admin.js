@@ -11,6 +11,8 @@ const SETTING_KEYS = [
   'announcement_ar', 'announcement_fr', 'announcement_en',
   'hero_title_ar', 'hero_title_fr', 'hero_title_en', 'hero_text_ar', 'hero_text_fr', 'hero_text_en',
   'email_from', 'notify_email', 'email_status_updates',
+  'instagram', 'facebook', 'tiktok',
+  'legal_name', 'legal_ice', 'legal_rc', 'legal_address', 'legal_cndp',
 ];
 
 async function hmacKey(secret) {

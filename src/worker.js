@@ -3,7 +3,7 @@
 
 import { T } from './i18n.js';
 import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName } from './lib.js';
-import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, catName } from './render.js';
+import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, legalPage, catName } from './render.js';
 
 const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
 import { handleAdmin } from './admin.js';
@@ -128,6 +128,8 @@ async function storefront(request, env, url, lang, rest) {
     res = html(productPage(ctx, p, categories.find((c) => c.id === p.category_id), related.results));
   } else if (rest === '/credits') {
     res = html(creditsPage(ctx));
+  } else if (rest === '/privacy' || rest === '/terms') {
+    res = html(legalPage(ctx, rest.slice(1)));
   } else if (rest === '/cart') {
     res = html(cartPage(ctx));
   } else if (rest === '/checkout') {
@@ -264,7 +266,7 @@ async function sitemap(env, origin) {
     env.DB.prepare('SELECT slug FROM products WHERE active = 1').all(),
     env.DB.prepare('SELECT slug FROM categories').all(),
   ]);
-  const paths = ['/', '/shop', '/credits', ...cats.results.map((c) => `/c/${c.slug}`), ...products.results.map((p) => `/p/${p.slug}`)];
+  const paths = ['/', '/shop', '/credits', '/terms', '/privacy', ...cats.results.map((c) => `/c/${c.slug}`), ...products.results.map((p) => `/p/${p.slug}`)];
   const urls = paths
     .map((p) => {
       const alts = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${esc(origin)}/${l}${esc(p)}"/>`).join('');

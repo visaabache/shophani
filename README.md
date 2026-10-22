@@ -63,6 +63,12 @@ Once shophani.shop is bought, verify the domain in Brevo and send from an addres
 
 Set `ORDER_WEBHOOK` (`npx wrangler secret put ORDER_WEBHOOK`) to a URL that accepts a JSON POST, such as a Make/Zapier webhook or a Slack incoming webhook. Each order sends `{ text, number, total, city }`.
 
+## Privacy policy and terms of sale
+
+`/privacy` and `/terms` (in AR/FR/EN) are written for a Moroccan cash-on-delivery store: law 09-08 on personal data (CNDP) and law 31-08 on consumer protection (7-day withdrawal, delivery, refused parcels). They are drafts. Fill in **Settings → Informations légales** (company name, ICE, RC, address, CNDP number), then have the texts checked by an accountant or lawyer. A "draft" notice shows on the pages until the name, ICE and address are filled in.
+
+Instagram, Facebook and TikTok links go in **Settings → Réseaux sociaux**, as a full link or just the handle.
+
 ## How orders work
 
 1. The cart lives in the visitor's browser. Prices, stock and shipping are always worked out again by the server (`/api/quote`), so a changed price in the browser has no effect.

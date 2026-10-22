@@ -120,6 +120,18 @@
       keyOk: 'مفتاح Brevo مثبت', keyMissing: 'مفتاح Brevo غير مثبت',
       emailFrom: 'عنوان الإرسال (مؤكد في Brevo)', notifyEmail: 'استقبال تنبيهات الطلبات على',
       statusUpdates: 'إخبار الزبون عند كل تغيير في الحالة',
+      social: 'مواقع التواصل',
+      socialHint: 'الصق رابط الصفحة أو اسم الحساب فقط (مثلا @shophani). تظهر الأيقونات أسفل المتجر.',
+      legal: 'معلومات الشركة (للصفحات القانونية)',
+      legalHint: 'تظهر في صفحتي «سياسة الخصوصية» و«شروط البيع». النصوص نسخة أولية، يُستحسن مراجعتها من طرف محاسب أو مختص قانوني.',
+      legalName: 'الاسم القانوني (شركة أو مقاول ذاتي)',
+      legalIce: 'رقم ICE',
+      legalRc: 'السجل التجاري (RC) أو رقم المقاول الذاتي',
+      legalAddress: 'العنوان',
+      legalCndp: 'رقم التصريح لدى CNDP (إن وُجد)',
+      viewPages: 'عرض الصفحات:',
+      legalPrivacy: 'سياسة الخصوصية',
+      legalTerms: 'شروط البيع',
       sendTest: 'إرسال رسالة تجريبية', howItWorks: 'كيف يعمل؟',
       steps: [
         'أنشئ حسابًا مجانيًا على <a href="https://www.brevo.com" target="_blank" rel="noopener">brevo.com</a> (300 رسالة في اليوم مجانًا).',
@@ -252,6 +264,18 @@
       keyOk: 'Clé Brevo installée', keyMissing: 'Clé Brevo manquante',
       emailFrom: 'Adresse d’envoi (vérifiée dans Brevo)', notifyEmail: 'Recevoir les alertes de commande sur',
       statusUpdates: 'Prévenir le client à chaque changement de statut',
+      social: 'Réseaux sociaux',
+      socialHint: 'Collez le lien de la page ou juste le nom du compte (ex. @shophani). Les icônes s’affichent en bas de la boutique.',
+      legal: 'Informations légales',
+      legalHint: 'Affichées dans la politique de confidentialité et les conditions de vente. Ces textes sont un projet : faites-les relire par un comptable ou un juriste.',
+      legalName: 'Raison sociale ou nom (auto-entrepreneur)',
+      legalIce: 'ICE',
+      legalRc: 'RC ou n° auto-entrepreneur',
+      legalAddress: 'Adresse',
+      legalCndp: 'N° de déclaration CNDP (si disponible)',
+      viewPages: 'Voir les pages :',
+      legalPrivacy: 'Confidentialité',
+      legalTerms: 'Conditions de vente',
       sendTest: 'Envoyer un test', howItWorks: 'Comment ça marche ?',
       steps: [
         'Créez un compte gratuit sur <a href="https://www.brevo.com" target="_blank" rel="noopener">brevo.com</a> (300 e-mails par jour offerts).',
@@ -946,6 +970,20 @@
         <label class="switch"><input type="checkbox" name="email_status_updates"${s.email_status_updates !== '0' ? ' checked' : ''}><span></span> ${L.statusUpdates}</label>
         <div class="actions"><button type="button" class="btn ghost" data-test>${icon('mail', 18)}<span>${L.sendTest}</span></button></div>
         ${state.emails ? `<details><summary class="muted small">${L.howItWorks}</summary>${steps}</details>` : ''}
+      </div>
+      <div class="card"><h2>${L.social}</h2><p class="muted small">${L.socialHint}</p><div class="cols">
+        ${field('instagram', 'Instagram', 'dir="ltr" placeholder="https://instagram.com/…"')}
+        ${field('facebook', 'Facebook', 'dir="ltr" placeholder="https://facebook.com/…"')}
+        ${field('tiktok', 'TikTok', 'dir="ltr" placeholder="@…"')}
+      </div></div>
+      <div class="card"><h2>${L.legal}</h2><p class="muted small">${L.legalHint}</p><div class="cols">
+        ${field('legal_name', L.legalName)}
+        ${field('legal_ice', L.legalIce, 'dir="ltr" inputmode="numeric"')}
+        ${field('legal_rc', L.legalRc, 'dir="ltr"')}
+        ${field('legal_cndp', L.legalCndp, 'dir="ltr"')}
+      </div>
+        ${field('legal_address', L.legalAddress)}
+        <p class="muted small">${L.viewPages} <a href="/${lang}/privacy" target="_blank" rel="noopener">${L.legalPrivacy}</a> · <a href="/${lang}/terms" target="_blank" rel="noopener">${L.legalTerms}</a></p>
       </div>
       <div class="card"><h2>${L.shipping}</h2>
         <div class="cols">
