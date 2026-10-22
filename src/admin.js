@@ -1,6 +1,7 @@
 // Admin API (/api/admin/*), used by public/admin/. Protected by the ADMIN_PASSWORD secret:
 // logging in sets a signed, HttpOnly session cookie that lasts 7 days.
 
+import { sendEmail, sendStatusEmail, emailConfig, confirmationEmail, validEmail, STATUS_EMAILS } from './email.js';
 import { json, getSettings, slugify, STATUSES, RESTOCK_STATUSES, randomToken, parseJSON, displayPhone } from './lib.js';
 
 const SESSION_DAYS = 7;
@@ -9,6 +10,7 @@ const SETTING_KEYS = [
   'store_name', 'whatsapp', 'contact_email', 'shipping_fee', 'shipping_rates', 'free_shipping_over',
   'announcement_ar', 'announcement_fr', 'announcement_en',
   'hero_title_ar', 'hero_title_fr', 'hero_title_en', 'hero_text_ar', 'hero_text_fr', 'hero_text_en',
+  'email_from', 'notify_email', 'email_status_updates',
 ];
 
 async function hmacKey(secret) {
@@ -61,7 +63,7 @@ async function body(request) {
 
 const int = (v, fallback = null) => (v === '' || v == null || Number.isNaN(Number(v)) ? fallback : Math.round(Number(v)));
 
-export async function handleAdmin(request, env, url) {
+export async function handleAdmin(request, env, url, ctx) {
   const path = url.pathname.slice('/api/admin'.length);
   const method = request.method;
   const secret = env.ADMIN_PASSWORD;
@@ -88,22 +90,65 @@ export async function handleAdmin(request, env, url) {
   const db = env.DB;
   let m;
 
-  if (path === '/me') return json({ ok: true, images: Boolean(env.IMAGES) });
+  if (path === '/me') return json({ ok: true, images: Boolean(env.IMAGES), emails: Boolean(env.BREVO_API_KEY) });
 
   if (path === '/stats' && method === 'GET') {
-    const row = await db
-      .prepare(
+    // Dashboard numbers. Days are counted in Morocco time (UTC+1).
+    const day = "date(created_at, '+1 hour')";
+    const live = "status NOT IN ('cancelled', 'returned')";
+    const [kpi, daily, byStatus, top, cities, recent, low] = await db.batch([
+      db.prepare(
         `SELECT
           SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) AS new_orders,
-          SUM(CASE WHEN date(created_at) = date('now') THEN 1 ELSE 0 END) AS today,
-          SUM(CASE WHEN status = 'delivered' AND created_at > datetime('now', '-30 days') THEN total ELSE 0 END) AS revenue_30d,
+          SUM(CASE WHEN ${day} = date('now', '+1 hour') THEN 1 ELSE 0 END) AS today,
+          SUM(CASE WHEN ${day} = date('now', '+1 hour') AND ${live} THEN total ELSE 0 END) AS today_sales,
           SUM(CASE WHEN created_at > datetime('now', '-30 days') THEN 1 ELSE 0 END) AS orders_30d,
-          SUM(CASE WHEN status IN ('cancelled', 'returned') AND created_at > datetime('now', '-30 days') THEN 1 ELSE 0 END) AS failed_30d
+          SUM(CASE WHEN created_at > datetime('now', '-30 days') AND ${live} THEN total ELSE 0 END) AS sales_30d,
+          SUM(CASE WHEN created_at > datetime('now', '-30 days') AND status = 'delivered' THEN total ELSE 0 END) AS revenue_30d,
+          SUM(CASE WHEN created_at > datetime('now', '-30 days') AND status = 'delivered' THEN 1 ELSE 0 END) AS delivered_30d,
+          SUM(CASE WHEN created_at > datetime('now', '-30 days') AND status IN ('cancelled', 'returned') THEN 1 ELSE 0 END) AS failed_30d,
+          SUM(CASE WHEN created_at BETWEEN datetime('now', '-60 days') AND datetime('now', '-30 days') THEN 1 ELSE 0 END) AS orders_prev,
+          SUM(CASE WHEN created_at BETWEEN datetime('now', '-60 days') AND datetime('now', '-30 days') AND ${live} THEN total ELSE 0 END) AS sales_prev
         FROM orders`,
-      )
-      .first();
-    const low = await db.prepare('SELECT id, name_fr, stock FROM products WHERE active = 1 AND stock IS NOT NULL AND stock <= 3 ORDER BY stock LIMIT 10').all();
-    return json({ ...row, low_stock: low.results });
+      ),
+      db.prepare(`SELECT ${day} AS d, COUNT(*) AS orders, SUM(CASE WHEN ${live} THEN total ELSE 0 END) AS sales FROM orders WHERE created_at > datetime('now', '-30 days') GROUP BY d ORDER BY d`),
+      db.prepare("SELECT status, COUNT(*) AS n FROM orders WHERE created_at > datetime('now', '-30 days') GROUP BY status"),
+      db.prepare(
+        `SELECT i.product_id, i.name, SUM(i.qty) AS qty, SUM(i.qty * i.price) AS sales, (SELECT json_extract(p.images, '$[0]') FROM products p WHERE p.id = i.product_id) AS image
+         FROM order_items i JOIN orders o ON o.id = i.order_id
+         WHERE o.created_at > datetime('now', '-30 days') AND o.${live}
+         GROUP BY i.product_id, i.name ORDER BY qty DESC, sales DESC LIMIT 5`,
+      ),
+      db.prepare(`SELECT city, COUNT(*) AS n, SUM(total) AS sales FROM orders WHERE created_at > datetime('now', '-30 days') AND ${live} GROUP BY city ORDER BY n DESC LIMIT 5`),
+      db.prepare('SELECT id, number, status, name, city, total, created_at FROM orders ORDER BY id DESC LIMIT 6'),
+      db.prepare('SELECT id, name_fr, stock, images FROM products WHERE active = 1 AND stock IS NOT NULL AND stock <= 3 ORDER BY stock LIMIT 10'),
+    ]);
+    return json({
+      ...kpi.results[0],
+      daily: daily.results,
+      by_status: Object.fromEntries(byStatus.results.map((r) => [r.status, r.n])),
+      top_products: top.results,
+      top_cities: cities.results,
+      recent: recent.results,
+      low_stock: low.results,
+    });
+  }
+
+  // Sends a sample order confirmation to the notification address, to check the email setup.
+  if (path === '/test-email' && method === 'POST') {
+    const settings = await getSettings(db);
+    const cfg = emailConfig(env, settings);
+    if (!env.BREVO_API_KEY) return json({ error: 'no_email_key' }, 400);
+    if (!validEmail(cfg.from)) return json({ error: 'no_email_from' }, 400);
+    if (!validEmail(cfg.notify)) return json({ error: 'no_notify_email' }, 400);
+    const order = { id: 0, number: 'TEST-0000', token: 'test', lang: 'fr', name: 'Client test', phone: '212600000000', email: cfg.notify, city: 'Casablanca', address: 'Adresse test', note: '', shipping: 20, total: 220 };
+    const m = confirmationEmail({ order, items: [{ name: 'Produit test', option: '', price: 200, qty: 1 }], origin: url.origin, cfg, settings });
+    try {
+      await sendEmail(env, cfg, { to: cfg.notify, ...m, subject: `[Test] ${m.subject}` });
+    } catch (err) {
+      return json({ error: 'email_failed', detail: String(err.message).slice(0, 300) }, 502);
+    }
+    return json({ ok: true, to: cfg.notify });
   }
 
   // Orders
@@ -122,9 +167,10 @@ export async function handleAdmin(request, env, url) {
       const like = `%${q}%`;
       args.push(like, like, `%${q.replace(/\D/g, '').replace(/^0/, '') || q}%`, like);
     }
-    const sql = `SELECT id, number, status, name, phone, city, total, created_at FROM orders ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY id DESC LIMIT 50 OFFSET ?`;
+    const sql = `SELECT id, number, status, name, phone, email, city, total, created_at FROM orders ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY id DESC LIMIT 50 OFFSET ?`;
     const rows = await db.prepare(sql).bind(...args, (page - 1) * 50).all();
-    return json({ orders: rows.results.map((o) => ({ ...o, phone_display: displayPhone(o.phone) })), page });
+    const counts = await db.prepare('SELECT status, COUNT(*) AS n FROM orders GROUP BY status').all();
+    return json({ orders: rows.results.map((o) => ({ ...o, phone_display: displayPhone(o.phone) })), page, counts: Object.fromEntries(counts.results.map((r) => [r.status, r.n])) });
   }
 
   if (path === '/orders.csv' && method === 'GET') {
@@ -133,7 +179,7 @@ export async function handleAdmin(request, env, url) {
       .prepare(`SELECT o.*, (SELECT group_concat(name || CASE WHEN option != '' THEN ' (' || option || ')' ELSE '' END || ' x' || qty, ' + ') FROM order_items WHERE order_id = o.id) AS items FROM orders o ${STATUSES.includes(status) ? 'WHERE status = ?' : ''} ORDER BY id DESC LIMIT 5000`)
       .bind(...(STATUSES.includes(status) ? [status] : []))
       .all();
-    const cols = ['number', 'created_at', 'status', 'name', 'phone', 'city', 'address', 'items', 'subtotal', 'shipping', 'total', 'note', 'admin_note'];
+    const cols = ['number', 'created_at', 'status', 'name', 'phone', 'email', 'city', 'address', 'items', 'subtotal', 'shipping', 'total', 'note', 'admin_note'];
     const cell = (v) => {
       let s = String(v ?? '');
       if (/^[=+\-@]/.test(s)) s = `'${s}`; // stop spreadsheets from running a cell as a formula
@@ -175,7 +221,14 @@ export async function handleAdmin(request, env, url) {
         if (String(err).includes('CHECK')) return json({ error: 'not_enough_stock' }, 409);
         throw err;
       }
-      return json({ ok: true });
+      let emailed = false;
+      if (next !== order.status && order.email && b.notify !== false) {
+        const settings = await getSettings(db);
+        const items = await db.prepare('SELECT name, option, price, qty FROM order_items WHERE order_id = ?').bind(id).all();
+        emailed = emailConfig(env, settings).on && settings.email_status_updates !== '0' && STATUS_EMAILS.includes(next);
+        ctx.waitUntil(sendStatusEmail(env, settings, url.origin, { ...order, status: next }, items.results));
+      }
+      return json({ ok: true, emailed });
     }
   }
 

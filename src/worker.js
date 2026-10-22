@@ -7,6 +7,7 @@ import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, 
 
 const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
 import { handleAdmin } from './admin.js';
+import { sendOrderEmails, validEmail } from './email.js';
 
 const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',
@@ -41,8 +42,8 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     try {
-      if (path.startsWith('/api/admin/')) return await handleAdmin(request, env, url);
-      if (path.startsWith('/api/')) return await handleApi(request, env, url);
+      if (path.startsWith('/api/admin/')) return await handleAdmin(request, env, url, ctx);
+      if (path.startsWith('/api/')) return await handleApi(request, env, url, ctx);
       if (path.startsWith('/img/')) return await serveImage(env, path.slice(5), request);
       if (path === '/admin') return Response.redirect(`${url.origin}/admin/`, 301);
       if (path === '/sitemap.xml') return await sitemap(env, url.origin);
@@ -159,7 +160,7 @@ function publicLine(line, lang) {
   return { id: line.id, option: line.option, qty: line.qty, price: line.price, total: line.total, name: productName(p, lang), slug: p.slug, image: (JSON.parse(p.images || '[]')[0]) || '/assets/placeholder.svg', stock: p.stock };
 }
 
-async function handleApi(request, env, url) {
+async function handleApi(request, env, url, ctx) {
   const lang = LANGS.includes(url.searchParams.get('lang')) ? url.searchParams.get('lang') : DEFAULT_LANG;
 
   // POST /api/quote {items, city} → the cart priced by the server (the browser's copy is never trusted).
@@ -171,7 +172,7 @@ async function handleApi(request, env, url) {
     return json({ lines: q.lines.map((l) => publicLine(l, lang)), subtotal: q.subtotal, shipping: q.shipping, total: q.total, issues: q.issues, freeOver: Number(settings.free_shipping_over) || 0 });
   }
 
-  // POST /api/orders {items, name, phone, city, address, note, lang} → a cash-on-delivery order.
+  // POST /api/orders {items, name, phone, email, city, address, note, lang} → a cash-on-delivery order.
   if (url.pathname === '/api/orders' && request.method === 'POST') {
     const body = await readJSON(request);
     if (!body) return json({ error: 'bad_request' }, 400);
@@ -182,7 +183,9 @@ async function handleApi(request, env, url) {
     let city = String(body.city || '').trim().slice(0, 60);
     const address = String(body.address || '').trim().slice(0, 300);
     const note = String(body.note || '').trim().slice(0, 500);
+    const email = String(body.email || '').trim().slice(0, 254);
     const errors = {};
+    if (email && !validEmail(email)) errors.email = 'email';
     if (name.length < 2) errors.name = 'required';
     if (!phone) errors.phone = 'phone';
     if (!city) errors.city = 'required';
@@ -204,8 +207,8 @@ async function handleApi(request, env, url) {
     const token = randomToken();
     const statements = [
       db
-        .prepare('INSERT INTO orders (number, token, status, name, phone, city, address, note, lang, subtotal, shipping, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        .bind(number, token, 'new', name, phone, city, address, note, orderLang, q.subtotal, q.shipping, q.total),
+        .prepare('INSERT INTO orders (number, token, status, name, phone, email, city, address, note, lang, subtotal, shipping, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(number, token, 'new', name, phone, email, city, address, note, orderLang, q.subtotal, q.shipping, q.total),
     ];
     for (const l of q.lines) {
       statements.push(
@@ -222,6 +225,10 @@ async function handleApi(request, env, url) {
       if (String(err).includes('CHECK')) return json({ error: 'cart_changed', issues: [{ issue: 'stock' }] }, 409);
       throw err;
     }
+    // Confirmation to the customer and an alert to the store, sent after the response so checkout stays fast.
+    const saved = await db.prepare('SELECT * FROM orders WHERE number = ?').bind(number).first();
+    const items = q.lines.map((l) => ({ name: productName(l.product, orderLang), option: l.option, price: l.price, qty: l.qty }));
+    ctx.waitUntil(sendOrderEmails(env, settings, url.origin, saved, items));
     if (env.ORDER_WEBHOOK) {
       // Optional: notify a webhook (Telegram bot, Slack, Make, Zapier…) about the new order.
       const text = `Nouvelle commande ${number}: ${name}, ${city}, ${q.total} DH`;

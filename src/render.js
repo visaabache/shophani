@@ -100,7 +100,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
 <link rel="stylesheet" href="/assets/style.css?v=3">
 <script src="/assets/js-on.js"></script>
-<script src="/assets/store.js?v=2" defer></script>
+<script src="/assets/store.js?v=3" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>
@@ -390,6 +390,7 @@ export function checkoutPage(ctx) {
       <h2>${esc(t.yourDetails)}</h2>
       <label>${esc(t.fullName)}<input name="name" autocomplete="name" required maxlength="80"></label>
       <label>${esc(t.phone)}<input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="${esc(t.phoneHint)}" required maxlength="20" dir="ltr"></label>
+      <label>${esc(t.email)}<input name="email" type="email" inputmode="email" autocomplete="email" placeholder="${esc(t.emailHint)}" maxlength="254" dir="ltr"></label>
       <label>${esc(t.city)}<select name="city" required><option value="">${esc(t.chooseCity)}</option>${cities}<option value="__other">${esc(t.otherCity)}</option></select></label>
       <label class="other-city" hidden>${esc(t.otherCity)}<input name="city_other" maxlength="60"></label>
       <label>${esc(t.address)}<textarea name="address" rows="2" placeholder="${esc(t.addressHint)}" required maxlength="300"></textarea></label>

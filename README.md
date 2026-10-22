@@ -49,6 +49,16 @@ In the admin, go to **Réglages** and set the store name, your WhatsApp number, 
 
 When you change the database later, add a new file to `migrations/` (for example `0003_….sql`) and run `npm run db:migrate`.
 
+### Order emails (free, optional)
+
+The store sends emails through [Brevo](https://www.brevo.com), whose free plan allows 300 emails a day. When an order comes in, the customer gets a confirmation in their language, if they entered an email at checkout. You get a new-order alert. Customers also get an email when you mark their order confirmed, shipped, delivered or cancelled.
+
+1. Create a free Brevo account. Under **Senders, domains & dedicated IPs**, add the address you'll send from (a Gmail address works) and click the verification link.
+2. Under **SMTP & API → API keys**, create a key, then run `npx wrangler secret put BREVO_API_KEY` and paste the key when asked.
+3. In the admin, go to **Réglages → E-mails automatiques**. Enter the sender address and the address that should receive the alerts, then click **Envoyer un test**.
+
+Once shophani.shop is bought, verify the domain in Brevo and send from an address like `commandes@shophani.shop`. That lands in inboxes more reliably than a Gmail sender.
+
 ### Optional: get notified of each new order
 
 Set `ORDER_WEBHOOK` (`npx wrangler secret put ORDER_WEBHOOK`) to a URL that accepts a JSON POST, such as a Make/Zapier webhook or a Slack incoming webhook. Each order sends `{ text, number, total, city }`.

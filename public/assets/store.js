@@ -328,6 +328,7 @@
       for (const [input, ok, msg] of [
         [f.name, f.name.value.trim().length >= 2, i18n.required],
         [f.phone, phoneOk(f.phone.value), i18n.badPhone],
+        [f.email, !f.email.value.trim() || /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(f.email.value.trim()), i18n.badEmail],
         [f.city, Boolean(selectedCity()), i18n.required],
         [f.address, f.address.value.trim().length >= 4, i18n.required],
       ]) {
@@ -347,6 +348,7 @@
             items: load().map(({ id, option, qty }) => ({ id, option, qty })),
             name: f.name.value,
             phone: f.phone.value,
+            email: f.email.value,
             city: selectedCity(),
             address: f.address.value,
             note: f.note.value,
@@ -363,7 +365,7 @@
         if (res.status === 409) {
           await refresh();
         } else if (res.status === 422 && data.fields) {
-          for (const [k, v] of Object.entries(data.fields)) if (f[k]) fieldError(f[k], v === 'phone' ? i18n.badPhone : i18n.required);
+          for (const [k, v] of Object.entries(data.fields)) if (f[k]) fieldError(f[k], v === 'phone' ? i18n.badPhone : v === 'email' ? i18n.badEmail : i18n.required);
         } else {
           err.textContent = i18n.error;
           err.hidden = false;
