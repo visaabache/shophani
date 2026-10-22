@@ -98,8 +98,10 @@
       name: 'الاسم', priceStock: 'الثمن والمخزون',
       price: 'الثمن (درهم)', comparePrice: 'الثمن القديم (مشطوب، اختياري)', stock: 'المخزون (فارغ = غير محدود)', category: 'الصنف',
       options: 'الخيارات (المقاسات، الألوان…) مفصولة بفواصل',
-      photos: 'الصور', addPhotos: 'إضافة صور',
-      noR2: 'لرفع الصور من هاتفك، فعّل تخزين R2 (انظر README). في الانتظار، الصق روابط الصور أسفله.',
+      photos: 'الصور', addPhotos: 'اختيار صور', takePhoto: 'التقاط صورة',
+      dropHere: 'اسحب الصور هنا أو اخترها من جهازك', dropHint: 'JPG، PNG، WEBP… تُصغَّر تلقائيًا قبل الرفع. الصورة الأولى هي الرئيسية.',
+      mainPhoto: 'رئيسية', moveBefore: 'تقديم', moveAfter: 'تأخير', pasteLinks: 'أو الصق روابط صور',
+      uploadFailed: (n) => `تعذّر رفع ${n}`, notImage: (n) => `${n} ليس صورة مدعومة`, waitUploads: 'انتظر حتى ينتهي رفع الصور.',
       photoLinks: 'روابط الصور (رابط في كل سطر)', remove: 'حذف',
       description: 'الوصف', display: 'العرض',
       slug: 'رابط الصفحة (slug)', auto: 'تلقائي', sort: 'ترتيب العرض',
@@ -228,8 +230,10 @@
       name: 'Nom', priceStock: 'Prix et stock',
       price: 'Prix (DH)', comparePrice: 'Ancien prix (barré, facultatif)', stock: 'Stock (vide = illimité)', category: 'Catégorie',
       options: 'Options (tailles, couleurs…) séparées par des virgules',
-      photos: 'Photos', addPhotos: 'Ajouter des photos',
-      noR2: 'Pour envoyer des photos depuis votre téléphone, activez le stockage R2 (voir README). En attendant, collez des liens d’images ci-dessous.',
+      photos: 'Photos', addPhotos: 'Choisir des photos', takePhoto: 'Prendre une photo',
+      dropHere: 'Glissez vos photos ici ou choisissez-les sur votre appareil', dropHint: 'JPG, PNG, WEBP… réduites automatiquement avant l’envoi. La première photo est la photo principale.',
+      mainPhoto: 'Principale', moveBefore: 'Avancer', moveAfter: 'Reculer', pasteLinks: 'Ou collez des liens d’images',
+      uploadFailed: (n) => `Échec de l’envoi de ${n}`, notImage: (n) => `${n} n’est pas une image prise en charge`, waitUploads: 'Attendez la fin de l’envoi des photos.',
       photoLinks: 'Liens des photos (un par ligne)', remove: 'Retirer',
       description: 'Description', display: 'Affichage',
       slug: 'Adresse de la page (slug)', auto: 'automatique', sort: 'Ordre d’affichage',
@@ -328,6 +332,8 @@
     plus: '<path d="M12 5v14M5 12h14"/>',
     arrow: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
+    camera: '<path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/>',
+    chevron: '<path d="m15 6-6 6 6 6"/>',
   };
   const icon = (n, s = 20) => `<svg class="i i-${n}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
 
@@ -716,8 +722,15 @@
       ${field('options', L.options, 'placeholder="S, M, L, XL"')}</div>
       <div class="card"><h2>${L.photos}</h2>
         <div class="photos" id="photos"></div>
-        ${state.images ? `<label class="btn ghost upload">${L.addPhotos}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple hidden></label>` : `<p class="muted small">${L.noR2}</p>`}
-        <label>${L.photoLinks}<textarea name="images" rows="2" dir="ltr">${esc(images.join('\n'))}</textarea></label>
+        <div class="drop" id="drop">
+          <p><strong>${L.dropHere}</strong><br><span class="muted small">${L.dropHint}</span></p>
+          <div class="actions">
+            <label class="btn">${icon('plus', 18)}<span>${L.addPhotos}</span><input type="file" accept="image/*" multiple hidden data-pick></label>
+            <label class="btn ghost camera">${icon('camera', 18)}<span>${L.takePhoto}</span><input type="file" accept="image/*" capture="environment" hidden data-pick></label>
+          </div>
+        </div>
+        <details${images.some((u) => /^https?:/.test(u)) ? ' open' : ''}><summary class="muted small">${L.pasteLinks}</summary>
+        <label>${L.photoLinks}<textarea name="images" rows="2" dir="ltr">${esc(images.join('\n'))}</textarea></label></details>
       </div>
       <div class="card"><h2>${L.description}</h2>
         ${contentLangs().map((l) => area(`desc_${l}`, LANG_LABEL[l], dirOf(l))).join('')}
@@ -732,9 +745,22 @@
     </form>`,
     );
     const f = document.getElementById('pform');
+    const list = () => f.images.value.split('\n').map((x) => x.trim()).filter(Boolean);
+    const setList = (arr) => {
+      f.images.value = arr.join('\n');
+      drawPhotos();
+    };
+    let pending = []; // {id, name, preview} while uploading
+    let dragFrom = null;
     const drawPhotos = () => {
-      const list = f.images.value.split('\n').map((s) => s.trim()).filter(Boolean);
-      document.getElementById('photos').innerHTML = list.map((u, i) => `<figure><img src="${esc(u)}" alt=""><button type="button" class="link" data-rm="${i}">${L.remove}</button></figure>`).join('');
+      const urls = list();
+      document.getElementById('photos').innerHTML =
+        urls
+          .map(
+            (u, i) => `<figure draggable="true" data-i="${i}">${i === 0 ? `<span class="main-badge">${L.mainPhoto}</span>` : ''}<img src="${esc(u)}" alt="" loading="lazy">
+            <div class="tile-actions">${i > 0 ? `<button type="button" data-move="${i}" data-by="-1" title="${L.moveBefore}" aria-label="${L.moveBefore}">${icon('chevron', 16)}</button>` : '<span></span>'}<button type="button" data-rm="${i}" title="${L.remove}" aria-label="${L.remove}">✕</button>${i < urls.length - 1 ? `<button type="button" data-move="${i}" data-by="1" class="flip" title="${L.moveAfter}" aria-label="${L.moveAfter}">${icon('chevron', 16)}</button>` : '<span></span>'}</div></figure>`,
+          )
+          .join('') + pending.map((x) => `<figure class="uploading"><img src="${x.preview}" alt=""><span class="spinner"></span></figure>`).join('');
     };
     drawPhotos();
     f.images.addEventListener('input', drawPhotos);
@@ -742,10 +768,17 @@
       if (e.target.closest('[data-back]')) products();
       const rm = e.target.closest('[data-rm]');
       if (rm) {
-        const list = f.images.value.split('\n').map((s) => s.trim()).filter(Boolean);
-        list.splice(Number(rm.dataset.rm), 1);
-        f.images.value = list.join('\n');
-        drawPhotos();
+        const arr = list();
+        arr.splice(Number(rm.dataset.rm), 1);
+        setList(arr);
+      }
+      const mv = e.target.closest('[data-move]');
+      if (mv) {
+        const arr = list();
+        const i = Number(mv.dataset.move);
+        const j = i + Number(mv.dataset.by);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        setList(arr);
       }
       if (e.target.closest('[data-delete]') && confirm(L.confirmDeleteProduct)) {
         await api(`/products/${p.id}`, { method: 'DELETE' });
@@ -753,21 +786,92 @@
         products();
       }
     });
-    f.querySelector('input[type=file]')?.addEventListener('change', async (e) => {
-      for (const file of e.target.files) {
+    // Drag tiles to reorder them.
+    const grid = document.getElementById('photos');
+    grid.addEventListener('dragstart', (e) => {
+      const fig = e.target.closest('figure[data-i]');
+      if (fig) dragFrom = Number(fig.dataset.i);
+    });
+    grid.addEventListener('dragover', (e) => {
+      if (dragFrom != null) e.preventDefault();
+    });
+    grid.addEventListener('drop', (e) => {
+      const fig = e.target.closest('figure[data-i]');
+      if (dragFrom == null || !fig) return;
+      e.preventDefault();
+      const arr = list();
+      const [moved] = arr.splice(dragFrom, 1);
+      arr.splice(Number(fig.dataset.i), 0, moved);
+      dragFrom = null;
+      setList(arr);
+    });
+    grid.addEventListener('dragend', () => (dragFrom = null));
+
+    // Uploads: each photo is shrunk in the browser (longest side 1600 px, WebP or JPEG) and sent as it is.
+    async function shrink(file) {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close?.();
+      const encode = (type, q) => new Promise((r) => canvas.toBlob(r, type, q));
+      let blob = await encode('image/webp', 0.84);
+      if (!blob || blob.type !== 'image/webp') blob = await encode('image/jpeg', 0.85); // Safari without WebP encoding
+      for (let q = 0.75; blob.size > 1.5 * 1024 * 1024 && q > 0.4; q -= 0.15) blob = await encode(blob.type, q);
+      return blob;
+    }
+    async function upload(files) {
+      const jobs = [...files].map((file) => ({ file, id: Math.random(), name: file.name || 'photo', preview: URL.createObjectURL(file) }));
+      pending.push(...jobs);
+      drawPhotos();
+      const next = async () => {
+        const job = jobs.shift();
+        if (!job) return;
         try {
-          toast(L.uploading(file.name));
-          const { url } = await api('/images', { method: 'POST', raw: file });
-          f.images.value = [...f.images.value.split('\n').filter((s) => s.trim()), url].join('\n');
-          drawPhotos();
+          if (!job.file.type.startsWith('image/') && !/\.(heic|heif)$/i.test(job.name)) throw new Error(L.notImage(job.name));
+          let blob;
+          try {
+            blob = await shrink(job.file);
+          } catch {
+            throw new Error(L.notImage(job.name));
+          }
+          const { url } = await api('/images', { method: 'POST', raw: blob });
+          f.images.value = [...list(), url].join('\n');
         } catch (err) {
-          toast(err.message, true);
+          toast(err.message || L.uploadFailed(job.name), true);
         }
-      }
-      e.target.value = '';
+        pending = pending.filter((x) => x.id !== job.id);
+        URL.revokeObjectURL(job.preview);
+        drawPhotos();
+        await next();
+      };
+      await Promise.all([next(), next(), next()]);
+    }
+    f.querySelectorAll('[data-pick]').forEach((input) =>
+      input.addEventListener('change', () => {
+        upload(input.files);
+        input.value = '';
+      }),
+    );
+    const drop = document.getElementById('drop');
+    ['dragenter', 'dragover'].forEach((t) =>
+      drop.addEventListener(t, (e) => {
+        if (![...e.dataTransfer.types].includes('Files')) return;
+        e.preventDefault();
+        drop.classList.add('over');
+      }),
+    );
+    ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, () => drop.classList.remove('over')));
+    drop.addEventListener('drop', (e) => {
+      if (!e.dataTransfer.files.length) return;
+      e.preventDefault();
+      upload(e.dataTransfer.files);
     });
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (pending.length) return toast(L.waitUploads, true);
       const data = Object.fromEntries(new FormData(f));
       data.featured = f.featured.checked;
       data.active = f.active.checked;

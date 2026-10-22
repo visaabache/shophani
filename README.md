@@ -43,7 +43,7 @@ npx wrangler secret put ADMIN_PASSWORD # choose a long password for /admin/
 
 In the admin, go to **Réglages** and set the store name, your WhatsApp number, the shipping prices and the announcement bar.
 
-**Photo uploads (optional):** uploading photos from the admin uses R2. Cloudflare asks for a payment card before turning R2 on, even though the first 10 GB are free. Until then, paste image links in the product form. To turn it on, see the comment in `wrangler.jsonc`.
+**Photo uploads:** in the product form, pick photos from your phone, tablet or computer, take one with the camera, or drag them in. Each photo is shrunk in the browser (longest side 1600 px) and stored in D1, so no extra service or payment card is needed; D1's free 5 GB holds thousands of photos. If you turn on R2 later (see the comment in `wrangler.jsonc`), new uploads go there instead and the old ones keep working.
 
 **Your own domain (later):** once shophani.shop is bought, add it to Cloudflare (point its nameservers to Cloudflare at the registrar), add the `routes` line shown in `wrangler.jsonc`, and run `npm run deploy` again.
 

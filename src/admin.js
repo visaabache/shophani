@@ -90,7 +90,7 @@ export async function handleAdmin(request, env, url, ctx) {
   const db = env.DB;
   let m;
 
-  if (path === '/me') return json({ ok: true, images: Boolean(env.IMAGES), emails: Boolean(env.BREVO_API_KEY) });
+  if (path === '/me') return json({ ok: true, images: true, r2: Boolean(env.IMAGES), emails: Boolean(env.BREVO_API_KEY) });
 
   if (path === '/stats' && method === 'GET') {
     // Dashboard numbers. Days are counted in Morocco time (UTC+1).
@@ -275,18 +275,19 @@ export async function handleAdmin(request, env, url, ctx) {
     return json({ ok: true });
   }
 
-  // Image upload: raw file body → R2 → /img/<key>
+  // Image upload: raw file body → R2 when it is set up, otherwise the images table in D1 → /img/<key>
   if (path === '/images' && method === 'POST') {
-    if (!env.IMAGES) return json({ error: 'no_r2' }, 503);
     const type = (request.headers.get('content-type') || '').split(';')[0];
     const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif', 'image/gif': 'gif' }[type];
     if (!ext) return json({ error: 'bad_type' }, 415);
     const data = await request.arrayBuffer();
-    if (data.byteLength > 5 * 1024 * 1024) return json({ error: 'too_large' }, 413);
+    if (data.byteLength > (env.IMAGES ? 5 : 1.8) * 1024 * 1024) return json({ error: 'too_large' }, 413);
     const key = `p/${Date.now().toString(36)}-${randomToken(6)}.${ext}`;
-    await env.IMAGES.put(key, data, { httpMetadata: { contentType: type } });
+    if (env.IMAGES) await env.IMAGES.put(key, data, { httpMetadata: { contentType: type } });
+    else await db.prepare('INSERT INTO images (key, type, data, size) VALUES (?, ?, ?, ?)').bind(key, type, data, data.byteLength).run();
     return json({ url: `/img/${key}` }, 201);
   }
+
 
   return json({ error: 'not_found' }, 404);
 }

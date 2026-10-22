@@ -1,5 +1,5 @@
 // Store Worker: renders the storefront (/ar, /fr, /en), serves the order API (/api/*),
-// the admin API (/api/admin/*), product photos from R2 (/img/*) and static files (public/).
+// the admin API (/api/admin/*), product photos from R2 or D1 (/img/*) and static files (public/).
 
 import { T } from './i18n.js';
 import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName } from './lib.js';
@@ -241,16 +241,22 @@ async function handleApi(request, env, url, ctx) {
 }
 
 async function serveImage(env, key, request) {
-  if (!env.IMAGES || !/^[a-z0-9/_-]+\.(jpe?g|png|webp|gif|avif)$/i.test(key)) return new Response('Not found', { status: 404 });
-  const obj = await env.IMAGES.get(key);
-  if (!obj) return new Response('Not found', { status: 404 });
-  const headers = new Headers();
-  obj.writeHttpMetadata(headers);
-  headers.set('etag', obj.httpEtag);
-  headers.set('cache-control', 'public, max-age=31536000, immutable');
-  headers.set('x-content-type-options', 'nosniff');
-  if (request.headers.get('if-none-match') === obj.httpEtag) return new Response(null, { status: 304, headers });
-  return new Response(obj.body, { headers });
+  if (!/^[a-z0-9/_-]+\.(jpe?g|png|webp|gif|avif)$/i.test(key)) return new Response('Not found', { status: 404 });
+  const headers = new Headers({ 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' });
+  // Keys are never reused, so a browser that already has the photo can skip the download.
+  if (request.headers.get('if-none-match') === `"${key}"`) return new Response(null, { status: 304, headers });
+  const obj = env.IMAGES ? await env.IMAGES.get(key) : null;
+  if (obj) {
+    obj.writeHttpMetadata(headers);
+    headers.set('etag', `"${key}"`);
+    return new Response(obj.body, { headers });
+  }
+  // Photos uploaded before R2 was set up (or without it) live in D1.
+  const row = await env.DB.prepare('SELECT type, data FROM images WHERE key = ?').bind(key).first();
+  if (!row) return new Response('Not found', { status: 404 });
+  headers.set('content-type', row.type);
+  headers.set('etag', `"${key}"`);
+  return new Response(new Uint8Array(row.data), { headers });
 }
 
 async function sitemap(env, origin) {
