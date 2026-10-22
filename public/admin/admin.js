@@ -125,6 +125,12 @@
       weakPassword: 'كلمة سر الإدارة قصيرة. استعمل 12 حرفًا على الأقل (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'مواقع التواصل',
       socialHint: 'الصق رابط الصفحة أو اسم الحساب فقط (مثلا @shophani). تظهر الأيقونات أسفل المتجر.',
+      pixels: 'بيكسل الإعلانات',
+      pixelsHint: 'الصق رقم البيكسل فقط، وليس الكود كاملًا. لا يُحمَّل أي بيكسل إلا بعد موافقة الزائر على ملفات الارتباط.',
+      metaPixel: 'رقم Meta Pixel (فيسبوك وإنستغرام)',
+      metaHow: 'فيسبوك: Meta Events Manager ← مصادر البيانات ← اختر البيكسل ← الرقم (Dataset ID) من 15 أو 16 رقمًا.',
+      tiktokPixel: 'رقم TikTok Pixel',
+      tiktokHow: 'تيك توك: TikTok Ads Manager ← Tools ← Events ← Web Events ← البيكسل ← الرقم (مثل C4ABC…).',
       legal: 'معلومات الشركة (للصفحات القانونية)',
       legalHint: 'تظهر في صفحتي «سياسة الخصوصية» و«شروط البيع». النصوص نسخة أولية، يُستحسن مراجعتها من طرف محاسب أو مختص قانوني.',
       legalName: 'الاسم القانوني (شركة أو مقاول ذاتي)',
@@ -272,6 +278,12 @@
       weakPassword: 'Le mot de passe admin est court. Utilisez au moins 12 caractères (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'Réseaux sociaux',
       socialHint: 'Collez le lien de la page ou juste le nom du compte (ex. @shophani). Les icônes s’affichent en bas de la boutique.',
+      pixels: 'Pixels publicitaires',
+      pixelsHint: 'Collez seulement l’identifiant, pas le code complet. Aucun pixel n’est chargé tant que le visiteur n’a pas accepté les cookies.',
+      metaPixel: 'ID Meta Pixel (Facebook et Instagram)',
+      metaHow: 'Facebook : Meta Events Manager → Sources de données → votre pixel → l’ID (Dataset ID) de 15 ou 16 chiffres.',
+      tiktokPixel: 'ID TikTok Pixel',
+      tiktokHow: 'TikTok : TikTok Ads Manager → Tools → Events → Web Events → votre pixel → l’ID (ex. C4ABC…).',
       legal: 'Informations légales',
       legalHint: 'Affichées dans la politique de confidentialité et les conditions de vente. Ces textes sont un projet : faites-les relire par un comptable ou un juriste.',
       legalName: 'Raison sociale ou nom (auto-entrepreneur)',
@@ -983,6 +995,10 @@
         ${field('facebook', 'Facebook', 'dir="ltr" placeholder="https://facebook.com/…"')}
         ${field('tiktok', 'TikTok', 'dir="ltr" placeholder="@…"')}
       </div></div>
+      <div class="card"><h2>${L.pixels}</h2><p class="muted small">${L.pixelsHint}</p><div class="cols">
+        <div>${field('meta_pixel_id', L.metaPixel, 'dir="ltr" inputmode="numeric" pattern="[0-9]{8,20}" placeholder="123456789012345"')}<p class="muted small">${L.metaHow}</p></div>
+        <div>${field('tiktok_pixel_id', L.tiktokPixel, 'dir="ltr" pattern="[A-Za-z0-9]{10,30}" placeholder="C4ABCDEFGHIJ1234567"')}<p class="muted small">${L.tiktokHow}</p></div>
+      </div></div>
       <div class="card"><h2>${L.legal}</h2><p class="muted small">${L.legalHint}</p><div class="cols">
         ${field('legal_name', L.legalName)}
         ${field('legal_ice', L.legalIce, 'dir="ltr" inputmode="numeric"')}
@@ -1020,6 +1036,8 @@
       data.shipping_rates = JSON.stringify(map);
       data.whatsapp = data.whatsapp.replace(/\D/g, '').replace(/^0(?=[5-7])/, '212');
       data.email_status_updates = f.email_status_updates.checked ? '1' : '0';
+      data.meta_pixel_id = data.meta_pixel_id.trim();
+      data.tiktok_pixel_id = data.tiktok_pixel_id.trim().toUpperCase();
       await api('/settings', { method: 'PUT', body: data });
       state.settings = (await api('/settings')).settings;
     };

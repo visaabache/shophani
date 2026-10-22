@@ -5,6 +5,7 @@ import { T } from './i18n.js';
 import { PHOTO_CREDITS } from './credits.js';
 import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
 import { legalDoc } from './legal.js';
+import { pixelConfig } from './pixels.js';
 import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
@@ -112,9 +113,11 @@ function srcset(url) {
   return s !== url ? ` srcset="${esc(s)} 480w, ${esc(url)} 1000w"` : '';
 }
 
-export function layout(ctx, { title, description = '', path, body, noindex = false, image = '', page = '', product = null }) {
+export function layout(ctx, { title, description = '', path, body, noindex = false, image = '', page = '', product = null, track = null }) {
   const { lang, settings, origin, categories = [] } = ctx;
   const t = T[lang];
+  const px = pixelConfig(settings);
+  const pixels = px.meta || px.tiktok;
   const store = settings.store_name || 'Shophani';
   const fullTitle = title ? `${title} · ${store}` : `${store} · ${t.tagline}`;
   const announcement = settings[`announcement_${lang}`] || '';
@@ -153,9 +156,11 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=4">
+<link rel="stylesheet" href="/assets/style.css?v=5">
 <script src="/assets/js-on.js"></script>
-<script src="/assets/store.js?v=5" defer></script>
+${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
+<script src="/assets/pixels.js?v=1" defer></script>` : ''}
+<script src="/assets/store.js?v=6" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>
@@ -201,7 +206,7 @@ ${body}
       </ul>
     </div>
   </div>
-  <div class="wrap foot-bottom"><span>© ${new Date().getUTCFullYear()} ${esc(store)}. ${esc(t.rights)}</span><span class="langs">${langLinks}</span></div>
+  <div class="wrap foot-bottom"><span>© ${new Date().getUTCFullYear()} ${esc(store)}. ${esc(t.rights)}</span>${pixels ? `<button type="button" class="link-btn" data-consent-open>${esc(t.cookieSettings)}</button>` : ''}<span class="langs">${langLinks}</span></div>
 </footer>
 <nav class="tabbar" aria-label="${esc(t.shop)}">
   <a href="/${lang}/"${page === 'home' ? ' aria-current="page"' : ''}>${icon('home')}<span>${esc(t.home)}</span></a>
@@ -211,6 +216,7 @@ ${body}
 </nav>
 ${waWidget(ctx, product)}
 <div class="toast" role="status" aria-live="polite" hidden></div>
+${pixels ? `<div class="consent-bar" id="consent" role="dialog" aria-label="${esc(t.cookieSettings)}" hidden><p>${esc(t.consentAds)} <a href="/${lang}/privacy#s7">${esc(t.privacy)}</a></p><div><button type="button" class="btn btn-outline" data-consent="no">${esc(t.refuse)}</button><button type="button" class="btn" data-consent="yes">${esc(t.accept)}</button></div></div>` : ''}
 <script type="application/json" id="i18n">${JSON.stringify({ ...t.js, lang }).replace(/</g, '\\u003c')}</script>
 </body>
 </html>`;
@@ -416,7 +422,7 @@ ${soldOut ? '' : `<div class="buy-bar" aria-hidden="true"><div><strong>${esc(mon
 <div class="wrap">${trust(lang, 'trust-row')}</div>
 ${related.length ? `<section class="section wrap">${sectionHead(t.featured, t.shop, `/${lang}/shop`, t.viewAll)}${grid(related, lang, '')}</section>` : ''}
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
-  return layout(ctx, { title: name, description: desc.slice(0, 160), path: `/p/${p.slug}`, body, image: images[0], page: 'product', product: { name, price: money(p.price, lang), slug: p.slug } });
+  return layout(ctx, { title: name, description: desc.slice(0, 160), path: `/p/${p.slug}`, body, image: images[0], page: 'product', product: { name, price: money(p.price, lang), slug: p.slug }, track: { event: 'ViewContent', value: p.price, items: [{ id: p.id, name, price: p.price, qty: 1 }] } });
 }
 
 function stepsBar(lang, current) {
@@ -500,7 +506,7 @@ export function orderPage(ctx, order, items) {
   </div>
   <p class="center actions"><a class="btn btn-outline" href="/${lang}/shop">${esc(t.continueShopping)}</a>${wa ? ` <a class="btn btn-wa" href="${esc(wa)}" rel="noopener">${waIcon(20)} ${esc(t.whatsappUs)}</a>` : ''}</p>
 </section>`;
-  return layout(ctx, { title: t.thanks, path: '/', body, noindex: true, page: 'order' });
+  return layout(ctx, { title: t.thanks, path: '/', body, noindex: true, page: 'order', track: { event: 'Purchase', id: order.number, value: order.total, items: items.map((i) => ({ id: i.product_id, name: i.name, price: i.price, qty: i.qty })) } });
 }
 
 export function creditsPage(ctx) {

@@ -3,6 +3,7 @@
 // should have them checked by a professional. Company details come from the admin settings.
 
 import { esc } from './lib.js';
+import { pixelConfig } from './pixels.js';
 
 const MISSING = { fr: 'à compléter', en: 'to be completed', ar: 'يُستكمل' };
 
@@ -17,6 +18,10 @@ function info(settings, lang) {
     address: v('legal_address'),
     cndp: v('legal_cndp'),
     email: settings.contact_email ? `<a href="mailto:${esc(settings.contact_email)}">${esc(settings.contact_email)}</a>` : `<mark>[${MISSING[lang]}]</mark>`,
+    pixels: (() => {
+      const px = pixelConfig(settings);
+      return [px.meta && 'Meta Pixel (Facebook, Instagram)', px.tiktok && 'TikTok Pixel'].filter(Boolean).join(lang === 'ar' ? ' و' : lang === 'fr' ? ' et ' : ' and ');
+    })(),
     whatsapp: wa ? `<a href="https://wa.me/${wa}" dir="ltr">+${wa}</a>` : `<mark>[${MISSING[lang]}]</mark>`,
   };
 }
@@ -31,7 +36,7 @@ const PRIVACY = {
       ['Qui peut y accéder', '<ul><li>Notre équipe, pour traiter votre commande.</li><li>La société de livraison, qui reçoit uniquement votre nom, téléphone, adresse et le montant à encaisser.</li><li>Nos prestataires techniques : l’hébergeur du site (Cloudflare) et le service d’envoi d’e-mails (Brevo). Ils agissent sur nos instructions et peuvent stocker des données hors du Maroc, avec des garanties de sécurité adaptées.</li></ul>'],
       ['Combien de temps nous les gardons', '<p>Les données de commande sont conservées le temps nécessaire au traitement de la commande et au service après-vente, puis archivées pendant la durée imposée par la loi pour les documents comptables (10 ans). Elles sont ensuite supprimées.</p>'],
       ['Vos droits', `<p>Conformément à la loi 09-08, vous disposez d’un droit d’accès, de rectification et d’opposition, pour des motifs légitimes, au traitement de vos données. Pour l’exercer, écrivez-nous à ${i.email} ou sur WhatsApp ${i.whatsapp}. Nous répondons dans les meilleurs délais.</p><p>Vous pouvez aussi adresser une réclamation à la Commission nationale de contrôle de la protection des données à caractère personnel (CNDP) : <a href="https://www.cndp.ma" rel="noopener">www.cndp.ma</a>.</p>`],
-      ['Cookies et stockage', '<p>Le site n’utilise pas de cookies publicitaires ni de suivi. Il enregistre seulement votre choix de langue (cookie) et le contenu de votre panier dans votre navigateur (stockage local). Les polices d’écriture sont chargées depuis Google Fonts.</p>'],
+      ['Cookies et stockage', i.pixels ? `<p>Le site enregistre votre choix de langue (cookie) et le contenu de votre panier dans votre navigateur (stockage local). Les polices d’écriture sont chargées depuis Google Fonts.</p><p><strong>Publicité :</strong> si vous l’acceptez dans la bannière, nous utilisons ${i.pixels} pour mesurer l’efficacité de nos publicités (pages vues, ajouts au panier, commandes et leur montant). Ces sociétés déposent leurs propres cookies et peuvent traiter ces données hors du Maroc. Nous ne leur transmettons ni votre nom, ni votre téléphone, ni votre adresse. Sans votre accord, aucun pixel n’est chargé. Vous pouvez changer d’avis à tout moment avec le lien « Cookies » en bas de chaque page.</p>` : '<p>Le site n’utilise pas de cookies publicitaires ni de suivi. Il enregistre seulement votre choix de langue (cookie) et le contenu de votre panier dans votre navigateur (stockage local). Les polices d’écriture sont chargées depuis Google Fonts.</p>'],
       ['Sécurité', '<p>Le site est servi en HTTPS. L’accès à l’administration est protégé par mot de passe et réservé à notre équipe.</p>'],
       ['Modifications', '<p>Nous pouvons mettre à jour cette politique. La date de dernière mise à jour figure en haut de la page.</p>'],
     ],
@@ -45,7 +50,7 @@ const PRIVACY = {
       ['Who can access it', '<ul><li>Our team, to process your order.</li><li>The delivery company, which only receives your name, phone, address and the amount to collect.</li><li>Our technical providers: the site host (Cloudflare) and the email service (Brevo). They act on our instructions and may store data outside Morocco, with appropriate security safeguards.</li></ul>'],
       ['How long we keep it', '<p>Order data is kept for as long as needed to process the order and provide after-sales service, then archived for the period the law requires for accounting records (10 years). It is then deleted.</p>'],
       ['Your rights', `<p>Under Law 09-08 you have the right to access and correct your data and, for legitimate reasons, to object to its processing. To exercise these rights, write to ${i.email} or on WhatsApp ${i.whatsapp}. We reply as quickly as possible.</p><p>You can also complain to the National Commission for the Control of Personal Data Protection (CNDP): <a href="https://www.cndp.ma" rel="noopener">www.cndp.ma</a>.</p>`],
-      ['Cookies and storage', '<p>The site uses no advertising or tracking cookies. It only saves your language choice (a cookie) and your cart in your browser (local storage). Fonts are loaded from Google Fonts.</p>'],
+      ['Cookies and storage', i.pixels ? `<p>The site saves your language choice (a cookie) and your cart in your browser (local storage). Fonts are loaded from Google Fonts.</p><p><strong>Advertising:</strong> if you accept in the banner, we use ${i.pixels} to measure how well our ads work (pages viewed, items added to the cart, orders and their amount). These companies set their own cookies and may process this data outside Morocco. We never send them your name, phone number or address. Without your consent no pixel is loaded. You can change your mind at any time with the “Cookies” link at the bottom of every page.</p>` : '<p>The site uses no advertising or tracking cookies. It only saves your language choice (a cookie) and your cart in your browser (local storage). Fonts are loaded from Google Fonts.</p>'],
       ['Security', '<p>The site is served over HTTPS. The admin area is password-protected and restricted to our team.</p>'],
       ['Changes', '<p>We may update this policy. The date of the last update is shown at the top of the page.</p>'],
     ],
@@ -59,7 +64,7 @@ const PRIVACY = {
       ['من يطّلع عليها', '<ul><li>فريقنا، لمعالجة طلبك.</li><li>شركة التوصيل، التي تتوصل فقط باسمك وهاتفك وعنوانك والمبلغ المطلوب تحصيله.</li><li>مزوّدونا التقنيون: مستضيف الموقع (Cloudflare) وخدمة إرسال البريد (Brevo). يعملون وفق تعليماتنا وقد يخزنون المعطيات خارج المغرب مع ضمانات أمان ملائمة.</li></ul>'],
       ['مدة الاحتفاظ', '<p>نحتفظ بمعطيات الطلب طوال المدة اللازمة لمعالجته ولخدمة ما بعد البيع، ثم تُؤرشف خلال المدة التي يفرضها القانون للوثائق المحاسبية (10 سنوات)، وبعدها تُحذف.</p>'],
       ['حقوقك', `<p>طبقًا للقانون 09-08، لك الحق في الولوج إلى معطياتك وتصحيحها، والتعرض لمعالجتها لأسباب مشروعة. لممارسة هذه الحقوق راسلنا على ${i.email} أو على واتساب ${i.whatsapp}، وسنجيبك في أقرب الآجال.</p><p>يمكنك أيضًا تقديم شكاية إلى اللجنة الوطنية لمراقبة حماية المعطيات ذات الطابع الشخصي: <a href="https://www.cndp.ma" rel="noopener">www.cndp.ma</a>.</p>`],
-      ['ملفات تعريف الارتباط والتخزين', '<p>لا يستعمل الموقع ملفات تعريف ارتباط إشهارية أو للتتبع. يحفظ فقط اختيارك للغة (ملف تعريف ارتباط) ومحتوى سلتك في متصفحك (التخزين المحلي). تُحمَّل الخطوط من Google Fonts.</p>'],
+      ['ملفات تعريف الارتباط والتخزين', i.pixels ? `<p>يحفظ الموقع اختيارك للغة (ملف تعريف ارتباط) ومحتوى سلتك في متصفحك (التخزين المحلي). تُحمَّل الخطوط من Google Fonts.</p><p><strong>الإشهار:</strong> إذا وافقت في الشريط المخصص لذلك، نستعمل ${i.pixels} لقياس فعالية إعلاناتنا (الصفحات المزارة، الإضافات إلى السلة، الطلبات ومبالغها). تضع هذه الشركات ملفات ارتباط خاصة بها وقد تعالج هذه المعطيات خارج المغرب. لا نرسل لها اسمك ولا رقم هاتفك ولا عنوانك. بدون موافقتك لا يُحمَّل أي بيكسل، ويمكنك تغيير رأيك في أي وقت عبر رابط «ملفات الارتباط» أسفل كل صفحة.</p>` : '<p>لا يستعمل الموقع ملفات تعريف ارتباط إشهارية أو للتتبع. يحفظ فقط اختيارك للغة (ملف تعريف ارتباط) ومحتوى سلتك في متصفحك (التخزين المحلي). تُحمَّل الخطوط من Google Fonts.</p>'],
       ['الأمان', '<p>الموقع يعمل عبر HTTPS، والولوج إلى لوحة الإدارة محمي بكلمة سر ومخصص لفريقنا فقط.</p>'],
       ['التعديلات', '<p>قد نحدّث هذه السياسة، ويظهر تاريخ آخر تحديث في أعلى الصفحة.</p>'],
     ],

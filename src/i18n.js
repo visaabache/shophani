@@ -110,6 +110,10 @@ export const T = {
     waStart: 'Ouvrir WhatsApp',
     waChips: ['Je cherche un produit', 'Où en est ma commande ?', 'Délais et frais de livraison'],
     waChipsProduct: ['Je veux commander ce produit', 'Ce produit est-il disponible ?', 'J’ai une question sur ce produit'],
+    cookieSettings: 'Cookies',
+    consentAds: 'Nous utilisons les pixels Facebook et TikTok pour mesurer nos publicités, seulement si vous êtes d’accord.',
+    accept: 'Accepter',
+    refuse: 'Refuser',
     js: {
       emptyCart: 'Votre panier est vide.',
       subtotal: 'Sous-total',
@@ -245,6 +249,10 @@ export const T = {
     waStart: 'Open WhatsApp',
     waChips: ['I’m looking for a product', 'Where is my order?', 'Delivery times and fees'],
     waChipsProduct: ['I want to order this', 'Is this in stock?', 'I have a question about this'],
+    cookieSettings: 'Cookies',
+    consentAds: 'We use the Facebook and TikTok pixels to measure our ads, only if you agree.',
+    accept: 'Accept',
+    refuse: 'Decline',
     js: {
       emptyCart: 'Your cart is empty.',
       subtotal: 'Subtotal',
@@ -380,6 +388,10 @@ export const T = {
     waStart: 'فتح واتساب',
     waChips: ['كنقلب على منتج', 'فين وصلات الطلبية ديالي؟', 'مدة وثمن التوصيل'],
     waChipsProduct: ['بغيت نطلب هاد المنتج', 'واش هاد المنتج متوفر؟', 'عندي سؤال على هاد المنتج'],
+    cookieSettings: 'ملفات الارتباط',
+    consentAds: 'نستعمل بيكسل فيسبوك وتيك توك لقياس إعلاناتنا، فقط إذا وافقت.',
+    accept: 'موافق',
+    refuse: 'رفض',
     js: {
       emptyCart: 'سلتك فارغة.',
       subtotal: 'المجموع الفرعي',

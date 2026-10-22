@@ -43,3 +43,19 @@ test('layout shows social icons and the WhatsApp panel with a product message', 
   assert.match(html, /\/ar\/privacy/);
   assert.doesNotMatch(layout(ctx('fr', { store_name: 'S' }), { title: 'x', path: '/', body: '' }), /data-wa/);
 });
+
+test('pixels load only with a valid ID, and the CSP and privacy policy follow', async () => {
+  const { pixelConfig, pixelCsp } = await import('../src/pixels.js');
+  assert.deepEqual(pixelConfig({ meta_pixel_id: '123456789012345', tiktok_pixel_id: 'c4abcdefghij1234' }), { meta: '123456789012345', tiktok: 'C4ABCDEFGHIJ1234' });
+  assert.deepEqual(pixelConfig({ meta_pixel_id: '<script>', tiktok_pixel_id: 'x"y' }), { meta: '', tiktok: '' });
+  const base = "default-src 'self'; script-src 'self'; connect-src 'self'";
+  assert.equal(pixelCsp(base, {}), base);
+  assert.match(pixelCsp(base, { meta_pixel_id: '123456789012345' }), /script-src 'self' https:\/\/connect\.facebook\.net;/);
+  const s = { ...settings, meta_pixel_id: '123456789012345' };
+  const html = layout(ctx('fr', s), { title: 'x', path: '/', body: '' });
+  assert.match(html, /id="pixels"/);
+  assert.match(html, /id="consent"/);
+  assert.doesNotMatch(layout(ctx('fr'), { title: 'x', path: '/', body: '' }), /pixels\.js/);
+  assert.match(legalDoc('privacy', 'fr', s).sections.map((x) => x[1]).join(''), /Meta Pixel/);
+  assert.doesNotMatch(legalDoc('privacy', 'fr', settings).sections.map((x) => x[1]).join(''), /Meta Pixel/);
+});

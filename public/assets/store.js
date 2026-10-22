@@ -151,7 +151,7 @@
       setTimeout(() => fs.classList.remove('shake'), 500);
       return;
     }
-    add({
+    const item = {
       id: Number(form.dataset.product),
       option: chosen ? chosen.value : '',
       qty: Math.max(1, Math.min(20, Number(form.qty.value) || 1)),
@@ -159,7 +159,9 @@
       price: Number(form.dataset.price),
       image: form.dataset.image,
       slug: form.dataset.slug,
-    });
+    };
+    add(item);
+    window.shTrack?.('AddToCart', { value: item.price * item.qty, items: [item] });
     if (go === 'checkout') location.href = `/${lang}/checkout`;
     else toast(i18n.added, true);
   }
@@ -209,6 +211,10 @@
   const box = $('#cart');
   const checkout = $('#checkout');
   let lastQuote = null;
+  if (checkout && load().length) {
+    const items = load();
+    window.shTrack?.('InitiateCheckout', { value: items.reduce((n, i) => n + i.price * i.qty, 0), items });
+  }
 
   async function fetchQuote(city) {
     const items = load().map(({ id, option, qty }) => ({ id, option, qty }));

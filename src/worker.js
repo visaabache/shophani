@@ -7,6 +7,7 @@ import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, 
 
 const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
 import { handleAdmin } from './admin.js';
+import { pixelCsp } from './pixels.js';
 import { sendOrderEmails, validEmail } from './email.js';
 
 const SECURITY_HEADERS = {
@@ -145,6 +146,7 @@ async function storefront(request, env, url, lang, rest) {
     return html(notFoundPage(ctx), 404);
   }
   res.headers.append('set-cookie', `lang=${lang}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`);
+  res.headers.set('content-security-policy', pixelCsp(SECURITY_HEADERS['content-security-policy'], settings));
   return res;
 }
 

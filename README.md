@@ -69,6 +69,12 @@ Set `ORDER_WEBHOOK` (`npx wrangler secret put ORDER_WEBHOOK`) to a URL that acce
 
 Instagram, Facebook and TikTok links go in **Settings → Réseaux sociaux**, as a full link or just the handle.
 
+## Facebook and TikTok pixels
+
+Paste the pixel IDs in **Settings → Pixels publicitaires** (just the ID, not the code). Nothing loads until an ID is set. Visitors then see a cookie banner, and the pixels load only after they accept (law 09-08); a "Cookies" link in the footer lets them change their mind. The privacy policy mentions the pixels automatically.
+
+Events sent, with amounts in MAD: PageView, ViewContent (product page), AddToCart, InitiateCheckout (checkout page), and Purchase on Meta / PlaceAnOrder on TikTok (order confirmation, once per order, with the order number as event ID so a server-side Conversions API can be added later without double counting).
+
 ## How orders work
 
 1. The cart lives in the visitor's browser. Prices, stock and shipping are always worked out again by the server (`/api/quote`), so a changed price in the browser has no effect.
