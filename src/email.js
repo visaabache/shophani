@@ -112,7 +112,7 @@ function frame({ lang, origin, cfg, settings, preheader, body }) {
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.sand};"><tr><td align="center" style="padding:28px 12px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;" dir="${dir}">
-<tr><td align="center" style="padding:0 0 18px;"><a href="${esc(origin)}/${lang}/"><img src="${esc(origin)}/assets/brand/email-logo.png" width="180" height="51" alt="${esc(cfg.store)}" style="display:block;border:0;"></a></td></tr>
+<tr><td align="center" style="padding:0 0 18px;"><a href="${esc(origin)}/${lang}/"><img src="${esc(origin)}/assets/brand/email-logo-v2.png" width="220" height="70" alt="${esc(cfg.store)}" style="display:block;border:0;"></a></td></tr>
 <tr><td style="background:#ffffff;border-radius:18px;overflow:hidden;">
 <div style="height:6px;background:${C.majorelle};background-image:linear-gradient(90deg,${C.majorelle},${C.gold});font-size:0;line-height:0">&nbsp;</div>
 <div style="padding:28px 28px 26px;font-family:${FONT};color:${C.ink};font-size:15px;line-height:1.6;text-align:${align};">${body}</div>
