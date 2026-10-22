@@ -77,6 +77,15 @@ Instagram, Facebook and TikTok links go in **Settings → Réseaux sociaux**, as
 4. Marking an order **Annulée** or **Retournée** puts its items back in stock.
 5. Protections: Moroccan phone numbers only (06, 07 and 05, in any common format), at most 5 orders per phone number per hour, and a hidden field that catches spam bots.
 
+## Security
+
+- **Admin login:** signed, HttpOnly, SameSite=Strict session cookie (7 days). After 5 wrong passwords in 15 minutes, or 20 in a day, that visitor is locked out. Changing `ADMIN_PASSWORD` logs out every device. The admin warns you if the password is shorter than 12 characters.
+- **Fake orders:** at most 3 orders per phone number per hour, and 6 per visitor per hour (15 a day), plus a hidden field that catches bots. Visitors are counted by a salted hash of their IP, never the IP itself.
+- **Cross-site requests:** every write must come from the store's own pages (Origin check), and admin writes must be JSON.
+- **Uploads:** only real JPEG, PNG, WebP, GIF and AVIF files are accepted (the first bytes are checked, not just the name).
+- **Headers:** a strict Content-Security-Policy (no inline scripts), HSTS, no framing, nosniff, and a locked-down Permissions-Policy.
+- **Database:** every query uses bound parameters. All shop text is escaped before it reaches a page.
+
 ## Files
 
 | Path | What it is |

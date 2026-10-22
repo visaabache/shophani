@@ -19,6 +19,8 @@
       switchTo: 'Français',
       errors: {
         wrong_password: 'كلمة السر غير صحيحة.',
+        locked: 'محاولات كثيرة خاطئة. تم إيقاف الدخول من هذا الجهاز مؤقتًا، حاول لاحقًا.',
+        bad_origin: 'طلب مرفوض.',
         slug_taken: 'هذا الرابط (slug) مستعمل من قبل.',
         name_required: 'أضف اسمًا واحدًا على الأقل.',
         price_required: 'حدّد الثمن.',
@@ -120,6 +122,7 @@
       keyOk: 'مفتاح Brevo مثبت', keyMissing: 'مفتاح Brevo غير مثبت',
       emailFrom: 'عنوان الإرسال (مؤكد في Brevo)', notifyEmail: 'استقبال تنبيهات الطلبات على',
       statusUpdates: 'إخبار الزبون عند كل تغيير في الحالة',
+      weakPassword: 'كلمة سر الإدارة قصيرة. استعمل 12 حرفًا على الأقل (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'مواقع التواصل',
       socialHint: 'الصق رابط الصفحة أو اسم الحساب فقط (مثلا @shophani). تظهر الأيقونات أسفل المتجر.',
       legal: 'معلومات الشركة (للصفحات القانونية)',
@@ -163,6 +166,8 @@
       switchTo: 'العربية',
       errors: {
         wrong_password: 'Mot de passe incorrect.',
+        locked: 'Trop d’essais ratés. La connexion depuis cet appareil est bloquée un moment, réessayez plus tard.',
+        bad_origin: 'Requête refusée.',
         slug_taken: 'Cette adresse (slug) est déjà utilisée.',
         name_required: 'Ajoutez au moins un nom.',
         price_required: 'Indiquez un prix.',
@@ -264,6 +269,7 @@
       keyOk: 'Clé Brevo installée', keyMissing: 'Clé Brevo manquante',
       emailFrom: 'Adresse d’envoi (vérifiée dans Brevo)', notifyEmail: 'Recevoir les alertes de commande sur',
       statusUpdates: 'Prévenir le client à chaque changement de statut',
+      weakPassword: 'Le mot de passe admin est court. Utilisez au moins 12 caractères (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'Réseaux sociaux',
       socialHint: 'Collez le lien de la page ou juste le nom du compte (ex. @shophani). Les icônes s’affichent en bas de la boutique.',
       legal: 'Informations légales',
@@ -463,6 +469,7 @@
       state.settings = (await api('/settings')).settings;
       state.categories = (await api('/categories')).categories;
       route();
+      if (me.weak_password) toast(L.weakPassword, true);
     } catch (err) {
       if (err.message !== 'unauthorized') app.innerHTML = `<p class="error pad">${esc(err.message)}</p>`;
     }

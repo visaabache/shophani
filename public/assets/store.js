@@ -368,6 +368,9 @@
         }
         if (res.status === 409) {
           await refresh();
+        } else if (res.status === 429) {
+          err.textContent = i18n.tooMany;
+          err.hidden = false;
         } else if (res.status === 422 && data.fields) {
           for (const [k, v] of Object.entries(data.fields)) if (f[k]) fieldError(f[k], v === 'phone' ? i18n.badPhone : v === 'email' ? i18n.badEmail : i18n.required);
         } else {

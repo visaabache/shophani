@@ -155,7 +155,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
 <link rel="stylesheet" href="/assets/style.css?v=4">
 <script src="/assets/js-on.js"></script>
-<script src="/assets/store.js?v=4" defer></script>
+<script src="/assets/store.js?v=5" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>

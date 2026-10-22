@@ -2,7 +2,7 @@
 // the admin API (/api/admin/*), product photos from R2 or D1 (/img/*) and static files (public/).
 
 import { T } from './i18n.js';
-import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName } from './lib.js';
+import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName, visitorId, recentHits, addHit, sameOrigin } from './lib.js';
 import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, legalPage, catName } from './render.js';
 
 const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
@@ -13,7 +13,9 @@ const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'strict-origin-when-cross-origin',
   'x-frame-options': 'DENY',
-  'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+  'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+  'strict-transport-security': 'max-age=31536000; includeSubDomains',
+  'cross-origin-opener-policy': 'same-origin',
   'content-security-policy':
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
 };
@@ -163,6 +165,7 @@ function publicLine(line, lang) {
 }
 
 async function handleApi(request, env, url, ctx) {
+  if (request.method !== 'GET' && !sameOrigin(request, url)) return json({ error: 'bad_origin' }, 403);
   const lang = LANGS.includes(url.searchParams.get('lang')) ? url.searchParams.get('lang') : DEFAULT_LANG;
 
   // POST /api/quote {items, city} → the cart priced by the server (the browser's copy is never trusted).
@@ -197,8 +200,11 @@ async function handleApi(request, env, url, ctx) {
     if (known) city = known;
 
     const db = env.DB;
+    // Fake-order protection: at most 3 orders per phone number and 6 per visitor each hour, 15 per visitor a day.
     const recent = await db.prepare("SELECT COUNT(*) AS n FROM orders WHERE phone = ? AND created_at > datetime('now', '-1 hour')").bind(phone).first();
-    if (recent.n >= 5) return json({ error: 'too_many' }, 429);
+    if (recent.n >= 3) return json({ error: 'too_many' }, 429);
+    const visitor = `order:${await visitorId(request, env.ADMIN_PASSWORD || 'shophani')}`;
+    if ((await recentHits(db, visitor, 3600)) >= 6 || (await recentHits(db, visitor, 86400)) >= 15) return json({ error: 'too_many' }, 429);
 
     const settings = await getSettings(db);
     const q = await quote(db, body.items, city, settings);
@@ -223,6 +229,7 @@ async function handleApi(request, env, url, ctx) {
     }
     try {
       await db.batch(statements);
+      await addHit(db, visitor);
     } catch (err) {
       if (String(err).includes('CHECK')) return json({ error: 'cart_changed', issues: [{ issue: 'stock' }] }, 409);
       throw err;

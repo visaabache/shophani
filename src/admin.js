@@ -2,9 +2,11 @@
 // logging in sets a signed, HttpOnly session cookie that lasts 7 days.
 
 import { sendEmail, sendStatusEmail, emailConfig, confirmationEmail, validEmail, STATUS_EMAILS } from './email.js';
-import { json, getSettings, slugify, STATUSES, RESTOCK_STATUSES, randomToken, parseJSON, displayPhone } from './lib.js';
+import { json, getSettings, slugify, STATUSES, RESTOCK_STATUSES, randomToken, parseJSON, displayPhone, visitorId, recentHits, addHit, sameOrigin, looksLikeImage } from './lib.js';
 
 const SESSION_DAYS = 7;
+// Password guessing: after 5 wrong passwords in 15 minutes, or 20 in a day, that visitor is locked out for a while.
+const LOGIN_LIMITS = [[5, 15 * 60], [20, 24 * 3600]];
 const COOKIE = 'admin_session';
 const SETTING_KEYS = [
   'store_name', 'whatsapp', 'contact_email', 'shipping_fee', 'shipping_rates', 'free_shipping_over',
@@ -71,13 +73,21 @@ export async function handleAdmin(request, env, url, ctx) {
   const secret = env.ADMIN_PASSWORD;
   if (!secret) return json({ error: 'ADMIN_PASSWORD is not set. Run: npx wrangler secret put ADMIN_PASSWORD' }, 503);
 
+  if (method !== 'GET' && !sameOrigin(request, url)) return json({ error: 'bad_origin' }, 403);
+
   if (path === '/login' && method === 'POST') {
+    const bucket = `login:${await visitorId(request, secret)}`;
+    for (const [max, seconds] of LOGIN_LIMITS) {
+      if ((await recentHits(env.DB, bucket, seconds)) >= max) return json({ error: 'locked', minutes: Math.ceil(seconds / 60) }, 429);
+    }
     const b = await body(request);
-    if (!b || !(await samePassword(String(b.password || ''), secret))) {
+    if (!b || !(await samePassword(String(b.password || '').slice(0, 200), secret))) {
+      await addHit(env.DB, bucket);
       await new Promise((r) => setTimeout(r, 800));
       return json({ error: 'wrong_password' }, 401);
     }
     const token = await makeSession(secret);
+    await env.DB.prepare('DELETE FROM rate_hits WHERE bucket = ?').bind(bucket).run();
     return json({ ok: true }, 200, { 'set-cookie': `${COOKIE}=${token}; Path=/api/admin; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_DAYS * 86400}` });
   }
   if (path === '/logout' && method === 'POST') {
@@ -92,7 +102,7 @@ export async function handleAdmin(request, env, url, ctx) {
   const db = env.DB;
   let m;
 
-  if (path === '/me') return json({ ok: true, images: true, r2: Boolean(env.IMAGES), emails: Boolean(env.BREVO_API_KEY) });
+  if (path === '/me') return json({ ok: true, images: true, r2: Boolean(env.IMAGES), emails: Boolean(env.BREVO_API_KEY), weak_password: secret.length < 12 });
 
   if (path === '/stats' && method === 'GET') {
     // Dashboard numbers. Days are counted in Morocco time (UTC+1).
@@ -284,6 +294,7 @@ export async function handleAdmin(request, env, url, ctx) {
     if (!ext) return json({ error: 'bad_type' }, 415);
     const data = await request.arrayBuffer();
     if (data.byteLength > (env.IMAGES ? 5 : 1.8) * 1024 * 1024) return json({ error: 'too_large' }, 413);
+    if (!looksLikeImage(data, type)) return json({ error: 'bad_type' }, 415);
     const key = `p/${Date.now().toString(36)}-${randomToken(6)}.${ext}`;
     if (env.IMAGES) await env.IMAGES.put(key, data, { httpMetadata: { contentType: type } });
     else await db.prepare('INSERT INTO images (key, type, data, size) VALUES (?, ?, ?, ?)').bind(key, type, data, data.byteLength).run();
