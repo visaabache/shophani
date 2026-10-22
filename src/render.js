@@ -3,9 +3,17 @@
 
 import { T } from './i18n.js';
 import { PHOTO_CREDITS } from './credits.js';
+import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
 import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
+const BRAND_OG = '/assets/brand/og-image.jpg';
+
+// The drawn Shophani logo, or the star and plain name when the store has been renamed in admin.
+function brandLogo(store, lang) {
+  if (store.trim().toLowerCase() !== 'shophani') return `${star('logo-star')}<span>${esc(store)}</span>`;
+  return lang === 'ar' ? LOGO_ARABIC : LOGO_LATIN;
+}
 
 // Line icons (24×24, stroke = currentColor).
 const ICONS = {
@@ -61,7 +69,8 @@ export function layout(ctx, { title, description = '', path, body, noindex = fal
     (l) => `<a href="/${l}${esc(path)}" hreflang="${l}" lang="${l}"${l === lang ? ' aria-current="true"' : ''}>${l === 'ar' ? 'ع' : l.toUpperCase()}</a>`,
   ).join('');
   const navCats = categories.map((c) => `<a href="/${lang}/c/${esc(c.slug)}">${esc(catName(c, lang))}</a>`).join('');
-  const ogImage = image ? (image.startsWith('http') ? image : `${origin}${image}`) : '';
+  const og = image || BRAND_OG;
+  const ogImage = og.startsWith('http') ? og : `${origin}${og}`;
   const fonts =
     lang === 'ar'
       ? 'family=Reem+Kufi:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700'
@@ -80,13 +89,16 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <meta property="og:description" content="${esc(description || t.heroText)}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${esc(store)}">
-${ogImage ? `<meta property="og:image" content="${esc(ogImage)}"><meta name="twitter:card" content="summary_large_image">` : ''}
+<meta property="og:image" content="${esc(ogImage)}"><meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#16142b">
-<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/assets/favicon.svg?v=3" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=2">
+<link rel="stylesheet" href="/assets/style.css?v=3">
 <script src="/assets/js-on.js"></script>
 <script src="/assets/store.js?v=2" defer></script>
 </head>
@@ -95,7 +107,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(ogImage)}"><meta name="twi
 <div class="ticker" aria-label="${esc(announcement || t.cod)}"><div class="ticker-track">${ticker}${ticker}</div></div>
 <header class="top">
   <div class="wrap top-row">
-    <a class="logo" href="/${lang}/" aria-label="${esc(store)}">${star('logo-star')}<span>${esc(store)}</span></a>
+    <a class="logo" href="/${lang}/" aria-label="${esc(store)}">${brandLogo(store, lang)}</a>
     <nav class="main-nav" aria-label="${esc(t.categories)}"><a href="/${lang}/shop">${esc(t.shop)}</a>${navCats}</nav>
     <div class="top-actions">
       <form class="top-search" action="/${lang}/shop" method="get" role="search"><input type="search" name="q" placeholder="${esc(t.search)}" aria-label="${esc(t.search)}"><button aria-label="${esc(t.search)}">${icon('search', 20)}</button></form>
@@ -112,7 +124,7 @@ ${body}
   <div class="foot-band" aria-hidden="true"></div>
   <div class="wrap foot-grid">
     <div class="foot-brand">
-      <a class="logo logo-light" href="/${lang}/">${star('logo-star')}<span>${esc(store)}</span></a>
+      <a class="logo logo-light" href="/${lang}/" aria-label="${esc(store)}">${brandLogo(store, lang)}</a>
       <p>${esc(t.tagline)}</p>
       <p class="cod-badge">${icon('cash', 20)} ${esc(t.cod)}</p>
     </div>
@@ -257,7 +269,7 @@ ${latest.length ? `<section class="section wrap">${sectionHead(t.newArrivals, t.
   ${sectionHead(t.howTitle)}
   <ol class="steps">${t.steps.map((s, i) => `<li class="reveal" style="--d:${i * 110}ms"><span class="step-n">${i + 1}</span><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></li>`).join('')}</ol>
 </section>`;
-  return layout(ctx, { title: '', path: '/', body, image: '/assets/photos/souk-lanterns-hero.webp', page: 'home' });
+  return layout(ctx, { title: '', path: '/', body, image: BRAND_OG, page: 'home' });
 }
 
 export function listingPage(ctx, { title, path, products, q = '', sort = '', description = '', image = '' }) {

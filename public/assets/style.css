@@ -83,6 +83,15 @@ h3 { font-size: 1.15rem; }
 .logo:hover .logo-star { transform: rotate(45deg); }
 .logo-light { color: #fff; }
 .logo-light .logo-star { color: var(--gold); }
+.logo-svg { display: block; height: 44px; width: auto; }
+.logo-svg .lg-bag { fill: var(--majorelle); }
+.logo-svg .lg-gold { fill: var(--gold); }
+.logo-svg .lg-gold-s { stroke: var(--gold); }
+.logo-svg .lg-word { fill: var(--ink); }
+.logo-light .logo-svg { height: 52px; }
+.logo-light .logo-svg .lg-bag { fill: #4f6cf0; }
+.logo-light .logo-svg .lg-word { fill: #fff; }
+@media (max-width: 600px) { .top .logo-svg { height: 36px; } }
 .main-nav { display: none; gap: 4px; }
 .main-nav a { text-decoration: none; font-weight: 600; padding: 8px 12px; border-radius: 999px; position: relative; }
 .main-nav a::after { content: ''; position: absolute; inset-inline: 14px; bottom: 3px; height: 2px; background: var(--terracotta); transform: scaleX(0); transition: transform 0.3s var(--ease); }
