@@ -18,12 +18,13 @@
       "migrations_dir": "migrations"
     }
   ],
-  // Product photos uploaded from the admin. Create it once with: npx wrangler r2 bucket create shophani-images
-  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "shophani-images" }],
-  // Serves the store on shophani.shop. The domain must be added to the same Cloudflare account first.
-  "routes": [
-    { "pattern": "shophani.shop", "custom_domain": true },
-    { "pattern": "www.shophani.shop", "custom_domain": true }
-  ],
+  // Free address: https://shophani.<your-subdomain>.workers.dev
+  "workers_dev": true,
+  // Photo uploads from the admin need R2, which Cloudflare only turns on once a payment card is on the account
+  // (the first 10 GB stay free). Until then, product photos can be links. To turn uploads on:
+  //   npx wrangler r2 bucket create shophani-images
+  // then add:  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "shophani-images" }],
+  // Once shophani.shop is bought and added to Cloudflare, add:
+  //   "routes": [{ "pattern": "shophani.shop", "custom_domain": true }, { "pattern": "www.shophani.shop", "custom_domain": true }],
   "observability": { "enabled": true }
 }

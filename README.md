@@ -28,21 +28,26 @@ The admin is at http://localhost:8787/admin/.
 
 To start over with a clean local database and the sample products, run `npm run db:reset:local`. This deletes every local order and product.
 
-## Put it online (first time)
+## Put it online (first time, free plan)
+
+Everything below fits in Cloudflare's free plan: Workers (100,000 requests a day), D1 and static files. You don't need a domain to start. The store goes live at `https://shophani.<your-subdomain>.workers.dev`.
 
 ```bash
-npx wrangler login
-npx wrangler d1 create shophani             # copy the database_id it prints into wrangler.jsonc
-npx wrangler r2 bucket create shophani-images
-npm run db:migrate                             # creates the tables online
-npm run db:seed                                # optional: the sample products
-npx wrangler secret put ADMIN_PASSWORD         # choose a long password
-npm run deploy
+npx wrangler login                     # opens the browser: click Allow
+npx wrangler d1 create shophani        # copy the database_id it prints over the zeros in wrangler.jsonc
+npm run db:migrate                     # creates the tables online
+npm run db:seed                        # optional: the sample products
+npm run deploy                         # prints your workers.dev address
+npx wrangler secret put ADMIN_PASSWORD # choose a long password for /admin/
 ```
 
-`wrangler.jsonc` already connects **shophani.shop** and **www.shophani.shop**. For that to work, the domain must be on your Cloudflare account: add the site in the Cloudflare dashboard and point the domain's nameservers to Cloudflare at your registrar (Namecheap → Domain → Nameservers → Custom DNS). If you deploy before the domain is on Cloudflare, remove the `routes` block for now. In the admin, go to **Réglages** and set the store name, your WhatsApp number, the shipping prices and the announcement bar.
+In the admin, go to **Réglages** and set the store name, your WhatsApp number, the shipping prices and the announcement bar.
 
-When you change the database later, add a new file to `migrations/` (for example `0002_….sql`) and run `npm run db:migrate`.
+**Photo uploads (optional):** uploading photos from the admin uses R2. Cloudflare asks for a payment card before turning R2 on, even though the first 10 GB are free. Until then, paste image links in the product form. To turn it on, see the comment in `wrangler.jsonc`.
+
+**Your own domain (later):** once shophani.shop is bought, add it to Cloudflare (point its nameservers to Cloudflare at the registrar), add the `routes` line shown in `wrangler.jsonc`, and run `npm run deploy` again.
+
+When you change the database later, add a new file to `migrations/` (for example `0003_….sql`) and run `npm run db:migrate`.
 
 ### Optional: get notified of each new order
 
