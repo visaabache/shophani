@@ -1,0 +1,4 @@
+# Copy to .dev.vars for local development. In production use: npx wrangler secret put ADMIN_PASSWORD
+ADMIN_PASSWORD=change-me
+# Optional: a URL that receives a JSON POST for every new order (Telegram bot, Make, Zapier, Slack…)
+# ORDER_WEBHOOK=
