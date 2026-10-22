@@ -7,8 +7,8 @@
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; font: 15px/1.5 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
-h1, h2 { font-family: 'Fraunces', Georgia, serif; letter-spacing: -0.01em; margin: 0; }
+body { margin: 0; font: 15px/1.5 'Manrope', 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+h1, h2 { font-family: 'Fraunces', 'Reem Kufi', Georgia, serif; letter-spacing: -0.01em; margin: 0; }
 h1 { font-size: 1.7rem; line-height: 1.15; }
 h2 { font-size: 1.08rem; display: flex; align-items: center; gap: 8px; }
 a { color: var(--majorelle); }
@@ -47,6 +47,7 @@ label { display: grid; gap: 6px; font-weight: 700; font-size: 0.88rem; }
 .switch span::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.2); transition: transform 0.2s; }
 .switch input:checked + span { background: var(--mint); }
 .switch input:checked + span::after { transform: translateX(18px); }
+[dir='rtl'] .switch input:checked + span::after { transform: translateX(-18px); }
 .switch input:focus-visible + span { outline: 3px solid rgb(39 71 201 / 0.3); }
 
 /* Login */
@@ -188,9 +189,11 @@ label { display: grid; gap: 6px; font-weight: 700; font-size: 0.88rem; }
 .s-cancelled, .s-returned { background: #fde4e1; color: #a12a1b; }
 
 /* Order drawer */
-.drawer { border: 0; padding: 20px; width: min(520px, 100%); grid-template-columns: minmax(0, 1fr); max-width: 100%; max-height: 100dvh; height: 100dvh; margin: 0 0 0 auto; display: grid; align-content: start; gap: 16px; overflow-y: auto; background: var(--bg); }
+.drawer { border: 0; padding: 20px; width: min(520px, 100%); grid-template-columns: minmax(0, 1fr); max-width: 100%; max-height: 100dvh; height: 100dvh; margin: 0; margin-inline-start: auto; display: grid; align-content: start; gap: 16px; overflow-y: auto; background: var(--bg); }
 .drawer[open] { animation: slide 0.22s ease-out; }
 @keyframes slide { from { transform: translateX(30px); opacity: 0; } }
+[dir='rtl'] .drawer[open] { animation-name: slide-rtl; }
+@keyframes slide-rtl { from { transform: translateX(-30px); opacity: 0; } }
 .drawer::backdrop { background: rgb(22 20 43 / 0.45); backdrop-filter: blur(2px); }
 .drawer-head { display: flex; justify-content: space-between; align-items: flex-start; }
 .drawer-head p { margin: 0 0 2px; }
@@ -247,7 +250,7 @@ details summary { cursor: pointer; }
 }
 @media (min-width: 900px) {
   .tabbar { display: none; }
-  .side { display: flex; flex-direction: column; gap: 22px; position: fixed; inset: 0 auto 0 0; width: var(--side); background: var(--ink); padding: 22px 14px; z-index: 10; }
+  .side { display: flex; flex-direction: column; gap: 22px; position: fixed; inset-block: 0; inset-inline-start: 0; width: var(--side); background: var(--ink); padding: 22px 14px; z-index: 10; }
   .side-logo { padding: 0 8px 4px; }
   .side-logo img { height: 40px; display: block; }
   .side-nav { display: grid; gap: 4px; }
@@ -265,3 +268,19 @@ details summary { cursor: pointer; }
   .span-2 { grid-column: span 2; }
 }
 .drawer .filters { flex-wrap: wrap; overflow: visible; }
+
+/* Arabic: right-to-left, Arabic fonts */
+:lang(ar) body, body:lang(ar) { font-family: 'IBM Plex Sans Arabic', 'Manrope', system-ui, sans-serif; }
+:lang(ar) h1, :lang(ar) h2, :lang(ar) .kpi-value, :lang(ar) .rank { font-family: 'Reem Kufi', 'Fraunces', Georgia, serif; letter-spacing: 0; }
+:lang(ar) .kpi-value { font-weight: 700; }
+:lang(ar) .table th { letter-spacing: 0; }
+[dir='rtl'] .i-arrow { transform: scaleX(-1); }
+.lang-switch { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.lang-switch:lang(ar) { font-family: 'IBM Plex Sans Arabic', sans-serif; }
+.lang-switch:lang(fr) { font-family: 'Manrope', sans-serif; }
+.login-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+@media (min-width: 900px) { .mobile-only { display: none; } }
+.table .mono, .table bdi[dir='ltr'] { white-space: nowrap; }
+.card.flush { overflow-x: auto; }
+.show-sm { display: none; }
+@media (max-width: 599px) { .show-sm { display: inline; } }

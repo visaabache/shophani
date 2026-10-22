@@ -114,14 +114,14 @@ export async function handleAdmin(request, env, url, ctx) {
       db.prepare(`SELECT ${day} AS d, COUNT(*) AS orders, SUM(CASE WHEN ${live} THEN total ELSE 0 END) AS sales FROM orders WHERE created_at > datetime('now', '-30 days') GROUP BY d ORDER BY d`),
       db.prepare("SELECT status, COUNT(*) AS n FROM orders WHERE created_at > datetime('now', '-30 days') GROUP BY status"),
       db.prepare(
-        `SELECT i.product_id, i.name, SUM(i.qty) AS qty, SUM(i.qty * i.price) AS sales, (SELECT json_extract(p.images, '$[0]') FROM products p WHERE p.id = i.product_id) AS image
+        `SELECT i.product_id, i.name, SUM(i.qty) AS qty, SUM(i.qty * i.price) AS sales, (SELECT json_extract(p.images, '$[0]') FROM products p WHERE p.id = i.product_id) AS image, (SELECT p.name_ar FROM products p WHERE p.id = i.product_id) AS name_ar
          FROM order_items i JOIN orders o ON o.id = i.order_id
          WHERE o.created_at > datetime('now', '-30 days') AND o.${live}
          GROUP BY i.product_id, i.name ORDER BY qty DESC, sales DESC LIMIT 5`,
       ),
       db.prepare(`SELECT city, COUNT(*) AS n, SUM(total) AS sales FROM orders WHERE created_at > datetime('now', '-30 days') AND ${live} GROUP BY city ORDER BY n DESC LIMIT 5`),
       db.prepare('SELECT id, number, status, name, city, total, created_at FROM orders ORDER BY id DESC LIMIT 6'),
-      db.prepare('SELECT id, name_fr, stock, images FROM products WHERE active = 1 AND stock IS NOT NULL AND stock <= 3 ORDER BY stock LIMIT 10'),
+      db.prepare('SELECT id, name_fr, name_ar, stock, images FROM products WHERE active = 1 AND stock IS NOT NULL AND stock <= 3 ORDER BY stock LIMIT 10'),
     ]);
     return json({
       ...kpi.results[0],
