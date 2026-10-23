@@ -118,7 +118,7 @@ async function storefront(request, env, url, lang, rest) {
         products: rows.results,
         q,
         sort,
-        image: cat?.image || (cat ? '' : '/assets/photos/souk-alley.webp'),
+        image: cat?.image || (cat ? '' : '/assets/photos/shop-bags.webp'),
       }),
     );
   } else if (rest.startsWith('/p/')) {

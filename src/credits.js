@@ -4,143 +4,113 @@
 
 export const PHOTO_CREDITS = [
   {
-    "file": "argan-oil",
-    "photographer": "Naas Nahas (DStudio)",
-    "url": "https://images.unsplash.com/photo-1722933375700-e297a7996265"
+    "file": "hero-shopping",
+    "photographer": "freestocks",
+    "url": "https://images.unsplash.com/photo-1483985988355-763728e1935b"
   },
   {
-    "file": "argan-hands",
-    "photographer": "Christin Hume",
-    "url": "https://images.unsplash.com/photo-1515377905703-c4788e51af15"
+    "file": "hero-tech",
+    "photographer": "C D-X",
+    "url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e"
   },
   {
-    "file": "soap",
-    "photographer": "Nigel Hoare",
-    "url": "https://images.unsplash.com/photo-1781080922537-7d5338f96e95"
+    "file": "hero-home",
+    "photographer": "Kam Idris",
+    "url": "https://images.unsplash.com/photo-1586208958839-06c17cacdf08"
   },
   {
-    "file": "rhassoul",
-    "photographer": "Towfiqu barbhuiya",
-    "url": "https://images.unsplash.com/photo-1626783416763-67a92e5e7266"
+    "file": "cat-tech",
+    "photographer": "Kiran CK",
+    "url": "https://images.unsplash.com/photo-1583394838336-acd977736f90"
   },
   {
-    "file": "caftan",
-    "photographer": "Karim MANJRA",
-    "url": "https://images.unsplash.com/photo-1555885424-fcb5134e4bee"
+    "file": "cat-fashion",
+    "photographer": "Irene Kredenets",
+    "url": "https://images.unsplash.com/photo-1598532163257-ae3c6b2524b6"
   },
   {
-    "file": "caftan-green",
-    "photographer": "Mezidi Zineb",
-    "url": "https://images.unsplash.com/photo-1649109670237-31fcefbac2b6"
+    "file": "cat-beauty",
+    "photographer": "Kadarius Seegars",
+    "url": "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108"
   },
   {
-    "file": "caftan-teal",
-    "photographer": "Mezidi Zineb",
-    "url": "https://images.unsplash.com/photo-1649109669093-90726a95c606"
+    "file": "cat-home",
+    "photographer": "Angela Bailey",
+    "url": "https://images.unsplash.com/photo-1572048572872-2394404cf1f3"
   },
   {
-    "file": "caftan-souk",
-    "photographer": "Khalid Boutchich",
-    "url": "https://images.unsplash.com/photo-1629200468327-78bdb7e47c85"
+    "file": "headphones",
+    "photographer": "Sebastian Banasiewcz",
+    "url": "https://images.unsplash.com/photo-1585298723682-7115561c51b7"
   },
   {
-    "file": "babouches",
-    "photographer": "mana5280",
-    "url": "https://images.unsplash.com/photo-1761416182630-9a5a974e3fca"
+    "file": "smartwatch",
+    "photographer": "Auguras Pipiras",
+    "url": "https://images.unsplash.com/photo-1624096104992-9b4fa3a279dd"
   },
   {
-    "file": "babouches-rack",
-    "photographer": "Aysegul Aytoren",
-    "url": "https://images.unsplash.com/photo-1775127730412-e9059cb8cc9e"
+    "file": "speaker",
+    "photographer": "Lynda Sanchez",
+    "url": "https://images.unsplash.com/photo-1547052178-7f2c5a20c332"
   },
   {
-    "file": "tajines",
-    "photographer": "Chloe Lefleur",
-    "url": "https://images.unsplash.com/photo-1673283547641-16ddb83eb787"
+    "file": "sneakers",
+    "photographer": "Paul Gaudriault",
+    "url": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77"
   },
   {
-    "file": "plates",
-    "photographer": "Agata Ciosek",
-    "url": "https://images.unsplash.com/photo-1779032969957-31b96ad01ea3"
+    "file": "handbag",
+    "photographer": "Arno Senoner",
+    "url": "https://images.unsplash.com/photo-1590874103328-eac38a683ce7"
   },
   {
-    "file": "pouf",
-    "photographer": "Madalina Zamfira",
-    "url": "https://images.unsplash.com/photo-1792073224563-50a05245f427"
+    "file": "handbag-2",
+    "photographer": "Arno Senoner",
+    "url": "https://images.unsplash.com/photo-1584917865442-de89df76afd3"
   },
   {
-    "file": "pouf-blue",
-    "photographer": "Mina Rad",
-    "url": "https://images.unsplash.com/photo-1726463450351-4b603da0f507"
+    "file": "sunglasses",
+    "photographer": "charlesdeluvio",
+    "url": "https://images.unsplash.com/photo-1511499767150-a48a237f0083"
   },
   {
-    "file": "mint-tea",
-    "photographer": "Massimo Adami",
-    "url": "https://images.unsplash.com/photo-1567708415681-d1d249e182eb"
+    "file": "perfume",
+    "photographer": "Siora Photography",
+    "url": "https://images.unsplash.com/photo-1543422655-ac1c6ca993ed"
   },
   {
-    "file": "tea-pour",
-    "photographer": "Jaida Stewart",
-    "url": "https://images.unsplash.com/photo-1591299089616-c9604047b1a6"
+    "file": "serum",
+    "photographer": "Mathilde Langevin",
+    "url": "https://images.unsplash.com/photo-1620916297397-a4a5402a3c6c"
   },
   {
-    "file": "tea-beach",
-    "photographer": "alicharmant",
-    "url": "https://images.unsplash.com/photo-1785153498473-88ec8f6fb87e"
+    "file": "mug",
+    "photographer": "Mel Poole",
+    "url": "https://images.unsplash.com/photo-1542556398-95fb5b9f9b48"
   },
   {
-    "file": "teapot",
-    "photographer": "Martin Zangerl",
-    "url": "https://images.unsplash.com/photo-1518439532222-5dcc881e74b8"
+    "file": "vase",
+    "photographer": "Spacejoy",
+    "url": "https://images.unsplash.com/photo-1618220179428-22790b461013"
   },
   {
-    "file": "teapot-pour",
-    "photographer": "Vincent Riszdorfer",
-    "url": "https://images.unsplash.com/photo-1541168350939-a118c5c13b4d"
+    "file": "lamp",
+    "photographer": "Karolina Grabowska",
+    "url": "https://images.unsplash.com/photo-1667312939978-64cf31718a6e"
   },
   {
-    "file": "lantern",
-    "photographer": "Othman Alghanmi",
-    "url": "https://images.unsplash.com/photo-1768913651875-75058aa27afa"
+    "file": "delivery",
+    "photographer": "RoseBox رز باکس",
+    "url": "https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55"
   },
   {
-    "file": "lanterns",
-    "photographer": "Christian Buehner",
-    "url": "https://images.unsplash.com/photo-1561084092-f409d06f91f3"
+    "file": "kitchen",
+    "photographer": "Jason Briscoe",
+    "url": "https://images.unsplash.com/photo-1556911220-bff31c812dba"
   },
   {
-    "file": "souk-lanterns",
-    "photographer": "quentin touvard",
-    "url": "https://images.unsplash.com/photo-1771148886150-fe1784951a68"
-  },
-  {
-    "file": "majorelle",
-    "photographer": "ine driesens",
-    "url": "https://images.unsplash.com/photo-1747601387763-3abf57ee79c8"
-  },
-  {
-    "file": "riad-dusk",
-    "photographer": "Bernd Dittrich",
-    "url": "https://images.unsplash.com/photo-1761456306087-5f46fec09d28"
-  },
-  {
-    "file": "zellige-arch",
-    "photographer": "Bernd Dittrich",
-    "url": "https://images.unsplash.com/photo-1762380371792-9a94903663ca"
-  },
-  {
-    "file": "souk-alley",
-    "photographer": "Val Vesa",
-    "url": "https://images.unsplash.com/photo-1772203151689-9aef3e0396be"
-  },
-  {
-    "file": "spices",
-    "photographer": "Emilia Igartua",
-    "url": "https://images.unsplash.com/photo-1722180862276-970599009d51"
-  },
-  {
-    "file": "ceiling",
-    "photographer": "mana5280",
-    "url": "https://images.unsplash.com/photo-1761416182644-2d9d4f432563"
+    "file": "shop-bags",
+    "photographer": "Iuliia Pilipeichenko",
+    "url": "https://images.unsplash.com/photo-1760565030346-4b947220fe3a"
   }
 ];

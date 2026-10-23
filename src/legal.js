@@ -11,7 +11,7 @@ function info(settings, lang) {
   const v = (k) => (settings[k] ? esc(settings[k]) : `<mark>[${MISSING[lang]}]</mark>`);
   const wa = String(settings.whatsapp || '').replace(/\D/g, '');
   return {
-    store: esc(settings.store_name || 'Shophani'),
+    store: esc(settings.store_name || 'Shop Hani'),
     name: v('legal_name'),
     ice: v('legal_ice'),
     rc: v('legal_rc'),
@@ -76,7 +76,7 @@ const TERMS = {
     title: 'Conditions générales de vente',
     sections: [
       ['Vendeur', `<p>${i.store} est exploitée par ${i.name}, ICE ${i.ice}, RC ${i.rc}, ${i.address}. Contact : ${i.email} · WhatsApp ${i.whatsapp}.</p><p>Les présentes conditions s’appliquent à toute commande passée sur le site et sont régies par la <strong>loi n° 31-08</strong> édictant des mesures de protection du consommateur.</p>`],
-      ['Produits et prix', `<p>Les produits sont décrits et photographiés avec le plus grand soin ; de légères différences de couleur peuvent exister selon l’écran, et les pièces artisanales peuvent varier légèrement. Les prix sont indiqués en dirhams (MAD), toutes taxes comprises. Les frais de livraison dépendent de la ville et sont affichés avant la validation de la commande${Number(s.free_shipping_over) ? ` ; la livraison est offerte à partir de ${esc(s.free_shipping_over)} DH` : ''}.</p>`],
+      ['Produits et prix', `<p>Les produits sont décrits et photographiés avec le plus grand soin ; de légères différences de couleur peuvent exister selon l’écran. Les prix sont indiqués en dirhams (MAD), toutes taxes comprises. Les frais de livraison dépendent de la ville et sont affichés avant la validation de la commande${Number(s.free_shipping_over) ? ` ; la livraison est offerte à partir de ${esc(s.free_shipping_over)} DH` : ''}.</p>`],
       ['Commande', '<p>Vous passez commande en remplissant le formulaire (nom, téléphone, ville, adresse). Nous vous contactons ensuite par téléphone ou WhatsApp pour <strong>confirmer</strong> la commande avant l’expédition. Sans confirmation possible, nous pouvons annuler la commande. Nous pouvons refuser une commande en cas de motif légitime (stock épuisé, informations incomplètes, abus).</p>'],
       ['Paiement à la livraison', '<p>Le paiement se fait <strong>en espèces, au livreur, à la réception du colis</strong>, pour le montant indiqué dans la confirmation (produits + livraison). Aucun paiement en ligne n’est demandé. Dans la mesure permise par le transporteur, vous pouvez vérifier l’état du colis avant de payer.</p>'],
       ['Livraison', '<p>Nous livrons partout au Maroc. Les délais indicatifs sont de 24 à 72 heures dans les grandes villes et de 2 à 5 jours ouvrables ailleurs, à compter de la confirmation. Le livreur vous appelle avant de passer : merci de fournir un numéro joignable et une adresse précise. En cas de retard important, contactez-nous.</p>'],
@@ -92,7 +92,7 @@ const TERMS = {
     title: 'Terms of sale',
     sections: [
       ['Seller', `<p>${i.store} is run by ${i.name}, ICE ${i.ice}, RC ${i.rc}, ${i.address}. Contact: ${i.email} · WhatsApp ${i.whatsapp}.</p><p>These terms apply to every order placed on the site and are governed by Moroccan <strong>Law No. 31-08</strong> on consumer protection.</p>`],
-      ['Products and prices', `<p>Products are described and photographed with care; colours may look slightly different on screens, and handmade items can vary a little. Prices are in Moroccan dirhams (MAD), all taxes included. Delivery fees depend on the city and are shown before you confirm the order${Number(s.free_shipping_over) ? `; delivery is free from MAD ${esc(s.free_shipping_over)}` : ''}.</p>`],
+      ['Products and prices', `<p>Products are described and photographed with care; colours may look slightly different on screens. Prices are in Moroccan dirhams (MAD), all taxes included. Delivery fees depend on the city and are shown before you confirm the order${Number(s.free_shipping_over) ? `; delivery is free from MAD ${esc(s.free_shipping_over)}` : ''}.</p>`],
       ['Ordering', '<p>You order by filling in the form (name, phone, city, address). We then contact you by phone or WhatsApp to <strong>confirm</strong> the order before shipping. If we cannot confirm it, we may cancel the order. We may refuse an order for a legitimate reason (out of stock, incomplete details, abuse).</p>'],
       ['Cash on delivery', '<p>You pay <strong>in cash to the courier when you receive the parcel</strong>, the amount shown in the confirmation (products + delivery). No online payment is required. Where the courier allows it, you may check the parcel before paying.</p>'],
       ['Delivery', '<p>We deliver everywhere in Morocco. Indicative times are 24 to 72 hours in major cities and 2 to 5 working days elsewhere, from confirmation. The courier calls before arriving: please give a reachable number and a precise address. If delivery is very late, contact us.</p>'],
@@ -108,7 +108,7 @@ const TERMS = {
     title: 'الشروط العامة للبيع',
     sections: [
       ['البائع', `<p>يُسيَّر ${i.store} من طرف ${i.name}، المعرف الموحد للمقاولة (ICE) ${i.ice}، السجل التجاري ${i.rc}، ${i.address}. للتواصل: ${i.email} · واتساب ${i.whatsapp}.</p><p>تسري هذه الشروط على كل طلب يتم عبر الموقع، وتخضع لـ<strong>القانون رقم 31-08</strong> القاضي بتحديد تدابير لحماية المستهلك.</p>`],
-      ['المنتجات والأثمنة', `<p>نصف منتجاتنا ونصورها بعناية؛ قد تختلف الألوان قليلًا حسب الشاشة، وقد تتفاوت القطع التقليدية بشكل طفيف. الأثمنة بالدرهم المغربي وتشمل جميع الرسوم. تختلف مصاريف التوصيل حسب المدينة وتظهر قبل تأكيد الطلب${Number(s.free_shipping_over) ? `، والتوصيل مجاني ابتداءً من ${esc(s.free_shipping_over)} درهم` : ''}.</p>`],
+      ['المنتجات والأثمنة', `<p>نصف منتجاتنا ونصورها بعناية؛ قد تختلف الألوان قليلًا حسب الشاشة. الأثمنة بالدرهم المغربي وتشمل جميع الرسوم. تختلف مصاريف التوصيل حسب المدينة وتظهر قبل تأكيد الطلب${Number(s.free_shipping_over) ? `، والتوصيل مجاني ابتداءً من ${esc(s.free_shipping_over)} درهم` : ''}.</p>`],
       ['الطلب', '<p>تطلب بملء الاستمارة (الاسم، الهاتف، المدينة، العنوان). بعد ذلك نتصل بك عبر الهاتف أو واتساب <strong>لتأكيد</strong> الطلب قبل الإرسال. إذا تعذر التأكيد يمكننا إلغاء الطلب. ويمكننا رفض طلب لسبب مشروع (نفاد المخزون، معلومات ناقصة، تعسف).</p>'],
       ['الدفع عند الاستلام', '<p>يتم الأداء <strong>نقدًا لعامل التوصيل عند استلام الطرد</strong>، بالمبلغ المذكور في التأكيد (المنتجات + التوصيل). لا يُطلب أي أداء عبر الإنترنت. وفي حدود ما تسمح به شركة النقل، يمكنك التحقق من حالة الطرد قبل الأداء.</p>'],
       ['التوصيل', '<p>نوصل إلى جميع مدن المغرب. الآجال التقريبية من 24 إلى 72 ساعة في المدن الكبرى، ومن 2 إلى 5 أيام عمل في باقي المناطق، ابتداءً من التأكيد. يتصل بك عامل التوصيل قبل الوصول، فالمرجو إعطاء رقم متاح وعنوان دقيق. في حال تأخر كبير، تواصل معنا.</p>'],

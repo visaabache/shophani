@@ -72,7 +72,7 @@ const S = {
 };
 
 // Brand colours, matching the storefront.
-const C = { ink: '#16142b', majorelle: '#2747c9', gold: '#e3a93a', sand: '#f6efe3', cream: '#fffaf2', muted: '#6b6478', line: '#ece3d3', mint: '#2f6f5a' };
+const C = { ink: '#111827', brand: '#2b50ee', accent: '#ff6a3d', sand: '#eef0f5', cream: '#f5f6fa', muted: '#6b7280', line: '#e5e7eb', mint: '#16a34a' };
 const FONT = "-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
 export function emailConfig(env, settings) {
@@ -80,7 +80,7 @@ export function emailConfig(env, settings) {
   return {
     on: Boolean(env.BREVO_API_KEY && validEmail(from)),
     from,
-    store: settings.store_name || 'Shophani',
+    store: settings.store_name || 'Shop Hani',
     notify: String(settings.notify_email || settings.contact_email || '').trim(),
     replyTo: String(settings.contact_email || from).trim(),
   };
@@ -112,13 +112,13 @@ function frame({ lang, origin, cfg, settings, preheader, body }) {
 <div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.sand};"><tr><td align="center" style="padding:28px 12px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;" dir="${dir}">
-<tr><td align="center" style="padding:0 0 18px;"><a href="${esc(origin)}/${lang}/"><img src="${esc(origin)}/assets/brand/email-logo-v2.png" width="220" height="70" alt="${esc(cfg.store)}" style="display:block;border:0;"></a></td></tr>
+<tr><td align="center" style="padding:0 0 18px;"><a href="${esc(origin)}/${lang}/"><img src="${esc(origin)}/assets/brand/email-logo-v3.png" width="220" height="70" alt="${esc(cfg.store)}" style="display:block;border:0;"></a></td></tr>
 <tr><td style="background:#ffffff;border-radius:18px;overflow:hidden;">
-<div style="height:6px;background:${C.majorelle};background-image:linear-gradient(90deg,${C.majorelle},${C.gold});font-size:0;line-height:0">&nbsp;</div>
+<div style="height:6px;background:${C.brand};background-image:linear-gradient(90deg,${C.brand},${C.accent});font-size:0;line-height:0">&nbsp;</div>
 <div style="padding:28px 28px 26px;font-family:${FONT};color:${C.ink};font-size:15px;line-height:1.6;text-align:${align};">${body}</div>
 </td></tr>
 <tr><td align="center" style="padding:20px 10px 0;font-family:${FONT};font-size:13px;line-height:1.6;color:${C.muted};">
-${esc(s.help)}${wa ? ` ${esc(s.whatsapp)}: <a href="https://wa.me/${wa}" style="color:${C.majorelle};">+${wa}</a>` : ''}<br>
+${esc(s.help)}${wa ? ` ${esc(s.whatsapp)}: <a href="https://wa.me/${wa}" style="color:${C.brand};">+${wa}</a>` : ''}<br>
 <a href="${esc(origin)}/${lang}/" style="color:${C.muted};">${esc(cfg.store)}</a> · ${esc(T[lang].payOnDelivery)}
 </td></tr>
 </table></td></tr></table></body></html>`;
@@ -152,7 +152,7 @@ export function confirmationEmail({ order, items, origin, cfg, settings }) {
   const s = S[lang];
   const t = T[lang];
   const body = `${badge(s.received, '#fff1d6', '#8a5300')}
-<h1 style="font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.25;margin:14px 0 6px;color:${C.ink};">${esc(t.thanks)}</h1>
+<h1 style="font-family:${FONT};font-weight:800;font-size:26px;line-height:1.25;margin:14px 0 6px;color:${C.ink};">${esc(t.thanks)}</h1>
 <p style="margin:0 0 4px;">${esc(s.hello(order.name))}</p>
 <p style="margin:0;color:${C.muted};">${esc(s.receivedText)}</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0;background:${C.cream};border-radius:12px;font-size:14px;"><tr>
@@ -176,7 +176,7 @@ export function statusEmail({ order, items, origin, cfg, settings }) {
   const st = order.status;
   const colors = { confirmed: ['#e3e9ff', '#1d3fbf'], shipped: ['#e7f0ff', '#2563eb'], delivered: ['#dcf3e3', '#1d6b3a'], cancelled: ['#fde4e1', '#a12a1b'] }[st];
   const body = `${badge(t.status[st], colors[0], colors[1])}
-<h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.25;margin:14px 0 6px;color:${C.ink};">${esc(s.statusSubject[st](order.number))}</h1>
+<h1 style="font-family:${FONT};font-weight:800;font-size:24px;line-height:1.25;margin:14px 0 6px;color:${C.ink};">${esc(s.statusSubject[st](order.number))}</h1>
 <p style="margin:0 0 4px;">${esc(s.hello(order.name))}</p>
 <p style="margin:0;color:${C.muted};">${esc(s.statusText[st])}</p>
 ${st === 'cancelled' ? '' : itemsTable(lang, order, items)}
@@ -192,11 +192,11 @@ ${button(orderLink(origin, order), s.track)}`;
 export function alertEmail({ order, items, origin, cfg, settings }) {
   const phone = displayPhone(order.phone);
   const body = `${badge('Nouvelle commande', '#fff1d6', '#8a5300')}
-<h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.25;margin:14px 0 4px;">${esc(money(order.total, 'fr'))} · ${esc(order.city)}</h1>
+<h1 style="font-family:${FONT};font-weight:800;font-size:24px;line-height:1.25;margin:14px 0 4px;">${esc(money(order.total, 'fr'))} · ${esc(order.city)}</h1>
 <p style="margin:0;color:${C.muted};">Commande <strong dir="ltr" style="color:${C.ink}">${esc(order.number)}</strong> · langue ${esc(order.lang.toUpperCase())}</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 0;background:${C.cream};border-radius:12px;font-size:14px;"><tr><td style="padding:12px 14px;line-height:1.7;">
 <strong>${esc(order.name)}</strong><br>
-<a href="tel:+${esc(order.phone)}" style="color:${C.majorelle};">${esc(phone)}</a>${order.email ? ` · ${esc(order.email)}` : ''}<br>
+<a href="tel:+${esc(order.phone)}" style="color:${C.brand};">${esc(phone)}</a>${order.email ? ` · ${esc(order.email)}` : ''}<br>
 ${esc(order.address)}, ${esc(order.city)}${order.note ? `<br><em>« ${esc(order.note)} »</em>` : ''}
 </td></tr></table>
 ${itemsTable('fr', order, items)}

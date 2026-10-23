@@ -1,6 +1,6 @@
-# Shophani: online store for Morocco (shophani.shop)
+# Shop Hani (شوپ هاني): online store for Morocco (shophani.shop)
 
-A fast, mobile-first online store for Moroccan customers:
+A fast, mobile-first general store (electronics, fashion, beauty, home) for Moroccan customers:
 
 - **Arabic (right to left), French and English**, with the URLs `/ar/`, `/fr/` and `/en/`. Visitors land in their browser's language, and the store remembers the one they pick.
 - **Prices in Moroccan dirhams**: "199 DH" in French, "MAD 199" in English and "199 درهم" in Arabic.
@@ -8,7 +8,7 @@ A fast, mobile-first online store for Moroccan customers:
 - **Shipping by city**: a default fee, per-city rates (for example Casablanca 20 DH) and free delivery above an amount you choose.
 - **Catalogue**: categories, search, product photos (swipeable on mobile), options such as sizes, sale prices, stock with "only 3 left", and featured products.
 - **Admin at `/admin/`** (in French): orders with status (new → confirmed → shipped → delivered / cancelled / returned), a one-tap WhatsApp confirmation message in the customer's language, call buttons, internal notes, CSV export for delivery companies, products, categories, photo upload and settings.
-- **Design**: a full-screen photo slideshow, collections shown as Moroccan arches, story and banner sections, zellige patterns, product galleries with thumbnails, quick add to cart, a sticky "order now" bar and a bottom tab bar on phones, a free-delivery progress bar in the cart, and subtle scroll animations (turned off for visitors who ask their device for less motion). Typefaces: Fraunces and Manrope for French and English, Reem Kufi and IBM Plex Sans Arabic for Arabic.
+- **Design**: a full-screen photo slideshow, category cards, story and banner sections, a soft dot pattern, product galleries with thumbnails, quick add to cart, a sticky "order now" bar and a bottom tab bar on phones, a free-delivery progress bar in the cart, and subtle scroll animations (turned off for visitors who ask their device for less motion). Typefaces: Outfit and Manrope for French and English, Alexandria and IBM Plex Sans Arabic for Arabic.
 - **Photos** from Unsplash, free for commercial use (see `CREDITS.md`, and the `/fr/credits` page).
 - Built for search engines: pages are rendered on the server, with hreflang links between languages, product structured data (`Product` with the `MAD` price), a sitemap and robots.txt.
 
@@ -107,4 +107,4 @@ Events sent, with amounts in MAD: PageView, ViewContent (product page), AddToCar
 | `seed/sample.sql` | Sample products |
 | `test/` | `npm test` |
 
-To change the colours, edit `--primary` (Majorelle blue) and `--accent` (terracotta) at the top of `public/assets/style.css`. To change storefront wording, edit `src/i18n.js`.
+To change the colours, edit `--brand` (blue) and `--accent` (orange) at the top of `public/assets/style.css`. To change storefront wording, edit `src/i18n.js`.

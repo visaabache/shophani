@@ -4,31 +4,25 @@ All storefront photos in `public/assets/photos/` come from [Unsplash](https://un
 
 | File | Photographer | Original |
 | --- | --- | --- |
-| `argan-oil` | Naas Nahas (DStudio) | [Unsplash](https://images.unsplash.com/photo-1722933375700-e297a7996265) |
-| `argan-hands` | Christin Hume | [Unsplash](https://images.unsplash.com/photo-1515377905703-c4788e51af15) |
-| `soap` | Nigel Hoare | [Unsplash](https://images.unsplash.com/photo-1781080922537-7d5338f96e95) |
-| `rhassoul` | Towfiqu barbhuiya | [Unsplash](https://images.unsplash.com/photo-1626783416763-67a92e5e7266) |
-| `caftan` | Karim MANJRA | [Unsplash](https://images.unsplash.com/photo-1555885424-fcb5134e4bee) |
-| `caftan-green` | Mezidi Zineb | [Unsplash](https://images.unsplash.com/photo-1649109670237-31fcefbac2b6) |
-| `caftan-teal` | Mezidi Zineb | [Unsplash](https://images.unsplash.com/photo-1649109669093-90726a95c606) |
-| `caftan-souk` | Khalid Boutchich | [Unsplash](https://images.unsplash.com/photo-1629200468327-78bdb7e47c85) |
-| `babouches` | mana5280 | [Unsplash](https://images.unsplash.com/photo-1761416182630-9a5a974e3fca) |
-| `babouches-rack` | Aysegul Aytoren | [Unsplash](https://images.unsplash.com/photo-1775127730412-e9059cb8cc9e) |
-| `tajines` | Chloe Lefleur | [Unsplash](https://images.unsplash.com/photo-1673283547641-16ddb83eb787) |
-| `plates` | Agata Ciosek | [Unsplash](https://images.unsplash.com/photo-1779032969957-31b96ad01ea3) |
-| `pouf` | Madalina Zamfira | [Unsplash](https://images.unsplash.com/photo-1792073224563-50a05245f427) |
-| `pouf-blue` | Mina Rad | [Unsplash](https://images.unsplash.com/photo-1726463450351-4b603da0f507) |
-| `mint-tea` | Massimo Adami | [Unsplash](https://images.unsplash.com/photo-1567708415681-d1d249e182eb) |
-| `tea-pour` | Jaida Stewart | [Unsplash](https://images.unsplash.com/photo-1591299089616-c9604047b1a6) |
-| `tea-beach` | alicharmant | [Unsplash](https://images.unsplash.com/photo-1785153498473-88ec8f6fb87e) |
-| `teapot` | Martin Zangerl | [Unsplash](https://images.unsplash.com/photo-1518439532222-5dcc881e74b8) |
-| `teapot-pour` | Vincent Riszdorfer | [Unsplash](https://images.unsplash.com/photo-1541168350939-a118c5c13b4d) |
-| `lantern` | Othman Alghanmi | [Unsplash](https://images.unsplash.com/photo-1768913651875-75058aa27afa) |
-| `lanterns` | Christian Buehner | [Unsplash](https://images.unsplash.com/photo-1561084092-f409d06f91f3) |
-| `souk-lanterns` | quentin touvard | [Unsplash](https://images.unsplash.com/photo-1771148886150-fe1784951a68) |
-| `majorelle` | ine driesens | [Unsplash](https://images.unsplash.com/photo-1747601387763-3abf57ee79c8) |
-| `riad-dusk` | Bernd Dittrich | [Unsplash](https://images.unsplash.com/photo-1761456306087-5f46fec09d28) |
-| `zellige-arch` | Bernd Dittrich | [Unsplash](https://images.unsplash.com/photo-1762380371792-9a94903663ca) |
-| `souk-alley` | Val Vesa | [Unsplash](https://images.unsplash.com/photo-1772203151689-9aef3e0396be) |
-| `spices` | Emilia Igartua | [Unsplash](https://images.unsplash.com/photo-1722180862276-970599009d51) |
-| `ceiling` | mana5280 | [Unsplash](https://images.unsplash.com/photo-1761416182644-2d9d4f432563) |
+| `hero-shopping` | freestocks | [Unsplash](https://images.unsplash.com/photo-1483985988355-763728e1935b) |
+| `hero-tech` | C D-X | [Unsplash](https://images.unsplash.com/photo-1505740420928-5e560c06d30e) |
+| `hero-home` | Kam Idris | [Unsplash](https://images.unsplash.com/photo-1586208958839-06c17cacdf08) |
+| `cat-tech` | Kiran CK | [Unsplash](https://images.unsplash.com/photo-1583394838336-acd977736f90) |
+| `cat-fashion` | Irene Kredenets | [Unsplash](https://images.unsplash.com/photo-1598532163257-ae3c6b2524b6) |
+| `cat-beauty` | Kadarius Seegars | [Unsplash](https://images.unsplash.com/photo-1608571423902-eed4a5ad8108) |
+| `cat-home` | Angela Bailey | [Unsplash](https://images.unsplash.com/photo-1572048572872-2394404cf1f3) |
+| `headphones` | Sebastian Banasiewcz | [Unsplash](https://images.unsplash.com/photo-1585298723682-7115561c51b7) |
+| `smartwatch` | Auguras Pipiras | [Unsplash](https://images.unsplash.com/photo-1624096104992-9b4fa3a279dd) |
+| `speaker` | Lynda Sanchez | [Unsplash](https://images.unsplash.com/photo-1547052178-7f2c5a20c332) |
+| `sneakers` | Paul Gaudriault | [Unsplash](https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77) |
+| `handbag` | Arno Senoner | [Unsplash](https://images.unsplash.com/photo-1590874103328-eac38a683ce7) |
+| `handbag-2` | Arno Senoner | [Unsplash](https://images.unsplash.com/photo-1584917865442-de89df76afd3) |
+| `sunglasses` | charlesdeluvio | [Unsplash](https://images.unsplash.com/photo-1511499767150-a48a237f0083) |
+| `perfume` | Siora Photography | [Unsplash](https://images.unsplash.com/photo-1543422655-ac1c6ca993ed) |
+| `serum` | Mathilde Langevin | [Unsplash](https://images.unsplash.com/photo-1620916297397-a4a5402a3c6c) |
+| `mug` | Mel Poole | [Unsplash](https://images.unsplash.com/photo-1542556398-95fb5b9f9b48) |
+| `vase` | Spacejoy | [Unsplash](https://images.unsplash.com/photo-1618220179428-22790b461013) |
+| `lamp` | Karolina Grabowska | [Unsplash](https://images.unsplash.com/photo-1667312939978-64cf31718a6e) |
+| `delivery` | RoseBox رز باکس | [Unsplash](https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55) |
+| `kitchen` | Jason Briscoe | [Unsplash](https://images.unsplash.com/photo-1556911220-bff31c812dba) |
+| `shop-bags` | Iuliia Pilipeichenko | [Unsplash](https://images.unsplash.com/photo-1760565030346-4b947220fe3a) |

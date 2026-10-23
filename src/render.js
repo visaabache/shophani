@@ -9,11 +9,11 @@ import { pixelConfig } from './pixels.js';
 import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
-const BRAND_OG = '/assets/brand/og-image.jpg';
+const BRAND_OG = '/assets/brand/og-image-v2.jpg';
 
-// The drawn Shophani logo, or the star and plain name when the store has been renamed in admin.
+// The drawn Shop Hani logo, or a sparkle and the plain name when the store has been renamed in admin.
 function brandLogo(store, lang) {
-  if (store.trim().toLowerCase() !== 'shophani') return `${star('logo-star')}<span>${esc(store)}</span>`;
+  if (!/^shop ?hani$/i.test(store.trim()) && store.trim().toLowerCase() !== 'شوپ هاني') return `${star('logo-star')}<span>${esc(store)}</span>`;
   return lang === 'ar' ? LOGO_ARABIC : LOGO_LATIN;
 }
 
@@ -67,7 +67,7 @@ function waWidget(ctx, product) {
   const t = T[lang];
   const number = settings.whatsapp;
   if (!waLink(number)) return '';
-  const store = settings.store_name || 'Shophani';
+  const store = settings.store_name || 'Shop Hani';
   const ref = product ? `\n${product.name} — ${product.price}\n${origin}/${lang}/p/${product.slug}` : '';
   const chips = (product ? t.waChipsProduct : t.waChips).map((c) => [c, `${c}${ref}`]);
   return `<div class="wa-widget" data-wa>
@@ -92,8 +92,8 @@ function icon(name, size = 24) {
   return `<svg class="icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
 }
 const waIcon = (size = 24) => `<svg class="icon" viewBox="0 0 32 32" width="${size}" height="${size}" aria-hidden="true"><path fill="currentColor" d="${WA_PATH}"/></svg>`;
-// The eight-pointed star of Moroccan zellige, used as the logo mark and as ornaments.
-const star = (cls = 'star') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.5 14.6 5h4.4v4.4L22.5 12 19 14.6V19h-4.4L12 22.5 9.4 19H5v-4.4L1.5 12 5 9.4V5h4.4L12 1.5Zm0 6a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>`;
+// A four-pointed sparkle, used as a small ornament (section labels, order confirmation).
+const star = (cls = 'star') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.5c.9 5.6 4.9 9.6 10.5 10.5-5.6.9-9.6 4.9-10.5 10.5C11.1 16.9 7.1 12.9 1.5 12 7.1 11.1 11.1 7.1 12 1.5Z"/></svg>`;
 
 function catName(c, lang) {
   return c[`name_${lang}`] || c.name_fr || c.name_en || c.name_ar || c.slug;
@@ -118,7 +118,7 @@ export function layout(ctx, { title, description = '', path, body, noindex = fal
   const t = T[lang];
   const px = pixelConfig(settings);
   const pixels = px.meta || px.tiktok;
-  const store = settings.store_name || 'Shophani';
+  const store = settings.store_name || 'Shop Hani';
   const fullTitle = title ? `${title} · ${store}` : `${store} · ${t.tagline}`;
   const announcement = settings[`announcement_${lang}`] || '';
   const wa = waLink(settings.whatsapp);
@@ -131,8 +131,8 @@ export function layout(ctx, { title, description = '', path, body, noindex = fal
   const ogImage = og.startsWith('http') ? og : `${origin}${og}`;
   const fonts =
     lang === 'ar'
-      ? 'family=Reem+Kufi:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700'
-      : 'family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800';
+      ? 'family=Alexandria:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700'
+      : 'family=Outfit:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800';
   const tickerItems = [announcement, t.cod, t.delivery, t.confirm].filter(Boolean);
   const ticker = tickerItems.map((s) => `<span>${star('tick-star')}${esc(s)}</span>`).join('');
   return `<!doctype html>
@@ -148,15 +148,15 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${esc(store)}">
 <meta property="og:image" content="${esc(ogImage)}"><meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#16142b">
+<meta name="theme-color" content="#2b50ee">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
-<link rel="icon" href="/assets/favicon.svg?v=3" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon.svg?v=4" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=5">
+<link rel="stylesheet" href="/assets/style.css?v=6">
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
@@ -265,13 +265,13 @@ function sectionHead(title, kicker = '', link = '', linkText = '') {
   return `<div class="section-head reveal">${kicker ? `<p class="kicker">${star('tick-star')}${esc(kicker)}</p>` : ''}<h2>${esc(title)}</h2>${link ? `<a class="more" href="${esc(link)}">${esc(linkText)} ${icon('arrow', 18)}</a>` : ''}</div>`;
 }
 
-const HERO_PHOTOS = ['souk-lanterns', 'majorelle', 'riad-dusk'];
+const HERO_PHOTOS = ['hero-shopping', 'hero-tech', 'hero-home'];
 
 export function homePage(ctx, featured, latest) {
   const { lang, categories, settings } = ctx;
   const t = T[lang];
   const hasCat = (slug) => categories.some((c) => c.slug === slug);
-  const slideLinks = [`/${lang}/shop`, hasCat('mode') ? `/${lang}/c/mode` : `/${lang}/shop`, hasCat('maison') ? `/${lang}/c/maison` : `/${lang}/shop`];
+  const slideLinks = [`/${lang}/shop`, hasCat('high-tech') ? `/${lang}/c/high-tech` : `/${lang}/shop`, hasCat('maison') ? `/${lang}/c/maison` : `/${lang}/shop`];
   const slides = t.slides
     .map((s, i) => {
       const title = i === 0 ? settings[`hero_title_${lang}`] || s.title : s.title;
@@ -310,7 +310,7 @@ ${cats}
 ${featured.length ? `<section class="section wrap">${sectionHead(t.featured, t.shop, `/${lang}/shop`, t.viewAll)}${grid(featured, lang, t.noProducts)}</section>` : ''}
 <section class="story">
   <div class="wrap story-grid">
-    <div class="story-img reveal"><img src="/assets/photos/zellige-arch.webp" alt="" loading="lazy" width="1000" height="1250"></div>
+    <div class="story-img reveal"><img src="/assets/photos/delivery.webp" alt="" loading="lazy" width="1000" height="1250"></div>
     <div class="story-text reveal" style="--d:120ms">
       <p class="kicker">${star('tick-star')}${esc(t.storyKicker)}</p>
       <h2>${esc(t.storyTitle)}</h2>
@@ -321,7 +321,7 @@ ${featured.length ? `<section class="section wrap">${sectionHead(t.featured, t.s
 </section>
 ${latest.length ? `<section class="section wrap">${sectionHead(t.newArrivals, t.shop, `/${lang}/shop`, t.viewAll)}${grid(latest, lang, t.noProducts)}</section>` : ''}
 <section class="banner reveal">
-  <img src="/assets/photos/lanterns-wide.webp" alt="" loading="lazy" width="1800" height="900">
+  <img src="/assets/photos/kitchen-wide.webp" alt="" loading="lazy" width="1800" height="900">
   <div class="banner-text wrap">
     <p class="kicker">${star('tick-star')}${esc(t.bannerKicker)}</p>
     <h2>${esc(t.bannerTitle)}</h2>
