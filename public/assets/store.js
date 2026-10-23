@@ -436,6 +436,24 @@
   );
   if (location.hash === '#q') $('#q')?.focus({ preventScroll: true });
 
+  // Product page: expected delivery window (24 to 72 h from today).
+  $$('[data-eta]').forEach((el) => {
+    const fmt = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-GB' : 'fr-MA', { weekday: 'short', day: 'numeric', month: 'short' });
+    const day = (n) => fmt.format(new Date(Date.now() + n * 86400000));
+    el.textContent = (i18n.eta || '').replace('{a}', day(1)).replace('{b}', day(3));
+    el.hidden = false;
+  });
+  $$('[data-copy]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(b.dataset.copy);
+        toast(i18n.copied);
+      } catch {
+        toast(b.dataset.copy);
+      }
+    }),
+  );
+
   badge();
   window.addEventListener('storage', () => badge());
 })();

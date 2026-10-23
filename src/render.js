@@ -30,6 +30,12 @@ const ICONS = {
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   shield: '<path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6L12 3Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  undo: '<path d="M9 7 4.5 11.5 9 16"/><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3"/><path d="M12 14.5v2.5"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  share: '<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="m8.2 10.8 7.6-4M8.2 13.2l7.6 4"/>',
+  box: '<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/>',
 };
 const WA_PATH =
   'M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3Zm0 23.8c-2 0-4-.5-5.7-1.6l-.4-.2-3.9 1 1-3.8-.3-.4A10.8 10.8 0 1 1 16 26.8Zm6-8.1c-.3-.2-1.9-1-2.2-1-.3-.2-.5-.2-.7.1l-1 1.3c-.2.2-.4.2-.7.1a8.8 8.8 0 0 1-4.4-3.8c-.3-.6.3-.5 1-1.7.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.6-.5-.8-.5h-.6c-.2 0-.6 0-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.4c.2.2 2.4 3.6 5.7 5 2.1.9 3 1 4 .8.7-.1 1.9-.8 2.2-1.5.3-.8.3-1.4.2-1.5l-.6-.4Z';
@@ -156,11 +162,11 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=6">
+<link rel="stylesheet" href="/assets/style.css?v=7">
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
-<script src="/assets/store.js?v=6" defer></script>
+<script src="/assets/store.js?v=7" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>
@@ -186,7 +192,6 @@ ${body}
     <div class="foot-brand">
       <a class="logo logo-light" href="/${lang}/" aria-label="${esc(store)}">${brandLogo(store, lang)}</a>
       <p>${esc(t.tagline)}</p>
-      <p class="cod-badge">${icon('cash', 20)} ${esc(t.cod)}</p>
       ${socialLinks(settings)}
     </div>
     <div>
@@ -196,7 +201,8 @@ ${body}
     <div>
       <h3>${esc(t.help)}</h3>
       <ul>
-        <li>${esc(t.delivery)}</li>
+        <li><a href="/${lang}/about">${esc(t.aboutUs)}</a></li>
+        <li>${esc(t.deliveryLong)}</li>
         <li>${esc(t.confirm)}</li>
         ${wa ? `<li><a href="${esc(wa)}" rel="noopener">${esc(t.whatsappUs)}</a></li>` : ''}
         ${settings.contact_email ? `<li><a href="mailto:${esc(settings.contact_email)}">${esc(settings.contact_email)}</a></li>` : ''}
@@ -205,6 +211,12 @@ ${body}
         <li><a href="/${lang}/credits">${esc(t.credits)}</a></li>
       </ul>
     </div>
+  </div>
+  <div class="wrap foot-pay" aria-label="${esc(t.weAccept)}">
+    <span class="pay-badge">${icon('cash', 18)} ${esc(t.cod)}</span>
+    <span class="pay-badge">${icon('truck', 18)} ${esc(t.delivery)}</span>
+    <span class="pay-badge">${icon('undo', 18)} ${esc(t.returns)}</span>
+    <span class="pay-badge">${icon('lock', 18)} ${esc(t.secure)}</span>
   </div>
   <div class="wrap foot-bottom"><span>© ${new Date().getUTCFullYear()} ${esc(store)}. ${esc(t.rights)}</span>${pixels ? `<button type="button" class="link-btn" data-consent-open>${esc(t.cookieSettings)}</button>` : ''}<span class="langs">${langLinks}</span></div>
 </footer>
@@ -400,7 +412,9 @@ export function productPage(ctx, p, category, related) {
     ${category ? `<p class="kicker">${star('tick-star')}${esc(catName(category, lang))}</p>` : ''}
     <h1>${esc(name)}</h1>
     <p class="price big">${esc(money(p.price, lang))}${onSale ? ` <s>${esc(money(p.compare_price, lang))}</s> <span class="save">−${Math.round((1 - p.price / p.compare_price) * 100)}%</span>` : ''}</p>
+    ${onSale ? `<p class="you-save">${esc(t.youSave(money(p.compare_price - p.price, lang)))}</p>` : ''}
     ${stockLine}
+    ${soldOut ? '' : `<div class="eta">${icon('truck', 22)}<div><strong>${esc(t.deliveryLong)}</strong><span data-eta hidden></span></div></div>`}
     <form class="buy" novalidate data-product="${p.id}" data-name="${esc(name)}" data-price="${p.price}" data-image="${esc(images[0])}" data-slug="${esc(p.slug)}">
       ${options.length ? `<fieldset class="options"><legend>${esc(t.choose)}</legend><div>${options.map((o, i) => `<label><input type="radio" name="option" value="${esc(o)}"${i === 0 && options.length === 1 ? ' checked' : ''} required><span>${esc(o)}</span></label>`).join('')}</div></fieldset>` : ''}
       <div class="qty-row">
@@ -410,17 +424,28 @@ export function productPage(ctx, p, category, related) {
       ${soldOut ? `<button class="btn btn-block" type="button" disabled>${esc(t.outOfStock)}</button>` : `<div class="buy-buttons"><button class="btn btn-block btn-accent" type="submit" name="go" value="checkout">${esc(t.buyNow)}</button>
       <button class="btn btn-block btn-outline" type="submit" name="go" value="cart">${icon('cart', 20)} ${esc(t.addToCart)}</button></div>`}
     </form>
-    <p class="cod-line">${icon('shield', 20)} ${esc(t.payOnDelivery)}</p>
+    <ul class="perks">
+      <li>${icon('cash', 22)}<span><strong>${esc(t.cod)}</strong>${esc(t.codText)}</span></li>
+      <li>${icon('phone', 22)}<span><strong>${esc(t.confirm)}</strong>${esc(t.confirmText)}</span></li>
+      <li>${icon('undo', 22)}<span><strong>${esc(t.returns)}</strong>${esc(t.returnsText)}</span></li>
+      <li>${icon('lock', 22)}<span><strong>${esc(t.secure)}</strong>${esc(t.secureText)}</span></li>
+    </ul>
     <div class="accordion">
       ${desc ? `<details open><summary>${esc(t.details)}</summary><div>${esc(desc).replace(/\n/g, '<br>')}</div></details>` : ''}
       <details><summary>${esc(t.shippingPayment)}</summary><div>${esc(t.shippingPaymentText)}</div></details>
+      <details><summary>${esc(t.returns)}</summary><div>${esc(t.returnsLong)} <a href="/${lang}/terms">${esc(t.terms)}</a></div></details>
     </div>
-    ${wa ? `<a class="wa-inline" href="${esc(wa)}" rel="noopener">${waIcon(20)} ${esc(t.whatsappUs)}</a>` : ''}
+    <div class="share-row">
+      ${wa ? `<a class="wa-inline" href="${esc(wa)}" rel="noopener">${waIcon(20)} ${esc(t.whatsappUs)}</a>` : ''}
+      <span class="share-btns"><span>${esc(t.share)}</span>
+        <a class="share-btn" href="https://wa.me/?text=${encodeURIComponent(`${name} — ${origin}/${lang}/p/${p.slug}`)}" rel="noopener" target="_blank" aria-label="${esc(t.shareWa)}">${waIcon(18)}</a>
+        <button class="share-btn" type="button" data-copy="${esc(`${origin}/${lang}/p/${p.slug}`)}" aria-label="${esc(t.copyLink)}">${icon('link', 18)}</button>
+      </span>
+    </div>
   </div>
 </section>
 ${soldOut ? '' : `<div class="buy-bar" aria-hidden="true"><div><strong>${esc(money(p.price, lang))}</strong><small>${esc(t.cod)}</small></div><button class="btn btn-accent" type="button" data-buy-now>${esc(t.buyNow)}</button></div>`}
-<div class="wrap">${trust(lang, 'trust-row')}</div>
-${related.length ? `<section class="section wrap">${sectionHead(t.featured, t.shop, `/${lang}/shop`, t.viewAll)}${grid(related, lang, '')}</section>` : ''}
+${related.length ? `<section class="section wrap">${sectionHead(t.alsoLike, category ? catName(category, lang) : t.shop, category ? `/${lang}/c/${category.slug}` : `/${lang}/shop`, t.viewAll)}${grid(related, lang, '')}</section>` : ''}
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
   return layout(ctx, { title: name, description: desc.slice(0, 160), path: `/p/${p.slug}`, body, image: images[0], page: 'product', product: { name, price: money(p.price, lang), slug: p.slug }, track: { event: 'ViewContent', value: p.price, items: [{ id: p.id, name, price: p.price, qty: 1 }] } });
 }
@@ -533,6 +558,37 @@ export function legalPage(ctx, kind) {
   <p class="legal-switch"><a href="/${lang}/${kind === 'privacy' ? 'terms' : 'privacy'}">${esc(kind === 'privacy' ? t.terms : t.privacy)} →</a></p>
 </section>`;
   return layout(ctx, { title: doc.title, description: doc.title, path: `/${kind}`, body, page: 'legal' });
+}
+
+export function aboutPage(ctx) {
+  const { lang, settings } = ctx;
+  const t = T[lang];
+  const a = t.aboutPage;
+  const store = settings.store_name || 'Shop Hani';
+  const wa = waLink(settings.whatsapp, '');
+  const body = `<section class="page-hero about-hero"><div class="wrap">
+  <p class="kicker">${star('tick-star')}${esc(a.kicker)}</p>
+  <h1>${esc(a.title)}</h1>
+  <p class="lead">${esc(a.lead.replace('{store}', store))}</p>
+</div></section>
+<section class="wrap section about-intro">
+  <div class="about-img reveal"><img src="/assets/photos/shop-bags.webp" alt="" width="1000" height="1250" loading="lazy"></div>
+  <div class="reveal"><p>${esc(a.text)}</p>${trust(lang)}</div>
+</section>
+<section class="wrap section">
+  ${sectionHead(a.howTitle)}
+  <ol class="steps about-steps">${a.steps.map(([h, x], i) => `<li class="reveal" style="--d:${i * 70}ms"><span class="step-n">${i + 1}</span><strong>${esc(h)}</strong><p>${esc(x)}</p></li>`).join('')}</ol>
+</section>
+<section class="wrap section">
+  ${sectionHead(a.promiseTitle)}
+  <ul class="promises">${a.promises.map(([h, x], i) => `<li class="reveal" style="--d:${i * 70}ms">${icon(['box', 'cash', 'undo', 'phone'][i], 26)}<strong>${esc(h)}</strong><p>${esc(x)}</p></li>`).join('')}</ul>
+</section>
+<section class="wrap section narrow center about-contact">
+  <h2>${esc(a.contactTitle)}</h2>
+  <p>${esc(a.contactText)}</p>
+  <p class="about-ctas"><a class="btn btn-accent" href="/${lang}/shop">${esc(a.cta)} ${icon('arrow', 18)}</a>${wa ? ` <a class="btn btn-outline" href="${esc(wa)}" rel="noopener">${waIcon(20)} ${esc(t.whatsappUs)}</a>` : ''}${settings.contact_email ? ` <a class="btn btn-outline" href="mailto:${esc(settings.contact_email)}">${esc(settings.contact_email)}</a>` : ''}</p>
+</section>`;
+  return layout(ctx, { title: a.title, description: a.lead.replace('{store}', store).slice(0, 160), path: '/about', body, page: 'about' });
 }
 
 export function notFoundPage(ctx) {

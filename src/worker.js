@@ -3,7 +3,7 @@
 
 import { T } from './i18n.js';
 import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName, visitorId, recentHits, addHit, sameOrigin } from './lib.js';
-import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, legalPage, catName } from './render.js';
+import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, legalPage, aboutPage, catName } from './render.js';
 
 const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
 import { handleAdmin } from './admin.js';
@@ -125,10 +125,12 @@ async function storefront(request, env, url, lang, rest) {
     const p = await db.prepare('SELECT * FROM products WHERE active = 1 AND slug = ?').bind(decodeURIComponent(rest.slice(3))).first();
     if (!p) return html(notFoundPage(ctx), 404);
     const related = await db
-      .prepare('SELECT * FROM products WHERE active = 1 AND id != ? AND (category_id IS ? OR featured = 1) ORDER BY RANDOM() LIMIT 4')
+      .prepare('SELECT * FROM products WHERE active = 1 AND id != ? AND (category_id IS ?2 OR featured = 1) ORDER BY (category_id IS ?2) DESC, RANDOM() LIMIT 4')
       .bind(p.id, p.category_id)
       .all();
     res = html(productPage(ctx, p, categories.find((c) => c.id === p.category_id), related.results));
+  } else if (rest === '/about') {
+    res = html(aboutPage(ctx));
   } else if (rest === '/credits') {
     res = html(creditsPage(ctx));
   } else if (rest === '/privacy' || rest === '/terms') {
@@ -275,7 +277,7 @@ async function sitemap(env, origin) {
     env.DB.prepare('SELECT slug FROM products WHERE active = 1').all(),
     env.DB.prepare('SELECT slug FROM categories').all(),
   ]);
-  const paths = ['/', '/shop', '/credits', '/terms', '/privacy', ...cats.results.map((c) => `/c/${c.slug}`), ...products.results.map((p) => `/p/${p.slug}`)];
+  const paths = ['/', '/shop', '/about', '/credits', '/terms', '/privacy', ...cats.results.map((c) => `/c/${c.slug}`), ...products.results.map((p) => `/p/${p.slug}`)];
   const urls = paths
     .map((p) => {
       const alts = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${esc(origin)}/${l}${esc(p)}"/>`).join('');
