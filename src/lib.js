@@ -66,8 +66,56 @@ export function parseJSON(text, fallback) {
 export function json(body, status = 200, headers = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers },
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', ...headers },
   });
+}
+
+// A short, salted hash of the visitor's IP address: enough to count their attempts, not to identify them.
+export async function visitorId(request, salt = '') {
+  const ip = request.headers.get('cf-connecting-ip') || 'local';
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${salt}:${ip}`));
+  return [...new Uint8Array(d).slice(0, 12)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Number of hits recorded for a bucket in the last `seconds`.
+export async function recentHits(db, bucket, seconds) {
+  const row = await db.prepare('SELECT COUNT(*) AS n FROM rate_hits WHERE bucket = ? AND at > ?').bind(bucket, Date.now() - seconds * 1000).first();
+  return row?.n || 0;
+}
+
+export async function addHit(db, bucket) {
+  await db.batch([
+    db.prepare('INSERT INTO rate_hits (bucket, at) VALUES (?, ?)').bind(bucket, Date.now()),
+    // Keep the table small: nothing older than two days is ever looked at.
+    db.prepare('DELETE FROM rate_hits WHERE at < ?').bind(Date.now() - 2 * 864e5),
+  ]);
+}
+
+// Browsers send Origin on cross-site writes; refuse any that does not come from this site.
+export function sameOrigin(request, url) {
+  const origin = request.headers.get('origin');
+  return !origin || origin === url.origin;
+}
+
+// Checks the first bytes of an upload so a file can't pretend to be a photo.
+export function looksLikeImage(bytes, type) {
+  const b = new Uint8Array(bytes.slice ? bytes.slice(0, 16) : bytes);
+  const ascii = (from, to) => String.fromCharCode(...b.slice(from, to));
+  if (type === 'image/jpeg') return b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+  if (type === 'image/png') return b[0] === 0x89 && ascii(1, 4) === 'PNG';
+  if (type === 'image/gif') return ascii(0, 4) === 'GIF8';
+  if (type === 'image/webp') return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
+  if (type === 'image/avif') return ascii(4, 8) === 'ftyp' && /avi[fs]/.test(ascii(8, 12));
+  return false;
+}
+
+// MP4 and QuickTime files start with a box whose type is "ftyp"; WebM starts with the EBML header.
+export function looksLikeVideo(bytes, type) {
+  const b = new Uint8Array(bytes.slice ? bytes.slice(0, 16) : bytes);
+  const ascii = (from, to) => String.fromCharCode(...b.slice(from, to));
+  if (type === 'video/mp4' || type === 'video/quicktime') return ascii(4, 8) === 'ftyp';
+  if (type === 'video/webm') return b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3;
+  return false;
 }
 
 export function randomToken(bytes = 16) {
