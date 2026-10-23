@@ -2,7 +2,7 @@
 // logging in sets a signed, HttpOnly session cookie that lasts 7 days.
 
 import { sendEmail, sendStatusEmail, emailConfig, confirmationEmail, validEmail, STATUS_EMAILS } from './email.js';
-import { json, getSettings, slugify, STATUSES, RESTOCK_STATUSES, randomToken, parseJSON, displayPhone, visitorId, recentHits, addHit, sameOrigin, looksLikeImage } from './lib.js';
+import { json, getSettings, slugify, STATUSES, RESTOCK_STATUSES, randomToken, parseJSON, displayPhone, visitorId, recentHits, addHit, sameOrigin, looksLikeImage, looksLikeVideo } from './lib.js';
 
 const SESSION_DAYS = 7;
 // Password guessing: after 5 wrong passwords in 15 minutes, or 20 in a day, that visitor is locked out for a while.
@@ -290,6 +290,7 @@ export async function handleAdmin(request, env, url, ctx) {
   // Image upload: raw file body → R2 when it is set up, otherwise the images table in D1 → /img/<key>
   if (path === '/images' && method === 'POST') {
     const type = (request.headers.get('content-type') || '').split(';')[0];
+    if (VIDEO_EXT[type]) return uploadVideo(env, request, type);
     const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif', 'image/gif': 'gif' }[type];
     if (!ext) return json({ error: 'bad_type' }, 415);
     const data = await request.arrayBuffer();
@@ -303,6 +304,44 @@ export async function handleAdmin(request, env, url, ctx) {
 
 
   return json({ error: 'not_found' }, 404);
+}
+
+// Videos for product descriptions (5 MB max). Without R2 they go to D1 in 1.5 MB pieces,
+// because a single D1 value can't be larger than 2 MB.
+const VIDEO_EXT = { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' };
+export const VIDEO_MAX = 5 * 1024 * 1024;
+export const CHUNK = 1.5 * 1024 * 1024;
+
+async function uploadVideo(env, request, type) {
+  const data = await request.arrayBuffer();
+  if (data.byteLength > VIDEO_MAX) return json({ error: 'video_too_large' }, 413);
+  if (!looksLikeVideo(data, type)) return json({ error: 'bad_type' }, 415);
+  const key = `v/${Date.now().toString(36)}-${randomToken(6)}.${VIDEO_EXT[type]}`;
+  if (env.IMAGES) {
+    await env.IMAGES.put(key, data, { httpMetadata: { contentType: type } });
+  } else {
+    for (let i = 0, off = 0; off < data.byteLength; i++, off += CHUNK) {
+      await env.DB.prepare('INSERT INTO media_chunks (key, idx, data) VALUES (?, ?, ?)').bind(key, i, data.slice(off, off + CHUNK)).run();
+    }
+    await env.DB.prepare('INSERT INTO images (key, type, data, size) VALUES (?, ?, ?, ?)').bind(key, type, new ArrayBuffer(0), data.byteLength).run();
+  }
+  return json({ url: `/img/${key}` }, 201);
+}
+
+// Photos and videos shown in the description: [{ type: 'image' | 'video', url }], our own uploads or https links.
+function descMedia(v) {
+  let arr = v;
+  if (typeof v === 'string') {
+    try {
+      arr = JSON.parse(v || '[]');
+    } catch {
+      arr = [];
+    }
+  }
+  return (Array.isArray(arr) ? arr : [])
+    .map((m) => ({ type: m && m.type === 'video' ? 'video' : 'image', url: String((m && m.url) || '').trim() }))
+    .filter((m) => m.url.startsWith('/img/') || m.url.startsWith('https://'))
+    .slice(0, 20);
 }
 
 async function saveProduct(db, id, b) {
@@ -323,17 +362,18 @@ async function saveProduct(db, id, b) {
     price, int(b.compare_price), stock == null ? null : Math.max(0, stock),
     String(b.options || '').split(',').map((s) => s.trim()).filter(Boolean).join(', '),
     JSON.stringify(images), b.featured ? 1 : 0, b.active === false || b.active === 0 ? 0 : 1, int(b.sort, 0),
+    JSON.stringify(descMedia(b.desc_media)),
   ];
   try {
     if (id) {
       await db
-        .prepare('UPDATE products SET slug=?, category_id=?, name_ar=?, name_fr=?, name_en=?, desc_ar=?, desc_fr=?, desc_en=?, price=?, compare_price=?, stock=?, options=?, images=?, featured=?, active=?, sort=? WHERE id=?')
+        .prepare('UPDATE products SET slug=?, category_id=?, name_ar=?, name_fr=?, name_en=?, desc_ar=?, desc_fr=?, desc_en=?, price=?, compare_price=?, stock=?, options=?, images=?, featured=?, active=?, sort=?, desc_media=? WHERE id=?')
         .bind(...values, id)
         .run();
       return json({ ok: true, id });
     }
     const row = await db
-      .prepare('INSERT INTO products (slug, category_id, name_ar, name_fr, name_en, desc_ar, desc_fr, desc_en, price, compare_price, stock, options, images, featured, active, sort) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id')
+      .prepare('INSERT INTO products (slug, category_id, name_ar, name_fr, name_en, desc_ar, desc_fr, desc_en, price, compare_price, stock, options, images, featured, active, sort, desc_media) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id')
       .bind(...values)
       .first();
     return json({ ok: true, id: row.id }, 201);

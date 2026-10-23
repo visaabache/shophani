@@ -109,6 +109,15 @@ export function looksLikeImage(bytes, type) {
   return false;
 }
 
+// MP4 and QuickTime files start with a box whose type is "ftyp"; WebM starts with the EBML header.
+export function looksLikeVideo(bytes, type) {
+  const b = new Uint8Array(bytes.slice ? bytes.slice(0, 16) : bytes);
+  const ascii = (from, to) => String.fromCharCode(...b.slice(from, to));
+  if (type === 'video/mp4' || type === 'video/quicktime') return ascii(4, 8) === 'ftyp';
+  if (type === 'video/webm') return b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3;
+  return false;
+}
+
 export function randomToken(bytes = 16) {
   const a = crypto.getRandomValues(new Uint8Array(bytes));
   return [...a].map((b) => b.toString(16).padStart(2, '0')).join('');

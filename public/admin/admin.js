@@ -28,6 +28,7 @@
         bad_shipping_rates: 'أثمنة التوصيل حسب المدينة: صيغة غير صحيحة.',
         no_r2: 'تخزين الصور (R2) غير مفعّل.',
         too_large: 'الصورة كبيرة جدًا (5 ميغا كحد أقصى).',
+        video_too_large: 'الفيديو كبير جدًا (5 ميغا كحد أقصى).',
         bad_type: 'صيغة الصورة غير مدعومة.',
         no_email_key: 'مفتاح Brevo غير مثبت بعد (انظر الخطوات أسفله).',
         no_email_from: 'أدخل عنوان الإرسال (المؤكد في Brevo).',
@@ -106,6 +107,10 @@
       uploadFailed: (n) => `تعذّر رفع ${n}`, notImage: (n) => `${n} ليس صورة مدعومة`, waitUploads: 'انتظر حتى ينتهي رفع الصور.',
       photoLinks: 'روابط الصور (رابط في كل سطر)', remove: 'حذف',
       description: 'الوصف', display: 'العرض',
+      descMedia: 'صور وفيديوهات الوصف', addMedia: 'إضافة صور أو فيديو',
+      descMediaHint: 'تظهر تحت نص الوصف في صفحة المنتج. الصور حتى 1 ميغا (تُصغَّر تلقائيًا)، والفيديو MP4 أو WebM أو MOV حتى 5 ميغا.',
+      videoTooBig: (n) => `الفيديو ${n} أكبر من 5 ميغا. صغّره ثم أعد المحاولة.`, photoTooBig: (n) => `الصورة ${n} أكبر من 1 ميغا.`,
+      notMedia: (n) => `${n} ليس صورة أو فيديو مدعوم`,
       slug: 'رابط الصفحة (slug)', auto: 'تلقائي', sort: 'ترتيب العرض',
       featured: 'إبرازه في الصفحة الرئيسية', active: 'معروض (ظاهر في المتجر)',
       cancel: 'إلغاء', view: 'عرض', del: 'حذف', save: 'حفظ',
@@ -181,6 +186,7 @@
         bad_shipping_rates: 'Tarifs par ville : format invalide.',
         no_r2: 'Le stockage des photos (R2) n’est pas configuré.',
         too_large: 'Photo trop lourde (5 Mo max).',
+        video_too_large: 'Vidéo trop lourde (5 Mo max).',
         bad_type: 'Format de photo non pris en charge.',
         no_email_key: 'La clé Brevo n’est pas encore installée (voir les étapes ci-dessous).',
         no_email_from: 'Indiquez l’adresse d’envoi (vérifiée dans Brevo).',
@@ -259,6 +265,10 @@
       uploadFailed: (n) => `Échec de l’envoi de ${n}`, notImage: (n) => `${n} n’est pas une image prise en charge`, waitUploads: 'Attendez la fin de l’envoi des photos.',
       photoLinks: 'Liens des photos (un par ligne)', remove: 'Retirer',
       description: 'Description', display: 'Affichage',
+      descMedia: 'Photos et vidéos de la description', addMedia: 'Ajouter photos ou vidéo',
+      descMediaHint: 'Affichées sous le texte de la description sur la page produit. Photos jusqu’à 1 Mo (réduites automatiquement), vidéos MP4, WebM ou MOV jusqu’à 5 Mo.',
+      videoTooBig: (n) => `La vidéo ${n} dépasse 5 Mo. Réduisez-la puis réessayez.`, photoTooBig: (n) => `La photo ${n} dépasse 1 Mo.`,
+      notMedia: (n) => `${n} n’est pas une photo ou une vidéo prise en charge`,
       slug: 'Adresse de la page (slug)', auto: 'automatique', sort: 'Ordre d’affichage',
       featured: 'Mettre en avant sur l’accueil', active: 'En ligne (visible dans la boutique)',
       cancel: 'Annuler', view: 'Voir', del: 'Supprimer', save: 'Enregistrer',
@@ -777,6 +787,11 @@
       </div>
       <div class="card"><h2>${L.description}</h2>
         ${contentLangs().map((l) => area(`desc_${l}`, LANG_LABEL[l], dirOf(l))).join('')}
+        <div class="desc-media-admin"><h3>${L.descMedia}</h3><p class="muted small">${L.descMediaHint}</p>
+          <div class="photos" id="dmedia"></div>
+          <label class="btn ghost">${icon('plus', 18)}<span>${L.addMedia}</span><input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple hidden data-pick-media></label>
+          <input type="hidden" name="desc_media" value="${esc(p.desc_media || '[]')}">
+        </div>
       </div>
       <div class="card"><h2>${L.display}</h2><div class="cols">
         ${field('slug', L.slug, `placeholder="${L.auto}" dir="ltr"`)}
@@ -862,7 +877,7 @@
       const encode = (type, q) => new Promise((r) => canvas.toBlob(r, type, q));
       let blob = await encode('image/webp', 0.84);
       if (!blob || blob.type !== 'image/webp') blob = await encode('image/jpeg', 0.85); // Safari without WebP encoding
-      for (let q = 0.75; blob.size > 1.5 * 1024 * 1024 && q > 0.4; q -= 0.15) blob = await encode(blob.type, q);
+      for (let q = 0.75; blob.size > 0.95 * 1024 * 1024 && q > 0.4; q -= 0.15) blob = await encode(blob.type, q);
       return blob;
     }
     async function upload(files) {
@@ -912,9 +927,79 @@
       e.preventDefault();
       upload(e.dataTransfer.files);
     });
+    // Description photos and videos: photos are shrunk like the main ones and must end up under 1 MB,
+    // videos are sent as they are (5 MB max) and stored in pieces by the server.
+    const mediaList = () => {
+      try {
+        return JSON.parse(f.desc_media.value || '[]');
+      } catch {
+        return [];
+      }
+    };
+    let mediaPending = [];
+    const drawMedia = () => {
+      const items = mediaList();
+      document.getElementById('dmedia').innerHTML =
+        items
+          .map(
+            (m, i) => `<figure>${m.type === 'video' ? `<video src="${esc(m.url)}#t=0.1" muted playsinline preload="metadata"></video><span class="main-badge">▶</span>` : `<img src="${esc(m.url)}" alt="" loading="lazy">`}
+            <div class="tile-actions">${i > 0 ? `<button type="button" data-mmove="${i}" data-by="-1" aria-label="${L.moveBefore}">${icon('chevron', 16)}</button>` : '<span></span>'}<button type="button" data-mrm="${i}" aria-label="${L.remove}">✕</button>${i < items.length - 1 ? `<button type="button" data-mmove="${i}" data-by="1" class="flip" aria-label="${L.moveAfter}">${icon('chevron', 16)}</button>` : '<span></span>'}</div></figure>`,
+          )
+          .join('') + mediaPending.map(() => `<figure class="uploading"><span class="spinner"></span></figure>`).join('');
+    };
+    const setMedia = (arr) => {
+      f.desc_media.value = JSON.stringify(arr);
+      drawMedia();
+    };
+    drawMedia();
+    document.getElementById('dmedia').addEventListener('click', (e) => {
+      const rm = e.target.closest('[data-mrm]');
+      const mv = e.target.closest('[data-mmove]');
+      const arr = mediaList();
+      if (rm) arr.splice(Number(rm.dataset.mrm), 1);
+      else if (mv) {
+        const i = Number(mv.dataset.mmove);
+        const j = i + Number(mv.dataset.by);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      } else return;
+      setMedia(arr);
+    });
+    f.querySelector('[data-pick-media]').addEventListener('change', async (e) => {
+      const files = [...e.target.files];
+      e.target.value = '';
+      for (const file of files) {
+        const id = Math.random();
+        mediaPending.push(id);
+        drawMedia();
+        try {
+          const name = file.name || 'media';
+          let blob;
+          let type;
+          if (['video/mp4', 'video/webm', 'video/quicktime'].includes(file.type)) {
+            if (file.size > 5 * 1024 * 1024) throw new Error(L.videoTooBig(name));
+            blob = file;
+            type = 'video';
+          } else if (file.type.startsWith('image/') || /\.(heic|heif)$/i.test(name)) {
+            try {
+              blob = await shrink(file);
+            } catch {
+              throw new Error(L.notMedia(name));
+            }
+            if (blob.size > 1024 * 1024) throw new Error(L.photoTooBig(name));
+            type = 'image';
+          } else throw new Error(L.notMedia(name));
+          const { url } = await api('/images', { method: 'POST', raw: blob });
+          setMedia([...mediaList(), { type, url }]);
+        } catch (err) {
+          toast(err.message || L.uploadFailed(file.name || ''), true);
+        }
+        mediaPending = mediaPending.filter((x) => x !== id);
+        drawMedia();
+      }
+    });
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (pending.length) return toast(L.waitUploads, true);
+      if (pending.length || mediaPending.length) return toast(L.waitUploads, true);
       const data = Object.fromEntries(new FormData(f));
       data.featured = f.featured.checked;
       data.active = f.active.checked;

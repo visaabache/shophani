@@ -351,6 +351,10 @@ textarea { resize: vertical; }
 .pay-badge .icon { color: var(--sun); }
 @media (min-width: 640px) { .promises { grid-template-columns: repeat(2, 1fr); } .steps.about-steps { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 900px) { .about-intro { grid-template-columns: 1fr 1fr; gap: 56px; } .promises, .steps.about-steps { grid-template-columns: repeat(4, 1fr); } }
+.desc-text { margin: 0 0 12px; }
+.desc-media { display: grid; gap: 12px; }
+.desc-media img, .desc-media video { display: block; width: 100%; height: auto; max-height: 80vh; border-radius: var(--radius-sm); background: #000; object-fit: contain; }
+.desc-media img { background: var(--surface); }
 .wa-inline { display: inline-flex; align-items: center; gap: 8px; color: #128c4b; font-weight: 700; margin-top: 16px; text-decoration: none; }
 .buy-bar { position: fixed; z-index: 25; inset-inline: 0; bottom: calc(var(--tabbar) + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: rgb(255 255 255 / 0.96); backdrop-filter: blur(12px); border-top: 1px solid var(--line); transform: translateY(110%); transition: transform 0.35s var(--ease); }
 .buy-bar.show { transform: none; }

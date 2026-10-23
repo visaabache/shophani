@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { looksLikeImage, sameOrigin } from '../src/lib.js';
+import { looksLikeImage, looksLikeVideo, sameOrigin } from '../src/lib.js';
 
 const bytes = (...a) => new Uint8Array([...a, ...new Array(16).fill(0)]).buffer;
 const str = (s) => [...s].map((c) => c.charCodeAt(0));
@@ -13,6 +13,14 @@ test('uploads must really be images', () => {
   assert.ok(!looksLikeImage(bytes(...str('<svg onload=alert(1)>')), 'image/png'));
   assert.ok(!looksLikeImage(bytes(...str('<html>')), 'image/jpeg'));
   assert.ok(!looksLikeImage(bytes(0x89, ...str('PNG')), 'image/svg+xml'));
+});
+
+test('uploaded videos must really be videos', () => {
+  assert.ok(looksLikeVideo(bytes(0, 0, 0, 0x20, ...str('ftypisom')), 'video/mp4'));
+  assert.ok(looksLikeVideo(bytes(0, 0, 0, 0x14, ...str('ftypqt  ')), 'video/quicktime'));
+  assert.ok(looksLikeVideo(bytes(0x1a, 0x45, 0xdf, 0xa3), 'video/webm'));
+  assert.ok(!looksLikeVideo(bytes(...str('<html><script>')), 'video/mp4'));
+  assert.ok(!looksLikeVideo(bytes(0, 0, 0, 0x20, ...str('ftypisom')), 'video/x-msvideo'));
 });
 
 test('writes from other sites are refused', () => {

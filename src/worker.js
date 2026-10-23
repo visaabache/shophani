@@ -6,7 +6,7 @@ import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePh
 import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, legalPage, aboutPage, catName } from './render.js';
 
 const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
-import { handleAdmin } from './admin.js';
+import { handleAdmin, CHUNK as VIDEO_CHUNK } from './admin.js';
 import { pixelCsp } from './pixels.js';
 import { sendOrderEmails, validEmail } from './email.js';
 
@@ -18,7 +18,7 @@ const SECURITY_HEADERS = {
   'strict-transport-security': 'max-age=31536000; includeSubDomains',
   'cross-origin-opener-policy': 'same-origin',
   'content-security-policy':
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
 };
 
 function html(body, status = 200) {
@@ -254,22 +254,58 @@ async function handleApi(request, env, url, ctx) {
 }
 
 async function serveImage(env, key, request) {
-  if (!/^[a-z0-9/_-]+\.(jpe?g|png|webp|gif|avif)$/i.test(key)) return new Response('Not found', { status: 404 });
-  const headers = new Headers({ 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' });
-  // Keys are never reused, so a browser that already has the photo can skip the download.
+  if (!/^[a-z0-9/_-]+\.(jpe?g|png|webp|gif|avif|mp4|webm|mov)$/i.test(key)) return new Response('Not found', { status: 404 });
+  const headers = new Headers({ 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff', 'accept-ranges': 'bytes' });
+  // Keys are never reused, so a browser that already has the file can skip the download.
   if (request.headers.get('if-none-match') === `"${key}"`) return new Response(null, { status: 304, headers });
-  const obj = env.IMAGES ? await env.IMAGES.get(key) : null;
+  headers.set('etag', `"${key}"`);
+  const range = request.headers.get('range');
+  const obj = env.IMAGES ? await env.IMAGES.get(key, range ? { range: request.headers } : undefined) : null;
   if (obj) {
     obj.writeHttpMetadata(headers);
-    headers.set('etag', `"${key}"`);
+    if (range && obj.range) {
+      const { offset = 0, length = obj.size - offset } = obj.range;
+      headers.set('content-range', `bytes ${offset}-${offset + length - 1}/${obj.size}`);
+      return new Response(obj.body, { status: 206, headers });
+    }
     return new Response(obj.body, { headers });
   }
-  // Photos uploaded before R2 was set up (or without it) live in D1.
-  const row = await env.DB.prepare('SELECT type, data FROM images WHERE key = ?').bind(key).first();
+  // Files uploaded without R2 live in D1. Videos are split into pieces (media_chunks).
+  const row = await env.DB.prepare("SELECT type, size, CASE WHEN type LIKE 'video/%' THEN NULL ELSE data END AS data FROM images WHERE key = ?").bind(key).first();
   if (!row) return new Response('Not found', { status: 404 });
   headers.set('content-type', row.type);
-  headers.set('etag', `"${key}"`);
-  return new Response(new Uint8Array(row.data), { headers });
+  if (!row.type.startsWith('video/')) return new Response(new Uint8Array(row.data), { headers });
+  // Phones (Safari above all) play videos by asking for byte ranges, so we answer those.
+  const size = row.size;
+  let from = 0;
+  let to = size - 1;
+  const m = range && /^bytes=(\d*)-(\d*)$/.exec(range.trim());
+  if (m && (m[1] || m[2])) {
+    if (m[1]) {
+      from = Number(m[1]);
+      if (m[2]) to = Math.min(Number(m[2]), size - 1);
+    } else {
+      from = Math.max(0, size - Number(m[2]));
+    }
+    if (from > to || from >= size) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}` } });
+  }
+  const first = Math.floor(from / VIDEO_CHUNK);
+  const last = Math.floor(to / VIDEO_CHUNK);
+  const parts = await env.DB.prepare('SELECT idx, data FROM media_chunks WHERE key = ? AND idx BETWEEN ? AND ? ORDER BY idx').bind(key, first, last).all();
+  const out = new Uint8Array(to - from + 1);
+  let pos = 0;
+  for (const part of parts.results) {
+    const bytes = new Uint8Array(part.data);
+    const base = part.idx * VIDEO_CHUNK;
+    const slice = bytes.subarray(Math.max(0, from - base), Math.min(bytes.length, to - base + 1));
+    out.set(slice, pos);
+    pos += slice.length;
+  }
+  if (m) {
+    headers.set('content-range', `bytes ${from}-${to}/${size}`);
+    return new Response(out, { status: 206, headers });
+  }
+  return new Response(out, { headers });
 }
 
 async function sitemap(env, origin) {

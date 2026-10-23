@@ -162,7 +162,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=7">
+<link rel="stylesheet" href="/assets/style.css?v=8">
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
@@ -273,6 +273,15 @@ function trust(lang, cls = '') {
 </ul>`;
 }
 
+function descMedia(p) {
+  try {
+    const arr = JSON.parse(p.desc_media || '[]');
+    return Array.isArray(arr) ? arr.filter((m) => m && typeof m.url === 'string' && (m.url.startsWith('/img/') || m.url.startsWith('https://'))) : [];
+  } catch {
+    return [];
+  }
+}
+
 function sectionHead(title, kicker = '', link = '', linkText = '') {
   return `<div class="section-head reveal">${kicker ? `<p class="kicker">${star('tick-star')}${esc(kicker)}</p>` : ''}<h2>${esc(title)}</h2>${link ? `<a class="more" href="${esc(link)}">${esc(linkText)} ${icon('arrow', 18)}</a>` : ''}</div>`;
 }
@@ -380,6 +389,7 @@ export function productPage(ctx, p, category, related) {
   const t = T[lang];
   const name = productName(p, lang);
   const desc = productDesc(p, lang);
+  const media = descMedia(p);
   const images = productImages(p);
   if (!images.length) images.push(PLACEHOLDER);
   const options = productOptions(p);
@@ -431,7 +441,7 @@ export function productPage(ctx, p, category, related) {
       <li>${icon('lock', 22)}<span><strong>${esc(t.secure)}</strong>${esc(t.secureText)}</span></li>
     </ul>
     <div class="accordion">
-      ${desc ? `<details open><summary>${esc(t.details)}</summary><div>${esc(desc).replace(/\n/g, '<br>')}</div></details>` : ''}
+      ${desc || media.length ? `<details open><summary>${esc(t.details)}</summary><div>${desc ? `<p class="desc-text">${esc(desc).replace(/\n/g, '<br>')}</p>` : ''}${media.length ? `<div class="desc-media">${media.map((m) => (m.type === 'video' ? `<video src="${esc(m.url)}#t=0.1" controls playsinline preload="metadata"></video>` : `<img src="${esc(m.url)}" alt="${esc(name)}" loading="lazy">`)).join('')}</div>` : ''}</div></details>` : ''}
       <details><summary>${esc(t.shippingPayment)}</summary><div>${esc(t.shippingPaymentText)}</div></details>
       <details><summary>${esc(t.returns)}</summary><div>${esc(t.returnsLong)} <a href="/${lang}/terms">${esc(t.terms)}</a></div></details>
     </div>
