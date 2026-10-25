@@ -20,8 +20,9 @@
   async function api(path, { method = 'GET', body, raw } = {}) {
     const res = await fetch(`/api/admin${path}`, {
       method,
-      headers: raw ? { 'content-type': raw.type } : body ? { 'content-type': 'application/json' } : {},
-      body: raw || (body ? JSON.stringify(body) : undefined),
+      // Writes always go out as JSON (DELETE too): the server refuses any other write.
+      headers: raw ? { 'content-type': raw.type } : body || method !== 'GET' ? { 'content-type': 'application/json' } : {},
+      body: raw || (body || method !== 'GET' ? JSON.stringify(body || {}) : undefined),
       credentials: 'same-origin',
     });
     if (res.status === 401 && path !== '/login') {
