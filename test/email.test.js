@@ -28,3 +28,10 @@ test('emails stay off without a key or a sender', () => {
   assert.equal(emailConfig({ BREVO_API_KEY: 'k' }, {}).on, false);
   assert.equal(emailConfig({ BREVO_API_KEY: 'k' }, { email_from: 'a@b.co' }).on, true);
 });
+
+test('order alerts can go to several addresses', async () => {
+  const { notifyList } = await import('../src/email.js');
+  assert.deepEqual(notifyList('a@shop.ma, B@gmail.com; bad-address  c@x.co'), ['a@shop.ma', 'b@gmail.com', 'c@x.co']);
+  assert.deepEqual(notifyList('a@shop.ma,a@shop.ma'), ['a@shop.ma']);
+  assert.deepEqual(notifyList(''), []);
+});

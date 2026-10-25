@@ -134,7 +134,7 @@
       store: 'المتجر', storeName: 'اسم المتجر', whatsapp: 'رقم واتساب (مثال 212612345678)', contactEmail: 'بريد التواصل (الزبائن يردّون عليه)',
       emailsIntro: 'عند كل طلب، يتوصل الزبون بتأكيد بلغته (إذا أدخل بريده) وتتوصل أنت بتنبيه. ويُخبَر الزبون أيضًا عندما يصبح طلبه مؤكدًا، تم شحنه، تم توصيله أو ملغى.',
       keyOk: 'مفتاح Brevo مثبت', keyMissing: 'مفتاح Brevo غير مثبت',
-      emailFrom: 'عنوان الإرسال (مؤكد في Brevo)', notifyEmail: 'استقبال تنبيهات الطلبات على',
+      emailFrom: 'عنوان الإرسال (مؤكد في Brevo)', notifyEmail: 'استقبال تنبيهات الطلبات على (يمكن عدة عناوين مفصولة بفاصلة)',
       statusUpdates: 'إخبار الزبون عند كل تغيير في الحالة',
       weakPassword: 'كلمة سر الإدارة قصيرة. استعمل 12 حرفًا على الأقل (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'مواقع التواصل',
@@ -301,7 +301,7 @@
       store: 'Boutique', storeName: 'Nom de la boutique', whatsapp: 'Numéro WhatsApp (ex. 212612345678)', contactEmail: 'E-mail de contact (les clients y répondent)',
       emailsIntro: 'À chaque commande, le client reçoit une confirmation dans sa langue (s’il a donné son e-mail) et vous recevez une alerte. Le client est aussi prévenu quand sa commande est confirmée, expédiée, livrée ou annulée.',
       keyOk: 'Clé Brevo installée', keyMissing: 'Clé Brevo manquante',
-      emailFrom: 'Adresse d’envoi (vérifiée dans Brevo)', notifyEmail: 'Recevoir les alertes de commande sur',
+      emailFrom: 'Adresse d’envoi (vérifiée dans Brevo)', notifyEmail: 'Recevoir les alertes de commande sur (plusieurs adresses possibles, séparées par des virgules)',
       statusUpdates: 'Prévenir le client à chaque changement de statut',
       weakPassword: 'Le mot de passe admin est court. Utilisez au moins 12 caractères (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'Réseaux sociaux',
@@ -1279,7 +1279,7 @@
         ${state.emails ? '' : steps}
         <div class="cols">
           ${field('email_from', L.emailFrom, 'type="email" dir="ltr" placeholder="boutique@gmail.com"')}
-          ${field('notify_email', L.notifyEmail, 'type="email" dir="ltr" placeholder="you@gmail.com"')}
+          ${field('notify_email', L.notifyEmail, 'type="email" multiple dir="ltr" placeholder="you@gmail.com, partner@gmail.com"')}
         </div>
         <label class="switch"><input type="checkbox" name="email_status_updates"${s.email_status_updates !== '0' ? ' checked' : ''}><span></span> ${L.statusUpdates}</label>
         <div class="actions"><button type="button" class="btn ghost" data-test>${icon('mail', 18)}<span>${L.sendTest}</span></button></div>

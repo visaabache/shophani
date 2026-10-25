@@ -75,13 +75,18 @@ const S = {
 const C = { ink: '#111827', brand: '#2b50ee', accent: '#ff6a3d', sand: '#eef0f5', cream: '#f5f6fa', muted: '#6b7280', line: '#e5e7eb', mint: '#16a34a' };
 const FONT = "-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
+// Order alerts can go to several addresses, separated by commas, semicolons or spaces (5 at most).
+export function notifyList(value) {
+  return [...new Set(String(value || '').split(/[\s,;]+/).map((e) => e.trim().toLowerCase()).filter(validEmail))].slice(0, 5);
+}
+
 export function emailConfig(env, settings) {
   const from = String(settings.email_from || '').trim();
   return {
     on: Boolean(env.BREVO_API_KEY && validEmail(from)),
     from,
     store: settings.store_name || 'Shop Hani',
-    notify: String(settings.notify_email || settings.contact_email || '').trim(),
+    notify: notifyList(settings.notify_email || settings.contact_email),
     replyTo: String(settings.contact_email || from).trim(),
   };
 }
@@ -219,9 +224,9 @@ export async function sendOrderEmails(env, settings, origin, order, items) {
     const m = confirmationEmail(args);
     jobs.push(sendEmail(env, cfg, { to: order.email, toName: order.name, replyTo: cfg.replyTo, ...m }));
   }
-  if (validEmail(cfg.notify)) {
+  if (cfg.notify.length) {
     const m = alertEmail(args);
-    jobs.push(sendEmail(env, cfg, { to: cfg.notify, ...m }));
+    for (const to of cfg.notify) jobs.push(sendEmail(env, cfg, { to, ...m }));
   }
   for (const r of await Promise.allSettled(jobs)) if (r.status === 'rejected') console.error('order email failed', String(r.reason));
 }

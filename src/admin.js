@@ -152,15 +152,15 @@ export async function handleAdmin(request, env, url, ctx) {
     const cfg = emailConfig(env, settings);
     if (!env.BREVO_API_KEY) return json({ error: 'no_email_key' }, 400);
     if (!validEmail(cfg.from)) return json({ error: 'no_email_from' }, 400);
-    if (!validEmail(cfg.notify)) return json({ error: 'no_notify_email' }, 400);
-    const order = { id: 0, number: 'TEST-0000', token: 'test', lang: 'fr', name: 'Client test', phone: '212600000000', email: cfg.notify, city: 'Casablanca', address: 'Adresse test', note: '', shipping: 20, total: 220 };
+    if (!cfg.notify.length) return json({ error: 'no_notify_email' }, 400);
+    const order = { id: 0, number: 'TEST-0000', token: 'test', lang: 'fr', name: 'Client test', phone: '212600000000', email: cfg.notify[0], city: 'Casablanca', address: 'Adresse test', note: '', shipping: 20, total: 220 };
     const m = confirmationEmail({ order, items: [{ name: 'Produit test', option: '', price: 200, qty: 1 }], origin: url.origin, cfg, settings });
     try {
-      await sendEmail(env, cfg, { to: cfg.notify, ...m, subject: `[Test] ${m.subject}` });
+      for (const to of cfg.notify) await sendEmail(env, cfg, { to, ...m, subject: `[Test] ${m.subject}` });
     } catch (err) {
       return json({ error: 'email_failed', detail: String(err.message).slice(0, 300) }, 502);
     }
-    return json({ ok: true, to: cfg.notify });
+    return json({ ok: true, to: cfg.notify.join(', ') });
   }
 
   // Orders
