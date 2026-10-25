@@ -1,14 +1,20 @@
 // Admin API (/api/admin/*), used by public/admin/. Protected by the ADMIN_PASSWORD secret:
 // logging in sets a signed, HttpOnly session cookie that lasts 7 days.
 
-import { json, getSettings, slugify, STATUSES, RESTOCK_STATUSES, randomToken, parseJSON, displayPhone } from './lib.js';
+import { sendEmail, sendStatusEmail, emailConfig, confirmationEmail, validEmail, STATUS_EMAILS } from './email.js';
+import { json, getSettings, slugify, STATUSES, RESTOCK_STATUSES, randomToken, parseJSON, displayPhone, visitorId, recentHits, addHit, sameOrigin, looksLikeImage, looksLikeVideo, sanitizeHtml, isRichHtml, htmlToText } from './lib.js';
 
 const SESSION_DAYS = 7;
+// Password guessing: after 5 wrong passwords in 15 minutes, or 20 in a day, that visitor is locked out for a while.
+const LOGIN_LIMITS = [[5, 15 * 60], [20, 24 * 3600]];
 const COOKIE = 'admin_session';
 const SETTING_KEYS = [
   'store_name', 'whatsapp', 'contact_email', 'shipping_fee', 'shipping_rates', 'free_shipping_over',
   'announcement_ar', 'announcement_fr', 'announcement_en',
   'hero_title_ar', 'hero_title_fr', 'hero_title_en', 'hero_text_ar', 'hero_text_fr', 'hero_text_en',
+  'email_from', 'notify_email', 'email_status_updates', 'auto_currency',
+  'instagram', 'facebook', 'tiktok', 'meta_pixel_id', 'tiktok_pixel_id',
+  'legal_name', 'legal_ice', 'legal_rc', 'legal_address', 'legal_cndp',
 ];
 
 async function hmacKey(secret) {
@@ -61,19 +67,27 @@ async function body(request) {
 
 const int = (v, fallback = null) => (v === '' || v == null || Number.isNaN(Number(v)) ? fallback : Math.round(Number(v)));
 
-export async function handleAdmin(request, env, url) {
+export async function handleAdmin(request, env, url, ctx) {
   const path = url.pathname.slice('/api/admin'.length);
   const method = request.method;
   const secret = env.ADMIN_PASSWORD;
   if (!secret) return json({ error: 'ADMIN_PASSWORD is not set. Run: npx wrangler secret put ADMIN_PASSWORD' }, 503);
 
+  if (method !== 'GET' && !sameOrigin(request, url)) return json({ error: 'bad_origin' }, 403);
+
   if (path === '/login' && method === 'POST') {
+    const bucket = `login:${await visitorId(request, secret)}`;
+    for (const [max, seconds] of LOGIN_LIMITS) {
+      if ((await recentHits(env.DB, bucket, seconds)) >= max) return json({ error: 'locked', minutes: Math.ceil(seconds / 60) }, 429);
+    }
     const b = await body(request);
-    if (!b || !(await samePassword(String(b.password || ''), secret))) {
+    if (!b || !(await samePassword(String(b.password || '').slice(0, 200), secret))) {
+      await addHit(env.DB, bucket);
       await new Promise((r) => setTimeout(r, 800));
       return json({ error: 'wrong_password' }, 401);
     }
     const token = await makeSession(secret);
+    await env.DB.prepare('DELETE FROM rate_hits WHERE bucket = ?').bind(bucket).run();
     return json({ ok: true }, 200, { 'set-cookie': `${COOKIE}=${token}; Path=/api/admin; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_DAYS * 86400}` });
   }
   if (path === '/logout' && method === 'POST') {
@@ -88,22 +102,65 @@ export async function handleAdmin(request, env, url) {
   const db = env.DB;
   let m;
 
-  if (path === '/me') return json({ ok: true, images: Boolean(env.IMAGES) });
+  if (path === '/me') return json({ ok: true, images: true, r2: Boolean(env.IMAGES), emails: Boolean(env.BREVO_API_KEY), weak_password: secret.length < 12 });
 
   if (path === '/stats' && method === 'GET') {
-    const row = await db
-      .prepare(
+    // Dashboard numbers. Days are counted in Morocco time (UTC+1).
+    const day = "date(created_at, '+1 hour')";
+    const live = "status NOT IN ('cancelled', 'returned')";
+    const [kpi, daily, byStatus, top, cities, recent, low] = await db.batch([
+      db.prepare(
         `SELECT
           SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) AS new_orders,
-          SUM(CASE WHEN date(created_at) = date('now') THEN 1 ELSE 0 END) AS today,
-          SUM(CASE WHEN status = 'delivered' AND created_at > datetime('now', '-30 days') THEN total ELSE 0 END) AS revenue_30d,
+          SUM(CASE WHEN ${day} = date('now', '+1 hour') THEN 1 ELSE 0 END) AS today,
+          SUM(CASE WHEN ${day} = date('now', '+1 hour') AND ${live} THEN total ELSE 0 END) AS today_sales,
           SUM(CASE WHEN created_at > datetime('now', '-30 days') THEN 1 ELSE 0 END) AS orders_30d,
-          SUM(CASE WHEN status IN ('cancelled', 'returned') AND created_at > datetime('now', '-30 days') THEN 1 ELSE 0 END) AS failed_30d
+          SUM(CASE WHEN created_at > datetime('now', '-30 days') AND ${live} THEN total ELSE 0 END) AS sales_30d,
+          SUM(CASE WHEN created_at > datetime('now', '-30 days') AND status = 'delivered' THEN total ELSE 0 END) AS revenue_30d,
+          SUM(CASE WHEN created_at > datetime('now', '-30 days') AND status = 'delivered' THEN 1 ELSE 0 END) AS delivered_30d,
+          SUM(CASE WHEN created_at > datetime('now', '-30 days') AND status IN ('cancelled', 'returned') THEN 1 ELSE 0 END) AS failed_30d,
+          SUM(CASE WHEN created_at BETWEEN datetime('now', '-60 days') AND datetime('now', '-30 days') THEN 1 ELSE 0 END) AS orders_prev,
+          SUM(CASE WHEN created_at BETWEEN datetime('now', '-60 days') AND datetime('now', '-30 days') AND ${live} THEN total ELSE 0 END) AS sales_prev
         FROM orders`,
-      )
-      .first();
-    const low = await db.prepare('SELECT id, name_fr, stock FROM products WHERE active = 1 AND stock IS NOT NULL AND stock <= 3 ORDER BY stock LIMIT 10').all();
-    return json({ ...row, low_stock: low.results });
+      ),
+      db.prepare(`SELECT ${day} AS d, COUNT(*) AS orders, SUM(CASE WHEN ${live} THEN total ELSE 0 END) AS sales FROM orders WHERE created_at > datetime('now', '-30 days') GROUP BY d ORDER BY d`),
+      db.prepare("SELECT status, COUNT(*) AS n FROM orders WHERE created_at > datetime('now', '-30 days') GROUP BY status"),
+      db.prepare(
+        `SELECT i.product_id, i.name, SUM(i.qty) AS qty, SUM(i.qty * i.price) AS sales, (SELECT json_extract(p.images, '$[0]') FROM products p WHERE p.id = i.product_id) AS image, (SELECT p.name_ar FROM products p WHERE p.id = i.product_id) AS name_ar
+         FROM order_items i JOIN orders o ON o.id = i.order_id
+         WHERE o.created_at > datetime('now', '-30 days') AND o.${live}
+         GROUP BY i.product_id, i.name ORDER BY qty DESC, sales DESC LIMIT 5`,
+      ),
+      db.prepare(`SELECT city, COUNT(*) AS n, SUM(total) AS sales FROM orders WHERE created_at > datetime('now', '-30 days') AND ${live} GROUP BY city ORDER BY n DESC LIMIT 5`),
+      db.prepare('SELECT id, number, status, name, city, total, created_at FROM orders ORDER BY id DESC LIMIT 6'),
+      db.prepare('SELECT id, name_fr, name_ar, stock, images FROM products WHERE active = 1 AND stock IS NOT NULL AND stock <= 3 ORDER BY stock LIMIT 10'),
+    ]);
+    return json({
+      ...kpi.results[0],
+      daily: daily.results,
+      by_status: Object.fromEntries(byStatus.results.map((r) => [r.status, r.n])),
+      top_products: top.results,
+      top_cities: cities.results,
+      recent: recent.results,
+      low_stock: low.results,
+    });
+  }
+
+  // Sends a sample order confirmation to the notification address, to check the email setup.
+  if (path === '/test-email' && method === 'POST') {
+    const settings = await getSettings(db);
+    const cfg = emailConfig(env, settings);
+    if (!env.BREVO_API_KEY) return json({ error: 'no_email_key' }, 400);
+    if (!validEmail(cfg.from)) return json({ error: 'no_email_from' }, 400);
+    if (!cfg.notify.length) return json({ error: 'no_notify_email' }, 400);
+    const order = { id: 0, number: 'TEST-0000', token: 'test', lang: 'fr', name: 'Client test', phone: '212600000000', email: cfg.notify[0], city: 'Casablanca', address: 'Adresse test', note: '', shipping: 20, total: 220 };
+    const m = confirmationEmail({ order, items: [{ name: 'Produit test', option: '', price: 200, qty: 1 }], origin: url.origin, cfg, settings });
+    try {
+      for (const to of cfg.notify) await sendEmail(env, cfg, { to, ...m, subject: `[Test] ${m.subject}` });
+    } catch (err) {
+      return json({ error: 'email_failed', detail: String(err.message).slice(0, 300) }, 502);
+    }
+    return json({ ok: true, to: cfg.notify.join(', ') });
   }
 
   // Orders
@@ -122,9 +179,10 @@ export async function handleAdmin(request, env, url) {
       const like = `%${q}%`;
       args.push(like, like, `%${q.replace(/\D/g, '').replace(/^0/, '') || q}%`, like);
     }
-    const sql = `SELECT id, number, status, name, phone, city, total, created_at FROM orders ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY id DESC LIMIT 50 OFFSET ?`;
+    const sql = `SELECT id, number, status, name, phone, email, city, total, created_at FROM orders ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY id DESC LIMIT 50 OFFSET ?`;
     const rows = await db.prepare(sql).bind(...args, (page - 1) * 50).all();
-    return json({ orders: rows.results.map((o) => ({ ...o, phone_display: displayPhone(o.phone) })), page });
+    const counts = await db.prepare('SELECT status, COUNT(*) AS n FROM orders GROUP BY status').all();
+    return json({ orders: rows.results.map((o) => ({ ...o, phone_display: displayPhone(o.phone) })), page, counts: Object.fromEntries(counts.results.map((r) => [r.status, r.n])) });
   }
 
   if (path === '/orders.csv' && method === 'GET') {
@@ -133,7 +191,7 @@ export async function handleAdmin(request, env, url) {
       .prepare(`SELECT o.*, (SELECT group_concat(name || CASE WHEN option != '' THEN ' (' || option || ')' ELSE '' END || ' x' || qty, ' + ') FROM order_items WHERE order_id = o.id) AS items FROM orders o ${STATUSES.includes(status) ? 'WHERE status = ?' : ''} ORDER BY id DESC LIMIT 5000`)
       .bind(...(STATUSES.includes(status) ? [status] : []))
       .all();
-    const cols = ['number', 'created_at', 'status', 'name', 'phone', 'city', 'address', 'items', 'subtotal', 'shipping', 'total', 'note', 'admin_note'];
+    const cols = ['number', 'created_at', 'status', 'name', 'phone', 'email', 'city', 'address', 'items', 'subtotal', 'shipping', 'total', 'note', 'admin_note'];
     const cell = (v) => {
       let s = String(v ?? '');
       if (/^[=+\-@]/.test(s)) s = `'${s}`; // stop spreadsheets from running a cell as a formula
@@ -175,7 +233,14 @@ export async function handleAdmin(request, env, url) {
         if (String(err).includes('CHECK')) return json({ error: 'not_enough_stock' }, 409);
         throw err;
       }
-      return json({ ok: true });
+      let emailed = false;
+      if (next !== order.status && order.email && b.notify !== false) {
+        const settings = await getSettings(db);
+        const items = await db.prepare('SELECT name, option, price, qty FROM order_items WHERE order_id = ?').bind(id).all();
+        emailed = emailConfig(env, settings).on && settings.email_status_updates !== '0' && STATUS_EMAILS.includes(next);
+        ctx.waitUntil(sendStatusEmail(env, settings, url.origin, { ...order, status: next }, items.results));
+      }
+      return json({ ok: true, emailed });
     }
   }
 
@@ -222,20 +287,75 @@ export async function handleAdmin(request, env, url) {
     return json({ ok: true });
   }
 
-  // Image upload: raw file body → R2 → /img/<key>
+  // Image upload: raw file body → R2 when it is set up, otherwise the images table in D1 → /img/<key>
   if (path === '/images' && method === 'POST') {
-    if (!env.IMAGES) return json({ error: 'no_r2' }, 503);
     const type = (request.headers.get('content-type') || '').split(';')[0];
+    if (VIDEO_EXT[type]) return uploadVideo(env, request, type);
     const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif', 'image/gif': 'gif' }[type];
     if (!ext) return json({ error: 'bad_type' }, 415);
     const data = await request.arrayBuffer();
-    if (data.byteLength > 5 * 1024 * 1024) return json({ error: 'too_large' }, 413);
+    // Animated GIFs can't be shrunk in the browser, so they may be up to 5 MB (stored in pieces like videos).
+    if (data.byteLength > (env.IMAGES || type === 'image/gif' ? 5 : 1.8) * 1024 * 1024) return json({ error: 'too_large' }, 413);
+    if (!looksLikeImage(data, type)) return json({ error: 'bad_type' }, 415);
     const key = `p/${Date.now().toString(36)}-${randomToken(6)}.${ext}`;
-    await env.IMAGES.put(key, data, { httpMetadata: { contentType: type } });
+    if (!env.IMAGES && data.byteLength > CHUNK) {
+      await storeChunked(env, key, type, data);
+      return json({ url: `/img/${key}` }, 201);
+    }
+    if (env.IMAGES) await env.IMAGES.put(key, data, { httpMetadata: { contentType: type } });
+    else await db.prepare('INSERT INTO images (key, type, data, size) VALUES (?, ?, ?, ?)').bind(key, type, data, data.byteLength).run();
     return json({ url: `/img/${key}` }, 201);
   }
 
+
   return json({ error: 'not_found' }, 404);
+}
+
+// Videos for product descriptions (5 MB max). Without R2 they (and big GIFs) go to D1 in 1.5 MB pieces,
+// because a single D1 value can't be larger than 2 MB.
+const VIDEO_EXT = { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' };
+export const VIDEO_MAX = 5 * 1024 * 1024;
+export const CHUNK = 1.5 * 1024 * 1024;
+
+async function uploadVideo(env, request, type) {
+  const data = await request.arrayBuffer();
+  if (data.byteLength > VIDEO_MAX) return json({ error: 'video_too_large' }, 413);
+  if (!looksLikeVideo(data, type)) return json({ error: 'bad_type' }, 415);
+  const key = `v/${Date.now().toString(36)}-${randomToken(6)}.${VIDEO_EXT[type]}`;
+  if (env.IMAGES) await env.IMAGES.put(key, data, { httpMetadata: { contentType: type } });
+  else await storeChunked(env, key, type, data);
+  return json({ url: `/img/${key}` }, 201);
+}
+
+async function storeChunked(env, key, type, data) {
+  for (let i = 0, off = 0; off < data.byteLength; i++, off += CHUNK) {
+    await env.DB.prepare('INSERT INTO media_chunks (key, idx, data) VALUES (?, ?, ?)').bind(key, i, data.slice(off, off + CHUNK)).run();
+  }
+  await env.DB.prepare('INSERT INTO images (key, type, data, size) VALUES (?, ?, ?, ?)').bind(key, type, new ArrayBuffer(0), data.byteLength).run();
+}
+
+// Photos and videos shown in the description: [{ type: 'image' | 'video', url }], our own uploads or https links.
+function descMedia(v) {
+  let arr = v;
+  if (typeof v === 'string') {
+    try {
+      arr = JSON.parse(v || '[]');
+    } catch {
+      arr = [];
+    }
+  }
+  return (Array.isArray(arr) ? arr : [])
+    .map((m) => ({ type: m && m.type === 'video' ? 'video' : 'image', url: String((m && m.url) || '').trim() }))
+    .filter((m) => m.url.startsWith('/img/') || m.url.startsWith('https://'))
+    .slice(0, 20);
+}
+
+// Descriptions from the rich editor are cleaned here (and again when shown); plain text stays as it is.
+function cleanDesc(v) {
+  const s = String(v || '').trim();
+  if (!isRichHtml(s)) return s;
+  const html = sanitizeHtml(s);
+  return htmlToText(html) || /<(img|video)\b/.test(html) ? html : '';
 }
 
 async function saveProduct(db, id, b) {
@@ -252,21 +372,22 @@ async function saveProduct(db, id, b) {
   const stock = int(b.stock);
   const values = [
     slug, int(b.category_id), names.ar, names.fr, names.en,
-    String(b.desc_ar || ''), String(b.desc_fr || ''), String(b.desc_en || ''),
+    cleanDesc(b.desc_ar), cleanDesc(b.desc_fr), cleanDesc(b.desc_en),
     price, int(b.compare_price), stock == null ? null : Math.max(0, stock),
     String(b.options || '').split(',').map((s) => s.trim()).filter(Boolean).join(', '),
     JSON.stringify(images), b.featured ? 1 : 0, b.active === false || b.active === 0 ? 0 : 1, int(b.sort, 0),
+    JSON.stringify(descMedia(b.desc_media)),
   ];
   try {
     if (id) {
       await db
-        .prepare('UPDATE products SET slug=?, category_id=?, name_ar=?, name_fr=?, name_en=?, desc_ar=?, desc_fr=?, desc_en=?, price=?, compare_price=?, stock=?, options=?, images=?, featured=?, active=?, sort=? WHERE id=?')
+        .prepare('UPDATE products SET slug=?, category_id=?, name_ar=?, name_fr=?, name_en=?, desc_ar=?, desc_fr=?, desc_en=?, price=?, compare_price=?, stock=?, options=?, images=?, featured=?, active=?, sort=?, desc_media=? WHERE id=?')
         .bind(...values, id)
         .run();
       return json({ ok: true, id });
     }
     const row = await db
-      .prepare('INSERT INTO products (slug, category_id, name_ar, name_fr, name_en, desc_ar, desc_fr, desc_en, price, compare_price, stock, options, images, featured, active, sort) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id')
+      .prepare('INSERT INTO products (slug, category_id, name_ar, name_fr, name_en, desc_ar, desc_fr, desc_en, price, compare_price, stock, options, images, featured, active, sort, desc_media) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id')
       .bind(...values)
       .first();
     return json({ ok: true, id: row.id }, 201);
@@ -283,12 +404,14 @@ async function saveCategory(db, id, b) {
   const name_en = String(b.name_en || '').trim();
   if (!name_fr && !name_ar && !name_en) return json({ error: 'name_required' }, 422);
   const slug = slugify(b.slug || name_fr || name_en) || `categorie-${Date.now().toString(36)}`;
+  const image = String(b.image || '').trim();
+  const imageOk = image === '' || image.startsWith('/') || image.startsWith('https://') ? image.slice(0, 500) : '';
   try {
     if (id) {
-      await db.prepare('UPDATE categories SET slug=?, name_ar=?, name_fr=?, name_en=?, sort=? WHERE id=?').bind(slug, name_ar, name_fr, name_en, int(b.sort, 0), id).run();
+      await db.prepare('UPDATE categories SET slug=?, name_ar=?, name_fr=?, name_en=?, sort=?, image=? WHERE id=?').bind(slug, name_ar, name_fr, name_en, int(b.sort, 0), imageOk, id).run();
       return json({ ok: true, id });
     }
-    const row = await db.prepare('INSERT INTO categories (slug, name_ar, name_fr, name_en, sort) VALUES (?,?,?,?,?) RETURNING id').bind(slug, name_ar, name_fr, name_en, int(b.sort, 0)).first();
+    const row = await db.prepare('INSERT INTO categories (slug, name_ar, name_fr, name_en, sort, image) VALUES (?,?,?,?,?,?) RETURNING id').bind(slug, name_ar, name_fr, name_en, int(b.sort, 0), imageOk).first();
     return json({ ok: true, id: row.id }, 201);
   } catch (err) {
     if (String(err).includes('UNIQUE')) return json({ error: 'slug_taken' }, 409);
