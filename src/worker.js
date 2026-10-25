@@ -8,6 +8,7 @@ import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, 
 const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
 import { handleAdmin, CHUNK as VIDEO_CHUNK } from './admin.js';
 import { pixelCsp } from './pixels.js';
+import { CURRENCIES, currencyFor, ratesFrom } from './currency.js';
 import { sendOrderEmails, validEmail } from './email.js';
 
 const SECURITY_HEADERS = {
@@ -50,6 +51,7 @@ export default {
       if (path.startsWith('/img/')) return await serveImage(env, path.slice(5), request);
       if (path === '/admin') return Response.redirect(`${url.origin}/admin/`, 301);
       if (path === '/sitemap.xml') return await sitemap(env, url.origin);
+      if (path === '/currency') return setCurrency(url);
       if (path === '/robots.txt') {
         return new Response(`User-agent: *\nDisallow: /admin/\nDisallow: /api/\nSitemap: ${url.origin}/sitemap.xml\n`, { headers: { 'content-type': 'text/plain' } });
       }
@@ -59,7 +61,7 @@ export default {
       const m = path.match(/^\/(ar|fr|en)(\/.*)?$/);
       if (m) {
         if (!m[2]) return Response.redirect(`${url.origin}/${m[1]}/${url.search}`, 301);
-        return await storefront(request, env, url, m[1], m[2]);
+        return await storefront(request, env, url, m[1], m[2], ctx);
       }
       return env.ASSETS.fetch(request);
     } catch (err) {
@@ -70,12 +72,23 @@ export default {
   },
 };
 
-async function storefront(request, env, url, lang, rest) {
+// Footer currency menu: remembers the choice for a year, then goes back to the page it came from.
+function setCurrency(url) {
+  const c = url.searchParams.get('c');
+  const back = url.searchParams.get('r') || '/';
+  const to = /^\/(ar|fr|en)(\/[\w\-./%~]*)?$/.test(back) ? back : '/';
+  const headers = new Headers({ location: to, 'cache-control': 'no-store' });
+  if (CURRENCIES.includes(c)) headers.set('set-cookie', `cur=${c}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`);
+  return new Response(null, { status: 303, headers });
+}
+
+async function storefront(request, env, url, lang, rest, exec) {
   if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', { status: 405 });
   const db = env.DB;
   const [settings, cats] = await Promise.all([getSettings(db), db.prepare('SELECT * FROM categories ORDER BY sort, id').all()]);
   const categories = cats.results;
-  const ctx = { lang, settings, categories, origin: url.origin };
+  const cur = currencyFor(request, settings);
+  const ctx = { lang, settings, categories, origin: url.origin, cur, rates: cur === 'MAD' ? null : ratesFrom(settings, env, exec) };
   const t = T[lang];
   let res;
 

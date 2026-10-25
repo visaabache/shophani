@@ -4,6 +4,7 @@ A fast, mobile-first general store (electronics, fashion, beauty, home) for Moro
 
 - **Arabic (right to left), French and English**, with the URLs `/ar/`, `/fr/` and `/en/`. Visitors land in their browser's language, and the store remembers the one they pick.
 - **Prices in Moroccan dirhams**: "199 DH" in French, "MAD 199" in English and "199 درهم" in Arabic.
+- **Prices in the visitor's currency**: visitors abroad see prices in their own currency, chosen from their country (euro across the eurozone, dollar, pound, Canadian dollar, Swiss franc, dirham of the UAE, riyals of Saudi Arabia and Qatar, Kuwaiti dinar; dollar elsewhere). They can change it from the footer. Cart and checkout show the dirham amount the courier collects, and orders, emails and the admin stay in dirhams. Rates come from open.er-api.com, refreshed every 12 hours (`src/currency.js`). Turn it off in the admin under Réglages → Devise.
 - **Cash on delivery only.** Checkout asks for a name, a Moroccan phone number, the city and the address. There's no online payment and no customer account.
 - **Shipping by city**: a default fee, per-city rates (for example Casablanca 20 DH) and free delivery above an amount you choose.
 - **Catalogue**: categories, search, product photos (swipeable on mobile), options such as sizes, sale prices, stock with "only 3 left", and featured products.

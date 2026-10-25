@@ -11,10 +11,21 @@
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  function money(n) {
+  // Dirhams, the currency the courier collects.
+  function mad(n) {
     const d = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, lang === 'en' ? ',' : ' ');
     return lang === 'ar' ? `${d} درهم` : lang === 'en' ? `MAD ${d}` : `${d} DH`;
   }
+  // Amounts in the visitor's currency (set by the server from their country or choice); MAD otherwise.
+  const cur = i18n.cur || 'MAD';
+  const converted = cur !== 'MAD' && i18n.rate > 0;
+  const decimals = cur === 'KWD' ? 3 : 2;
+  const curFmt = converted
+    ? new Intl.NumberFormat({ ar: 'ar-MA', fr: 'fr-FR', en: 'en-US' }[lang] || 'fr-FR', { style: 'currency', currency: cur, minimumFractionDigits: decimals, maximumFractionDigits: decimals, numberingSystem: 'latn' })
+    : null;
+  const money = (n) => (converted ? curFmt.format(n * i18n.rate) : mad(n));
+  // Footer currency menu: switch as soon as a currency is picked.
+  $$('[data-cur]').forEach((sel) => sel.addEventListener('change', () => sel.form.submit()));
   const small = (url) => (/^\/assets\/photos\/[a-z0-9-]+\.webp$/.test(url) && !url.endsWith('-sm.webp') ? url.replace(/\.webp$/, '-sm.webp') : url);
 
   function load() {
@@ -276,7 +287,9 @@
         <li><span>${esc(i18n.subtotal)}</span><span>${money(q.subtotal)}</span></li>
         <li><span>${esc(i18n.shipping)}</span><span>${shipping}</span></li>
         <li class="total"><span>${esc(i18n.total)}</span><span>${money(cityKnown || !q.shipping ? q.total : q.subtotal)}</span></li>
+        ${converted ? `<li class="pay-mad"><span>${esc(i18n.payMad)}</span><strong>${mad(cityKnown || !q.shipping ? q.total : q.subtotal)}</strong></li>` : ''}
       </ul>
+      ${converted ? `<p class="cur-note">${esc(i18n.curNote.replace('{cur}', cur))}</p>` : ''}
       ${editable ? `<a class="btn btn-block btn-accent btn-lg" href="/${lang}/checkout">${esc(i18n.checkout)}</a>` : ''}`;
     if (checkout) $('button[type=submit]', checkout).disabled = false;
   }

@@ -590,3 +590,13 @@ textarea { resize: vertical; }
   .top .cart-link { padding: 8px; }
 }
 @media (max-width: 350px) { .top .logo-svg { height: 30px; } }
+
+/* Visitor currency: the dirham amount actually paid, the note under the cart, the footer menu */
+.price-mad { margin: -2px 0 6px; color: var(--muted); font-size: 0.9rem; }
+.totals .pay-mad { border-bottom: 1px solid var(--line); padding-block: 12px !important; }
+.totals .pay-mad strong { font-weight: 600; }
+.cur-note { margin: 10px 0 0; font-size: 0.82rem; color: var(--muted); }
+.cur-form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.cur-form label { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--muted); }
+.cur-form select { width: auto; min-height: 34px; padding: 4px 30px 4px 12px; border-radius: 999px; font-size: 0.82rem; }
+.fx-credit { font-size: 0.72rem; color: var(--muted); }

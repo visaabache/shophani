@@ -5,6 +5,7 @@ import { T } from './i18n.js';
 import { PHOTO_CREDITS } from './credits.js';
 import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
 import { legalDoc } from './legal.js';
+import { CURRENCIES, formatPrice } from './currency.js';
 import { pixelConfig } from './pixels.js';
 import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions, richDescHtml, htmlToText } from './lib.js';
 
@@ -101,6 +102,21 @@ const waIcon = (size = 24) => `<svg class="icon" viewBox="0 0 32 32" width="${si
 // A four-pointed sparkle, used as a small ornament (section labels, order confirmation).
 const star = (cls = 'star') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.5c.9 5.6 4.9 9.6 10.5 10.5-5.6.9-9.6 4.9-10.5 10.5C11.1 16.9 7.1 12.9 1.5 12 7.1 11.1 11.1 7.1 12 1.5Z"/></svg>`;
 
+const CUR_SIGN = { MAD: 'DH', EUR: '€', USD: '$', GBP: '£', CAD: 'C$', CHF: 'CHF', AED: 'AED', SAR: 'SAR', QAR: 'QAR', KWD: 'KWD' };
+
+// Footer currency menu (works without JavaScript: the form posts to /currency, which sets a cookie and comes back).
+function currencyPicker(ctx, path) {
+  if (ctx.settings.auto_currency === '0') return '';
+  const t = T[ctx.lang];
+  const cur = ctx.cur || 'MAD';
+  const opts = CURRENCIES.map((c) => `<option value="${c}"${c === cur ? ' selected' : ''}>${c} · ${esc(CUR_SIGN[c])}</option>`).join('');
+  const credit = cur === 'MAD' ? '' : `<a class="fx-credit" href="https://www.exchangerate-api.com" rel="noopener">Rates By Exchange Rate API</a>`;
+  return `<form class="cur-form" action="/currency" method="get"><input type="hidden" name="r" value="/${ctx.lang}${esc(path)}"><label><span>${esc(t.currency)}</span><select name="c" data-cur>${opts}</select></label><noscript><button class="link-btn">OK</button></noscript>${credit}</form>`;
+}
+
+// A MAD amount in the visitor's currency.
+const price = (ctx, amount) => formatPrice(amount, ctx.lang, ctx.cur, ctx.rates);
+
 function catName(c, lang) {
   return c[`name_${lang}`] || c.name_fr || c.name_en || c.name_ar || c.slug;
 }
@@ -162,11 +178,11 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=10">
+<link rel="stylesheet" href="/assets/style.css?v=11">
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
-<script src="/assets/store.js?v=7" defer></script>
+<script src="/assets/store.js?v=8" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>
@@ -218,7 +234,7 @@ ${body}
     <span class="pay-badge">${icon('undo', 18)} ${esc(t.returns)}</span>
     <span class="pay-badge">${icon('lock', 18)} ${esc(t.secure)}</span>
   </div>
-  <div class="wrap foot-bottom"><span>© ${new Date().getUTCFullYear()} ${esc(store)}. ${esc(t.rights)}</span>${pixels ? `<button type="button" class="link-btn" data-consent-open>${esc(t.cookieSettings)}</button>` : ''}<span class="langs">${langLinks}</span></div>
+  <div class="wrap foot-bottom"><span>© ${new Date().getUTCFullYear()} ${esc(store)}. ${esc(t.rights)}</span>${pixels ? `<button type="button" class="link-btn" data-consent-open>${esc(t.cookieSettings)}</button>` : ''}${currencyPicker(ctx, path)}<span class="langs">${langLinks}</span></div>
 </footer>
 <nav class="tabbar" aria-label="${esc(t.shop)}">
   <a href="/${lang}/"${page === 'home' ? ' aria-current="page"' : ''}>${icon('home')}<span>${esc(t.home)}</span></a>
@@ -229,12 +245,13 @@ ${body}
 ${waWidget(ctx, product)}
 <div class="toast" role="status" aria-live="polite" hidden></div>
 ${pixels ? `<div class="consent-bar" id="consent" role="dialog" aria-label="${esc(t.cookieSettings)}" hidden><p>${esc(t.consentAds)} <a href="/${lang}/privacy#s7">${esc(t.privacy)}</a></p><div><button type="button" class="btn btn-outline" data-consent="no">${esc(t.refuse)}</button><button type="button" class="btn" data-consent="yes">${esc(t.accept)}</button></div></div>` : ''}
-<script type="application/json" id="i18n">${JSON.stringify({ ...t.js, lang }).replace(/</g, '\\u003c')}</script>
+<script type="application/json" id="i18n">${JSON.stringify({ ...t.js, lang, cur: ctx.cur || 'MAD', rate: ctx.rates?.[ctx.cur] || 1 }).replace(/</g, '\\u003c')}</script>
 </body>
 </html>`;
 }
 
-export function productCard(p, lang, i = 0) {
+export function productCard(p, ctx, i = 0) {
+  const { lang } = ctx;
   const t = T[lang];
   const imgs = productImages(p);
   const img = imgs[0] || PLACEHOLDER;
@@ -252,14 +269,14 @@ export function productCard(p, lang, i = 0) {
   ${quickAdd ? `<button class="quick-add" type="button" data-add="${p.id}" data-name="${esc(name)}" data-price="${p.price}" data-image="${esc(img)}" data-slug="${esc(p.slug)}" aria-label="${esc(t.addToCart)}: ${esc(name)}">${icon('plus', 20)}</button>` : ''}
   <div class="card-body">
     <h3><a href="/${lang}/p/${esc(p.slug)}">${esc(name)}</a></h3>
-    <p class="price">${esc(money(p.price, lang))}${onSale ? ` <s>${esc(money(p.compare_price, lang))}</s>` : ''}</p>
+    <p class="price">${esc(price(ctx, p.price))}${onSale ? ` <s>${esc(price(ctx, p.compare_price))}</s>` : ''}</p>
   </div>
 </article>`;
 }
 
-function grid(products, lang, emptyText) {
+function grid(products, ctx, emptyText) {
   return products.length
-    ? `<div class="grid">${products.map((p, i) => productCard(p, lang, i)).join('')}</div>`
+    ? `<div class="grid">${products.map((p, i) => productCard(p, ctx, i)).join('')}</div>`
     : `<p class="empty">${esc(emptyText)}</p>`;
 }
 
@@ -328,7 +345,7 @@ export function homePage(ctx, featured, latest) {
 </section>
 <div class="wrap trust-wrap">${trust(lang, 'trust-float')}</div>
 ${cats}
-${featured.length ? `<section class="section wrap">${sectionHead(t.featured, t.shop, `/${lang}/shop`, t.viewAll)}${grid(featured, lang, t.noProducts)}</section>` : ''}
+${featured.length ? `<section class="section wrap">${sectionHead(t.featured, t.shop, `/${lang}/shop`, t.viewAll)}${grid(featured, ctx, t.noProducts)}</section>` : ''}
 <section class="story">
   <div class="wrap story-grid">
     <div class="story-img reveal"><img src="/assets/photos/delivery.webp" alt="" loading="lazy" width="1000" height="1250"></div>
@@ -340,7 +357,7 @@ ${featured.length ? `<section class="section wrap">${sectionHead(t.featured, t.s
     </div>
   </div>
 </section>
-${latest.length ? `<section class="section wrap">${sectionHead(t.newArrivals, t.shop, `/${lang}/shop`, t.viewAll)}${grid(latest, lang, t.noProducts)}</section>` : ''}
+${latest.length ? `<section class="section wrap">${sectionHead(t.newArrivals, t.shop, `/${lang}/shop`, t.viewAll)}${grid(latest, ctx, t.noProducts)}</section>` : ''}
 <section class="banner reveal">
   <img src="/assets/photos/kitchen-wide.webp" alt="" loading="lazy" width="1800" height="900">
   <div class="banner-text wrap">
@@ -376,7 +393,7 @@ export function listingPage(ctx, { title, path, products, q = '', sort = '', des
     <noscript><button class="btn btn-small">OK</button></noscript>
   </form>
   <p class="count">${esc(t.productsCount(products.length))}</p>
-  ${grid(products, lang, q ? t.noResults : t.noProducts)}
+  ${grid(products, ctx, q ? t.noResults : t.noProducts)}
 </section>`;
   const query = new URLSearchParams();
   if (q) query.set('q', q);
@@ -422,8 +439,9 @@ export function productPage(ctx, p, category, related) {
   <div class="product-info">
     ${category ? `<p class="kicker">${star('tick-star')}${esc(catName(category, lang))}</p>` : ''}
     <h1>${esc(name)}</h1>
-    <p class="price big">${esc(money(p.price, lang))}${onSale ? ` <s>${esc(money(p.compare_price, lang))}</s> <span class="save">−${Math.round((1 - p.price / p.compare_price) * 100)}%</span>` : ''}</p>
-    ${onSale ? `<p class="you-save">${esc(t.youSave(money(p.compare_price - p.price, lang)))}</p>` : ''}
+    <p class="price big">${esc(price(ctx, p.price))}${onSale ? ` <s>${esc(price(ctx, p.compare_price))}</s> <span class="save">−${Math.round((1 - p.price / p.compare_price) * 100)}%</span>` : ''}</p>
+    ${ctx.cur && ctx.cur !== 'MAD' ? `<p class="price-mad">${esc(t.paidInMad(money(p.price, lang)))}</p>` : ''}
+    ${onSale ? `<p class="you-save">${esc(t.youSave(price(ctx, p.compare_price - p.price)))}</p>` : ''}
     ${stockLine}
     ${soldOut ? '' : `<div class="eta">${icon('truck', 22)}<div><strong>${esc(t.deliveryLong)}</strong><span data-eta hidden></span></div></div>`}
     <form class="buy" novalidate data-product="${p.id}" data-name="${esc(name)}" data-price="${p.price}" data-image="${esc(images[0])}" data-slug="${esc(p.slug)}">
@@ -455,8 +473,8 @@ export function productPage(ctx, p, category, related) {
     </div>
   </div>
 </section>
-${soldOut ? '' : `<div class="buy-bar" aria-hidden="true"><div><strong>${esc(money(p.price, lang))}</strong><small>${esc(t.cod)}</small></div><button class="btn btn-accent" type="button" data-buy-now>${esc(t.buyNow)}</button></div>`}
-${related.length ? `<section class="section wrap">${sectionHead(t.alsoLike, category ? catName(category, lang) : t.shop, category ? `/${lang}/c/${category.slug}` : `/${lang}/shop`, t.viewAll)}${grid(related, lang, '')}</section>` : ''}
+${soldOut ? '' : `<div class="buy-bar" aria-hidden="true"><div><strong>${esc(price(ctx, p.price))}</strong><small>${esc(t.cod)}</small></div><button class="btn btn-accent" type="button" data-buy-now>${esc(t.buyNow)}</button></div>`}
+${related.length ? `<section class="section wrap">${sectionHead(t.alsoLike, category ? catName(category, lang) : t.shop, category ? `/${lang}/c/${category.slug}` : `/${lang}/shop`, t.viewAll)}${grid(related, ctx, '')}</section>` : ''}
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
   return layout(ctx, { title: name, description: desc.slice(0, 160), path: `/p/${p.slug}`, body, image: images[0], page: 'product', product: { name, price: money(p.price, lang), slug: p.slug }, track: { event: 'ViewContent', value: p.price, items: [{ id: p.id, name, price: p.price, qty: 1 }] } });
 }

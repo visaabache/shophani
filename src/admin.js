@@ -12,7 +12,7 @@ const SETTING_KEYS = [
   'store_name', 'whatsapp', 'contact_email', 'shipping_fee', 'shipping_rates', 'free_shipping_over',
   'announcement_ar', 'announcement_fr', 'announcement_en',
   'hero_title_ar', 'hero_title_fr', 'hero_title_en', 'hero_text_ar', 'hero_text_fr', 'hero_text_en',
-  'email_from', 'notify_email', 'email_status_updates',
+  'email_from', 'notify_email', 'email_status_updates', 'auto_currency',
   'instagram', 'facebook', 'tiktok', 'meta_pixel_id', 'tiktok_pixel_id',
   'legal_name', 'legal_ice', 'legal_rc', 'legal_address', 'legal_cndp',
 ];

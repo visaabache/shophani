@@ -136,6 +136,8 @@
       keyOk: 'مفتاح Brevo مثبت', keyMissing: 'مفتاح Brevo غير مثبت',
       emailFrom: 'عنوان الإرسال (مؤكد في Brevo)', notifyEmail: 'استقبال تنبيهات الطلبات على (يمكن عدة عناوين مفصولة بفاصلة)',
       statusUpdates: 'إخبار الزبون عند كل تغيير في الحالة',
+      currency: 'العملة', autoCurrency: 'عرض الأثمنة بعملة بلد الزائر (يورو، دولار، جنيه…)',
+      currencyHint: 'الزبون يدفع دائمًا بالدرهم عند الاستلام: الأثمنة المحوّلة للتوضيح فقط، وتُحدَّث أسعار الصرف كل 12 ساعة. الطلبات والإدارة تبقى بالدرهم.',
       weakPassword: 'كلمة سر الإدارة قصيرة. استعمل 12 حرفًا على الأقل (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'مواقع التواصل',
       socialHint: 'الصق رابط الصفحة أو اسم الحساب فقط (مثلا @shophani). تظهر الأيقونات أسفل المتجر.',
@@ -303,6 +305,8 @@
       keyOk: 'Clé Brevo installée', keyMissing: 'Clé Brevo manquante',
       emailFrom: 'Adresse d’envoi (vérifiée dans Brevo)', notifyEmail: 'Recevoir les alertes de commande sur (plusieurs adresses possibles, séparées par des virgules)',
       statusUpdates: 'Prévenir le client à chaque changement de statut',
+      currency: 'Devise', autoCurrency: 'Afficher les prix dans la devise du pays du visiteur (euro, dollar, livre…)',
+      currencyHint: 'Le client paie toujours en dirhams à la livraison : les prix convertis sont indicatifs, avec des taux mis à jour toutes les 12 heures. Commandes et administration restent en dirhams.',
       weakPassword: 'Le mot de passe admin est court. Utilisez au moins 12 caractères (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'Réseaux sociaux',
       socialHint: 'Collez le lien de la page ou juste le nom du compte (ex. @shophani). Les icônes s’affichent en bas de la boutique.',
@@ -1310,6 +1314,9 @@
         </div>
         <label>${L.rates}<textarea name="rates" rows="4" dir="ltr" placeholder="Casablanca = 20">${esc(Object.entries(rates).map(([c, v]) => `${c} = ${v}`).join('\n'))}</textarea></label>
       </div>
+      <div class="card"><h2>${L.currency}</h2><p class="muted small">${L.currencyHint}</p>
+        <label class="switch"><input type="checkbox" name="auto_currency"${s.auto_currency !== '0' ? ' checked' : ''}><span></span> ${L.autoCurrency}</label>
+      </div>
       <div class="card"><h2>${L.banner}</h2><p class="muted small">${L.bannerHint}</p>
         ${contentLangs().map((l) => field(`announcement_${l}`, LANG_LABEL[l], dirOf(l))).join('')}
       </div>
@@ -1331,6 +1338,7 @@
       data.shipping_rates = JSON.stringify(map);
       data.whatsapp = data.whatsapp.replace(/\D/g, '').replace(/^0(?=[5-7])/, '212');
       data.email_status_updates = f.email_status_updates.checked ? '1' : '0';
+      data.auto_currency = f.auto_currency.checked ? '1' : '0';
       data.meta_pixel_id = data.meta_pixel_id.trim();
       data.tiktok_pixel_id = data.tiktok_pixel_id.trim().toUpperCase();
       await api('/settings', { method: 'PUT', body: data });
