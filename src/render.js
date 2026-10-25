@@ -6,7 +6,7 @@ import { PHOTO_CREDITS } from './credits.js';
 import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
 import { legalDoc } from './legal.js';
 import { pixelConfig } from './pixels.js';
-import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions } from './lib.js';
+import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions, richDescHtml, htmlToText } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
 const BRAND_OG = '/assets/brand/og-image-v2.jpg';
@@ -162,7 +162,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=9">
+<link rel="stylesheet" href="/assets/style.css?v=10">
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
@@ -388,7 +388,8 @@ export function productPage(ctx, p, category, related) {
   const { lang, origin, settings } = ctx;
   const t = T[lang];
   const name = productName(p, lang);
-  const desc = productDesc(p, lang);
+  const descRaw = productDesc(p, lang);
+  const desc = htmlToText(descRaw);
   const media = descMedia(p);
   const images = productImages(p);
   if (!images.length) images.push(PLACEHOLDER);
@@ -441,7 +442,7 @@ export function productPage(ctx, p, category, related) {
       <li>${icon('lock', 22)}<span><strong>${esc(t.secure)}</strong>${esc(t.secureText)}</span></li>
     </ul>
     <div class="accordion">
-      ${desc || media.length ? `<details open><summary>${esc(t.details)}</summary><div>${desc ? `<p class="desc-text">${esc(desc).replace(/\n/g, '<br>')}</p>` : ''}${media.length ? `<div class="desc-media">${media.map((m) => (m.type === 'video' ? `<video src="${esc(m.url)}#t=0.1" controls playsinline preload="metadata"></video>` : `<img src="${esc(m.url)}" alt="${esc(name)}" loading="lazy">`)).join('')}</div>` : ''}</div></details>` : ''}
+      ${descRaw || media.length ? `<details open><summary>${esc(t.details)}</summary><div>${descRaw ? `<div class="rich">${richDescHtml(descRaw)}</div>` : ''}${media.length ? `<div class="desc-media">${media.map((m) => (m.type === 'video' ? `<video src="${esc(m.url)}#t=0.1" controls playsinline preload="metadata"></video>` : `<img src="${esc(m.url)}" alt="${esc(name)}" loading="lazy">`)).join('')}</div>` : ''}</div></details>` : ''}
       <details><summary>${esc(t.shippingPayment)}</summary><div>${esc(t.shippingPaymentText)}</div></details>
       <details><summary>${esc(t.returns)}</summary><div>${esc(t.returnsLong)} <a href="/${lang}/terms">${esc(t.terms)}</a></div></details>
     </div>

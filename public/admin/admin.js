@@ -107,6 +107,15 @@
       uploadFailed: (n) => `تعذّر رفع ${n}`, notImage: (n) => `${n} ليس صورة مدعومة`, waitUploads: 'انتظر حتى ينتهي رفع الصور.',
       photoLinks: 'روابط الصور (رابط في كل سطر)', remove: 'حذف',
       description: 'الوصف', display: 'العرض',
+      rte: {
+        toolbar: 'أدوات التنسيق', bold: 'عريض', italic: 'مائل', underline: 'تسطير', strike: 'يتوسطه خط',
+        h2: 'عنوان', h3: 'عنوان فرعي', para: 'نص عادي', quote: 'اقتباس', ul: 'قائمة نقطية', ol: 'قائمة مرقمة',
+        left: 'محاذاة لليسار', center: 'توسيط', right: 'محاذاة لليمين', color: 'لون النص', link: 'رابط', hr: 'فاصل',
+        clear: 'إزالة التنسيق', photo: 'صورة / GIF', video: 'فيديو', undo: 'تراجع', redo: 'إعادة', full: 'ملء الشاشة',
+        linkPrompt: 'عنوان الرابط (https://…)', placeholder: 'اكتب وصف المنتج هنا…',
+        hint: 'اكتب كما في Word: نسّق النص وأضف صورًا (حتى 1 ميغا) وصور GIF وفيديوهات (حتى 5 ميغا) في أي مكان. يمكنك أيضًا سحبها أو لصقها مباشرة.',
+        uploading: (n) => `جارٍ رفع ${n}…`, gifTooBig: (n) => `صورة GIF ${n} أكبر من 5 ميغا.`,
+      },
       descMedia: 'صور وفيديوهات الوصف', addMedia: 'إضافة صور أو فيديو',
       descMediaHint: 'تظهر تحت نص الوصف في صفحة المنتج. الصور حتى 1 ميغا (تُصغَّر تلقائيًا)، والفيديو MP4 أو WebM أو MOV حتى 5 ميغا.',
       videoTooBig: (n) => `الفيديو ${n} أكبر من 5 ميغا. صغّره ثم أعد المحاولة.`, photoTooBig: (n) => `الصورة ${n} أكبر من 1 ميغا.`,
@@ -265,6 +274,15 @@
       uploadFailed: (n) => `Échec de l’envoi de ${n}`, notImage: (n) => `${n} n’est pas une image prise en charge`, waitUploads: 'Attendez la fin de l’envoi des photos.',
       photoLinks: 'Liens des photos (un par ligne)', remove: 'Retirer',
       description: 'Description', display: 'Affichage',
+      rte: {
+        toolbar: 'Mise en forme', bold: 'Gras', italic: 'Italique', underline: 'Souligné', strike: 'Barré',
+        h2: 'Titre', h3: 'Sous-titre', para: 'Texte normal', quote: 'Citation', ul: 'Liste à puces', ol: 'Liste numérotée',
+        left: 'Aligner à gauche', center: 'Centrer', right: 'Aligner à droite', color: 'Couleur du texte', link: 'Lien', hr: 'Séparateur',
+        clear: 'Effacer la mise en forme', photo: 'Photo / GIF', video: 'Vidéo', undo: 'Annuler', redo: 'Rétablir', full: 'Plein écran',
+        linkPrompt: 'Adresse du lien (https://…)', placeholder: 'Écrivez la description du produit ici…',
+        hint: 'Écrivez comme dans Word : mettez le texte en forme et ajoutez des photos (1 Mo max), des GIF et des vidéos (5 Mo max) où vous voulez. Vous pouvez aussi les glisser ou les coller directement.',
+        uploading: (n) => `Envoi de ${n}…`, gifTooBig: (n) => `Le GIF ${n} dépasse 5 Mo.`,
+      },
       descMedia: 'Photos et vidéos de la description', addMedia: 'Ajouter photos ou vidéo',
       descMediaHint: 'Affichées sous le texte de la description sur la page produit. Photos jusqu’à 1 Mo (réduites automatiquement), vidéos MP4, WebM ou MOV jusqu’à 5 Mo.',
       videoTooBig: (n) => `La vidéo ${n} dépasse 5 Mo. Réduisez-la puis réessayez.`, photoTooBig: (n) => `La photo ${n} dépasse 1 Mo.`,
@@ -774,7 +792,6 @@
   function productForm(p) {
     const images = JSON.parse(p.images || '[]');
     const field = (name, label, attrs = '') => `<label>${label}<input name="${name}" value="${esc(p[name] ?? '')}" ${attrs}></label>`;
-    const area = (name, label, attrs = '') => `<label>${label}<textarea name="${name}" rows="3" ${attrs}>${esc(p[name] ?? '')}</textarea></label>`;
     shell(
       p.id ? L.editProduct : L.newProduct,
       `<form class="form" id="pform">
@@ -801,12 +818,9 @@
         <label>${L.photoLinks}<textarea name="images" rows="2" dir="ltr">${esc(images.join('\n'))}</textarea></label></details>
       </div>
       <div class="card"><h2>${L.description}</h2>
-        ${contentLangs().map((l) => area(`desc_${l}`, LANG_LABEL[l], dirOf(l))).join('')}
-        <div class="desc-media-admin"><h3>${L.descMedia}</h3><p class="muted small">${L.descMediaHint}</p>
-          <div class="photos" id="dmedia"></div>
-          <label class="btn ghost">${icon('plus', 18)}<span>${L.addMedia}</span><input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple hidden data-pick-media></label>
-          <input type="hidden" name="desc_media" value="${esc(p.desc_media || '[]')}">
-        </div>
+        <p class="muted small">${L.rte.hint}</p>
+        ${contentLangs().map((l) => editorHtml(l, p[`desc_${l}`])).join('')}
+        <input type="hidden" name="desc_media" value="${esc(p.desc_media || '[]')}">
       </div>
       <div class="card"><h2>${L.display}</h2><div class="cols">
         ${field('slug', L.slug, `placeholder="${L.auto}" dir="ltr"`)}
@@ -946,79 +960,12 @@
       e.preventDefault();
       upload(e.dataTransfer.files);
     });
-    // Description photos and videos: photos are shrunk like the main ones and must end up under 1 MB,
-    // videos are sent as they are (5 MB max) and stored in pieces by the server.
-    const mediaList = () => {
-      try {
-        return JSON.parse(f.desc_media.value || '[]');
-      } catch {
-        return [];
-      }
-    };
-    let mediaPending = [];
-    const drawMedia = () => {
-      const items = mediaList();
-      document.getElementById('dmedia').innerHTML =
-        items
-          .map(
-            (m, i) => `<figure>${m.type === 'video' ? `<video src="${esc(m.url)}#t=0.1" muted playsinline preload="metadata"></video><span class="main-badge">▶</span>` : `<img src="${esc(m.url)}" alt="" loading="lazy">`}
-            <div class="tile-actions">${i > 0 ? `<button type="button" data-mmove="${i}" data-by="-1" aria-label="${L.moveBefore}">${icon('chevron', 16)}</button>` : '<span></span>'}<button type="button" data-mrm="${i}" aria-label="${L.remove}">✕</button>${i < items.length - 1 ? `<button type="button" data-mmove="${i}" data-by="1" class="flip" aria-label="${L.moveAfter}">${icon('chevron', 16)}</button>` : '<span></span>'}</div></figure>`,
-          )
-          .join('') + mediaPending.map(() => `<figure class="uploading"><span class="spinner"></span></figure>`).join('');
-    };
-    const setMedia = (arr) => {
-      f.desc_media.value = JSON.stringify(arr);
-      drawMedia();
-    };
-    drawMedia();
-    document.getElementById('dmedia').addEventListener('click', (e) => {
-      const rm = e.target.closest('[data-mrm]');
-      const mv = e.target.closest('[data-mmove]');
-      const arr = mediaList();
-      if (rm) arr.splice(Number(rm.dataset.mrm), 1);
-      else if (mv) {
-        const i = Number(mv.dataset.mmove);
-        const j = i + Number(mv.dataset.by);
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      } else return;
-      setMedia(arr);
-    });
-    f.querySelector('[data-pick-media]').addEventListener('change', async (e) => {
-      const files = [...e.target.files];
-      e.target.value = '';
-      for (const file of files) {
-        const id = Math.random();
-        mediaPending.push(id);
-        drawMedia();
-        try {
-          const name = file.name || 'media';
-          let blob;
-          let type;
-          if (['video/mp4', 'video/webm', 'video/quicktime'].includes(file.type)) {
-            if (file.size > 5 * 1024 * 1024) throw new Error(L.videoTooBig(name));
-            blob = file;
-            type = 'video';
-          } else if (file.type.startsWith('image/') || /\.(heic|heif)$/i.test(name)) {
-            try {
-              blob = await shrink(file);
-            } catch {
-              throw new Error(L.notMedia(name));
-            }
-            if (blob.size > 1024 * 1024) throw new Error(L.photoTooBig(name));
-            type = 'image';
-          } else throw new Error(L.notMedia(name));
-          const { url } = await api('/images', { method: 'POST', raw: blob });
-          setMedia([...mediaList(), { type, url }]);
-        } catch (err) {
-          toast(err.message || L.uploadFailed(file.name || ''), true);
-        }
-        mediaPending = mediaPending.filter((x) => x !== id);
-        drawMedia();
-      }
-    });
+    // Word-style description editors (one per language).
+    const editors = [...f.querySelectorAll('[data-rte]')].map((el) => setupEditor(el, shrink));
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (pending.length || mediaPending.length) return toast(L.waitUploads, true);
+      if (pending.length || editors.some((ed) => ed.busy())) return toast(L.waitUploads, true);
+      editors.forEach((ed) => ed.sync());
       const data = Object.fromEntries(new FormData(f));
       data.featured = f.featured.checked;
       data.active = f.active.checked;
@@ -1030,6 +977,246 @@
         toast(err.message, true);
       }
     });
+  }
+
+  // Rich description editor ("like Word"): text formatting plus photos, GIFs and videos anywhere.
+  // The HTML is cleaned here when pasted or loaded, and again on the server when saved and shown.
+  const RTE_TAGS = { P: 'p', BR: 'br', STRONG: 'strong', B: 'strong', EM: 'em', I: 'em', U: 'u', S: 's', STRIKE: 's', H1: 'h2', H2: 'h2', H3: 'h3', H4: 'h3', UL: 'ul', OL: 'ol', LI: 'li', BLOCKQUOTE: 'blockquote', A: 'a', IMG: 'img', VIDEO: 'video', FIGURE: 'figure', FIGCAPTION: 'figcaption', HR: 'hr', SPAN: 'span', FONT: 'span', DIV: 'p' };
+  const RTE_DROP = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'TEMPLATE', 'NOSCRIPT', 'SVG', 'MATH', 'HEAD', 'TITLE', 'META', 'LINK', 'BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'FORM']);
+  const okMedia = (u) => /^\/(img|assets)\/[a-z0-9/_.-]+(#t=[\d.]+)?$/i.test(u) || /^https:\/\//i.test(u);
+  function cleanRich(html) {
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    const walk = (node, out) => {
+      for (const n of [...node.childNodes]) {
+        if (n.nodeType === 3) {
+          out.append(n.textContent.replace(/\u200b/g, ''));
+          continue;
+        }
+        if (n.nodeType !== 1 || RTE_DROP.has(n.tagName)) continue;
+        const tag = RTE_TAGS[n.tagName];
+        if (!tag) {
+          walk(n, out);
+          continue;
+        }
+        const el = document.createElement(tag);
+        const align = n.style?.textAlign;
+        if (align && /^(left|right|center|justify|start|end)$/.test(align) && !['img', 'video'].includes(tag)) el.style.textAlign = align;
+        const color = n.tagName === 'FONT' ? n.getAttribute('color') : n.style?.color;
+        if (color && tag !== 'img' && tag !== 'video') el.style.color = color;
+        if (tag === 'a') {
+          const href = n.getAttribute('href') || '';
+          if (/^(https?:|mailto:|tel:|\/[^/])/i.test(href)) el.setAttribute('href', href);
+        }
+        if (tag === 'img' || tag === 'video') {
+          const src = n.getAttribute('src') || '';
+          if (!okMedia(src)) continue;
+          el.setAttribute('src', src);
+          if (tag === 'video') {
+            el.setAttribute('controls', '');
+            el.setAttribute('playsinline', '');
+            el.setAttribute('preload', 'metadata');
+          }
+          out.append(el);
+          continue;
+        }
+        if (tag !== 'br' && tag !== 'hr') walk(n, el);
+        out.append(el);
+      }
+    };
+    const box = document.createElement('div');
+    walk(doc.body, box);
+    return box.innerHTML;
+  }
+  const isRich = (s) => /<\/?(p|br|h[1-6]|ul|ol|li|strong|em|b|i|u|s|a|img|video|figure|blockquote|hr|span|div)\b/i.test(s || '');
+  const RTE_SVG = {
+    ul: '<circle cx="5" cy="7" r="1.2"/><circle cx="5" cy="12" r="1.2"/><circle cx="5" cy="17" r="1.2"/><path d="M9 7h11M9 12h11M9 17h11"/>',
+    ol: '<path d="M4 5h1.5v4M4 9h3M4 14h3l-3 4h3M10 7h10M10 12h10M10 17h10"/>',
+    left: '<path d="M4 6h16M4 10h10M4 14h16M4 18h10"/>',
+    center: '<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>',
+    right: '<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+    quote: '<path d="M7 7h4v4c0 3-2 5-4 6M14 7h4v4c0 3-2 5-4 6"/>',
+    image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
+    video: '<rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/>',
+    hr: '<path d="M3 12h18"/>',
+    undo: '<path d="M9 7 4.5 11.5 9 16"/><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"/>',
+    redo: '<path d="m15 7 4.5 4.5L15 16"/><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"/>',
+    clear: '<path d="M6 4h12M12 4l-3 16M15 13l6 6M21 13l-6 6"/>',
+    full: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  };
+  const rsvg = (n) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${RTE_SVG[n]}</svg>`;
+  const RTE_COLORS = ['#111827', '#2b50ee', '#ff6a3d', '#16a34a', '#e11d48', '#a16207'];
+  function editorHtml(l, value) {
+    const R = L.rte;
+    const b = (cmd, label, inner, arg = '') => `<button type="button" data-cmd="${cmd}"${arg ? ` data-arg="${arg}"` : ''} title="${label}" aria-label="${label}">${inner}</button>`;
+    const initial = isRich(value) ? cleanRich(value) : (value || '').split(/\n{2,}/).filter(Boolean).map((para) => `<p>${esc(para).replace(/\n/g, '<br>')}</p>`).join('');
+    return `<div class="rte" data-rte="${l}">
+      <div class="rte-label">${LANG_LABEL[l]}</div>
+      <div class="rte-bar" role="toolbar" aria-label="${R.toolbar}">
+        <span class="rte-group">${b('bold', R.bold, '<b>B</b>')}${b('italic', R.italic, '<i>I</i>')}${b('underline', R.underline, '<u>U</u>')}${b('strikeThrough', R.strike, '<s>S</s>')}</span>
+        <span class="rte-group">${b('formatBlock', R.h2, '<strong>H2</strong>', 'h2')}${b('formatBlock', R.h3, '<strong>H3</strong>', 'h3')}${b('formatBlock', R.para, '¶', 'p')}${b('formatBlock', R.quote, rsvg('quote'), 'blockquote')}</span>
+        <span class="rte-group">${b('insertUnorderedList', R.ul, rsvg('ul'))}${b('insertOrderedList', R.ol, rsvg('ol'))}</span>
+        <span class="rte-group">${b('justifyLeft', R.left, rsvg('left'))}${b('justifyCenter', R.center, rsvg('center'))}${b('justifyRight', R.right, rsvg('right'))}</span>
+        <span class="rte-group rte-colors">${RTE_COLORS.map((c) => `<button type="button" data-cmd="foreColor" data-arg="${c}" title="${R.color}" aria-label="${R.color} ${c}" style="--c:${c}"><span></span></button>`).join('')}</span>
+        <span class="rte-group">${b('link', R.link, rsvg('link'))}${b('insertHorizontalRule', R.hr, rsvg('hr'))}${b('removeFormat', R.clear, rsvg('clear'))}</span>
+        <span class="rte-group rte-media"><label class="rte-btn" title="${R.photo}">${rsvg('image')}<span>${R.photo}</span><input type="file" accept="image/*" multiple hidden data-rte-file></label><label class="rte-btn" title="${R.video}">${rsvg('video')}<span>${R.video}</span><input type="file" accept="video/mp4,video/webm,video/quicktime" hidden data-rte-file></label></span>
+        <span class="rte-group">${b('undo', R.undo, rsvg('undo'))}${b('redo', R.redo, rsvg('redo'))}${b('full', R.full, rsvg('full'))}</span>
+      </div>
+      <div class="rte-body" contenteditable="true" ${dirOf(l)} data-placeholder="${R.placeholder}">${initial}</div>
+      <textarea name="desc_${l}" hidden>${esc(value || '')}</textarea>
+    </div>`;
+  }
+  function setupEditor(wrap, shrink) {
+    const R = L.rte;
+    const body = wrap.querySelector('.rte-body');
+    const area = wrap.querySelector('textarea');
+    let range = null;
+    let uploads = 0;
+    try {
+      document.execCommand('styleWithCSS', false, false);
+      document.execCommand('defaultParagraphSeparator', false, 'p');
+    } catch {}
+    const keep = () => {
+      if (!body.isConnected) return document.removeEventListener('selectionchange', keep);
+      const sel = getSelection();
+      if (sel.rangeCount && body.contains(sel.getRangeAt(0).commonAncestorContainer)) range = sel.getRangeAt(0).cloneRange();
+    };
+    document.addEventListener('selectionchange', keep);
+    const restore = () => {
+      body.focus();
+      if (range) {
+        const sel = getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    };
+    // Media goes in as real elements at the caret (insertHTML would restyle or merge them).
+    const placeNode = (node) => {
+      const sel = getSelection();
+      const live = sel.rangeCount && body.contains(sel.getRangeAt(0).commonAncestorContainer);
+      if (!live) restore();
+      const r = sel.rangeCount ? sel.getRangeAt(0) : null;
+      if (!r || !body.contains(r.commonAncestorContainer) || !r.startContainer.isConnected) body.append(node);
+      else {
+        r.deleteContents();
+        r.insertNode(node);
+        // A zero-width space after the media gives the caret a place to stay (removed when saving).
+        const after = document.createTextNode('\u200b');
+        node.after(after);
+        r.setStart(after, 1);
+        r.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(r);
+      }
+      keep();
+    };
+    wrap.querySelector('.rte-bar').addEventListener('mousedown', (e) => {
+      if (e.target.closest('button, label')) e.preventDefault(); // keep the text selection
+    });
+    wrap.querySelector('.rte-bar').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-cmd]');
+      if (!btn) return;
+      const { cmd, arg } = btn.dataset;
+      if (cmd === 'full') {
+        wrap.classList.toggle('rte-full');
+        document.body.classList.toggle('rte-open', wrap.classList.contains('rte-full'));
+        return body.focus();
+      }
+      restore();
+      if (cmd === 'link') {
+        const url = prompt(R.linkPrompt, 'https://');
+        if (url && /^(https?:\/\/|mailto:|tel:|\/)/i.test(url.trim())) document.execCommand('createLink', false, url.trim());
+      } else if (cmd === 'formatBlock') document.execCommand('formatBlock', false, `<${arg}>`);
+      else document.execCommand(cmd, false, arg || null);
+      keep();
+    });
+    // Uploads: photos are shrunk (1 MB max), GIFs keep their animation (5 MB max), videos 5 MB max.
+    async function uploadFile(file) {
+      const name = file.name || 'media';
+      const id = `up${Math.random().toString(36).slice(2)}`;
+      const ph = document.createElement('span');
+      ph.className = 'rte-uploading';
+      ph.contentEditable = 'false';
+      ph.dataset.up = id;
+      ph.textContent = R.uploading(name);
+      placeNode(ph);
+      uploads++;
+      try {
+        let blob = file;
+        let tag = 'img';
+        if (['video/mp4', 'video/webm', 'video/quicktime'].includes(file.type)) {
+          if (file.size > 5 * 1024 * 1024) throw new Error(L.videoTooBig(name));
+          tag = 'video';
+        } else if (file.type === 'image/gif') {
+          if (file.size > 5 * 1024 * 1024) throw new Error(R.gifTooBig(name));
+        } else if (file.type.startsWith('image/') || /\.(heic|heif)$/i.test(name)) {
+          try {
+            blob = await shrink(file);
+          } catch {
+            throw new Error(L.notMedia(name));
+          }
+          if (blob.size > 1024 * 1024) throw new Error(L.photoTooBig(name));
+        } else throw new Error(L.notMedia(name));
+        const { url } = await api('/images', { method: 'POST', raw: blob });
+        const el = document.createElement(tag);
+        if (tag === 'video') {
+          el.src = `${url}#t=0.1`;
+          el.controls = true;
+          el.playsInline = true;
+          el.preload = 'metadata';
+        } else {
+          el.src = url;
+          el.alt = '';
+        }
+        if (ph.isConnected) ph.replaceWith(el);
+        else placeNode(el);
+      } catch (err) {
+        ph.remove();
+        toast(err.message || L.uploadFailed(name), true);
+      }
+      uploads--;
+    }
+    const uploadAll = async (files) => {
+      for (const file of files) await uploadFile(file);
+    };
+    wrap.querySelectorAll('[data-rte-file]').forEach((input) =>
+      input.addEventListener('change', () => {
+        const files = [...input.files];
+        input.value = '';
+        uploadAll(files);
+      }),
+    );
+    body.addEventListener('paste', (e) => {
+      const files = [...(e.clipboardData?.files || [])];
+      if (files.length) {
+        e.preventDefault();
+        return uploadAll(files);
+      }
+      const html = e.clipboardData?.getData('text/html');
+      if (html) {
+        e.preventDefault();
+        document.execCommand('insertHTML', false, cleanRich(html));
+      }
+    });
+    body.addEventListener('dragover', (e) => {
+      if ([...e.dataTransfer.types].includes('Files')) e.preventDefault();
+    });
+    body.addEventListener('drop', (e) => {
+      const files = [...e.dataTransfer.files];
+      if (!files.length) return;
+      e.preventDefault();
+      const pos = document.caretRangeFromPoint?.(e.clientX, e.clientY);
+      if (pos) range = pos;
+      uploadAll(files);
+    });
+    return {
+      busy: () => uploads > 0,
+      sync() {
+        body.querySelectorAll('[data-up]').forEach((n) => n.remove());
+        const html = cleanRich(body.innerHTML);
+        area.value = body.textContent.trim() || /<(img|video)\b/.test(html) ? html : '';
+      },
+    };
   }
 
   // Categories

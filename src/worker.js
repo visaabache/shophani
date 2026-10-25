@@ -270,11 +270,11 @@ async function serveImage(env, key, request) {
     }
     return new Response(obj.body, { headers });
   }
-  // Files uploaded without R2 live in D1. Videos are split into pieces (media_chunks).
-  const row = await env.DB.prepare("SELECT type, size, CASE WHEN type LIKE 'video/%' THEN NULL ELSE data END AS data FROM images WHERE key = ?").bind(key).first();
+  // Files uploaded without R2 live in D1. Videos and big GIFs are split into pieces (media_chunks).
+  const row = await env.DB.prepare('SELECT type, size, CASE WHEN length(data) = 0 THEN NULL ELSE data END AS data FROM images WHERE key = ?').bind(key).first();
   if (!row) return new Response('Not found', { status: 404 });
   headers.set('content-type', row.type);
-  if (!row.type.startsWith('video/')) return new Response(new Uint8Array(row.data), { headers });
+  if (row.data != null) return new Response(new Uint8Array(row.data), { headers });
   // Phones (Safari above all) play videos by asking for byte ranges, so we answer those.
   const size = row.size;
   let from = 0;

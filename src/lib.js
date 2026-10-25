@@ -210,3 +210,145 @@ export async function quote(db, rawItems, city, settings) {
   const shipping = lines.length ? shippingFor(city, subtotal, settings) : 0;
   return { lines, subtotal, shipping, total: subtotal + shipping, issues };
 }
+
+// Rich product descriptions (written in the admin's editor) are stored as HTML.
+// Only a small allowlist of tags and attributes survives, both when saving and when showing it.
+const RICH_TAGS = new Set(['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'a', 'img', 'video', 'figure', 'figcaption', 'hr', 'span', 'div']);
+const RICH_VOID = new Set(['br', 'hr', 'img']);
+const RICH_DROP = new Set(['script', 'style', 'iframe', 'object', 'embed', 'template', 'noscript', 'svg', 'math', 'textarea', 'select', 'button', 'form', 'head', 'title']);
+const RICH_RENAME = { b: 'strong', i: 'em', div: 'p', font: 'span', strike: 's', h1: 'h2', h4: 'h3', h5: 'h3', h6: 'h3' };
+
+function decodeAttr(v) {
+  return v
+    .replace(/&#x([0-9a-f]+);?/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);?/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
+function safeUrl(v, media) {
+  const u = decodeAttr(v).replace(/[\u0000- \u007f-\u009f]/g, '');
+  if (media) return /^\/(img|assets)\/[a-z0-9/_.-]+(#t=[\d.]+)?$/i.test(u) || /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : '';
+  if (/^(https?:\/\/|mailto:|tel:)[^\s"'<>]+$/i.test(u) || /^\/(?!\/)[^\s"'<>]*$/.test(u) || /^#[\w-]*$/.test(u)) return u;
+  return '';
+}
+
+function safeStyle(v) {
+  const out = [];
+  for (const decl of decodeAttr(v).split(';')) {
+    const [prop, ...rest] = decl.split(':');
+    const p = (prop || '').trim().toLowerCase();
+    const val = rest.join(':').trim().toLowerCase();
+    if (p === 'text-align' && /^(left|right|center|justify|start|end)$/.test(val)) out.push(`text-align:${val}`);
+    if (p === 'color' && /^(#[0-9a-f]{3,8}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/.test(val)) out.push(`color:${val}`);
+  }
+  return out.join(';');
+}
+
+export function sanitizeHtml(html) {
+  const src = String(html || '').slice(0, 200000);
+  const out = [];
+  const stack = [];
+  let dropDepth = 0;
+  let dropTag = '';
+  const re = /<!--[\s\S]*?(?:-->|$)|<(\/?)([a-zA-Z][a-zA-Z0-9]*)((?:\s+[^\s"'>\/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*)\s*\/?>|<[!?\/][^>]*>/g;
+  let last = 0;
+  const text = (t) => {
+    if (dropDepth) return;
+    out.push(t.replace(/&(?!(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+  };
+  let m;
+  while ((m = re.exec(src))) {
+    text(src.slice(last, m.index));
+    last = re.lastIndex;
+    if (!m[2]) continue; // comment, doctype or junk
+    const closing = m[1] === '/';
+    const raw = m[2].toLowerCase();
+    if (RICH_DROP.has(raw)) {
+      if (!closing && !dropDepth) {
+        dropDepth = 1;
+        dropTag = raw;
+      } else if (!closing && raw === dropTag) dropDepth++;
+      else if (closing && raw === dropTag && dropDepth) dropDepth--;
+      continue;
+    }
+    if (dropDepth) continue;
+    const tag = RICH_RENAME[raw] || raw;
+    if (!RICH_TAGS.has(tag)) continue;
+    if (closing) {
+      const at = stack.map((x) => x[0]).lastIndexOf(tag);
+      if (at === -1) continue;
+      while (stack.length > at) out.push(`</${stack.pop()[1]}>`);
+      continue;
+    }
+    const attrs = {};
+    const ar = /([^\s"'>\/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
+    let a;
+    while ((a = ar.exec(m[3] || ''))) attrs[a[1].toLowerCase()] = a[2] ?? a[3] ?? a[4] ?? '';
+    let extra = '';
+    const style = attrs.style ? safeStyle(attrs.style) : '';
+    if (raw === 'font' && attrs.color && /^#[0-9a-f]{3,8}$/i.test(attrs.color)) extra += ` style="color:${attrs.color.toLowerCase()}"`;
+    else if (style && tag !== 'img' && tag !== 'video') extra += ` style="${style}"`;
+    if (attrs.dir && /^(rtl|ltr|auto)$/i.test(attrs.dir)) extra += ` dir="${attrs.dir.toLowerCase()}"`;
+    if (tag === 'a') {
+      const href = attrs.href ? safeUrl(attrs.href, false) : '';
+      if (!href) {
+        stack.push(['a', 'span']);
+        out.push('<span>');
+        continue;
+      }
+      extra += ` href="${esc(href)}"`;
+      if (/^https?:/i.test(href)) extra += ' target="_blank" rel="noopener nofollow"';
+    }
+    if (tag === 'img') {
+      const s = attrs.src ? safeUrl(attrs.src, true) : '';
+      if (!s) continue;
+      out.push(`<img src="${esc(s)}" alt="${esc(decodeAttr(attrs.alt || ''))}" loading="lazy">`);
+      continue;
+    }
+    if (tag === 'video') {
+      const s = attrs.src ? safeUrl(attrs.src, true) : '';
+      if (!s) {
+        stack.push(['video', 'span']);
+        out.push('<span>');
+        continue;
+      }
+      out.push(`<video src="${esc(s)}${s.includes('#') ? '' : '#t=0.1'}" controls playsinline preload="metadata">`);
+      stack.push(['video', 'video']);
+      continue;
+    }
+    if (RICH_VOID.has(tag)) {
+      out.push(`<${tag}>`);
+      continue;
+    }
+    out.push(`<${tag}${extra}>`);
+    stack.push([tag, tag]);
+  }
+  text(src.slice(last));
+  while (stack.length) out.push(`</${stack.pop()[1]}>`);
+  return out.join('');
+}
+
+// Old descriptions are plain text; new ones are HTML from the editor.
+export function isRichHtml(s) {
+  return /<\/?(p|br|h[1-6]|ul|ol|li|strong|em|b|i|u|s|a|img|video|figure|blockquote|hr|span|div)\b/i.test(String(s || ''));
+}
+
+export function richDescHtml(s) {
+  return isRichHtml(s) ? sanitizeHtml(s) : esc(String(s || '')).replace(/\n/g, '<br>');
+}
+
+export function htmlToText(s) {
+  if (!isRichHtml(s)) return String(s || '');
+  return decodeAttr(
+    String(s)
+      .replace(/<(br|\/p|\/h[1-6]|\/li|\/blockquote)\b[^>]*>/gi, ' ')
+      .replace(/<[^>]*>/g, ''),
+  )
+    .replace(/\s+/g, ' ')
+    .trim();
+}

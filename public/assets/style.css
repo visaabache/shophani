@@ -351,7 +351,20 @@ textarea { resize: vertical; }
 .pay-badge .icon { color: var(--sun); }
 @media (min-width: 640px) { .promises { grid-template-columns: repeat(2, 1fr); } .steps.about-steps { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 900px) { .about-intro { grid-template-columns: 1fr 1fr; gap: 56px; } .promises, .steps.about-steps { grid-template-columns: repeat(4, 1fr); } }
-.desc-text { margin: 0 0 12px; }
+.rich { line-height: 1.7; overflow-wrap: anywhere; }
+.rich > :first-child { margin-top: 0; }
+.rich > :last-child { margin-bottom: 0; }
+.rich p { margin: 0 0 0.8em; }
+.rich h2 { font-size: 1.3rem; margin: 1.2em 0 0.4em; color: var(--ink); }
+.rich h3 { font-size: 1.08rem; margin: 1.1em 0 0.4em; color: var(--ink); }
+.rich ul, .rich ol { padding-inline-start: 1.3em; margin: 0 0 0.8em; }
+.rich li { margin-bottom: 0.25em; }
+.rich blockquote { margin: 1em 0; padding: 8px 16px; border-inline-start: 4px solid var(--brand); background: var(--brand-soft); border-radius: 8px; color: var(--ink); }
+.rich img, .rich video { display: block; max-width: 100%; height: auto; border-radius: var(--radius-sm); margin: 12px auto; }
+.rich video { width: 100%; max-height: 80vh; background: #000; }
+.rich hr { border: 0; border-top: 1px solid var(--line); margin: 1.4em 0; }
+.rich a { color: var(--brand); }
+.rich + .desc-media { margin-top: 12px; }
 .desc-media { display: grid; gap: 12px; }
 .desc-media img, .desc-media video { display: block; width: 100%; height: auto; max-height: 80vh; border-radius: var(--radius-sm); background: #000; object-fit: contain; }
 .desc-media img { background: var(--surface); }
