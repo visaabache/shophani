@@ -570,3 +570,10 @@ textarea { resize: vertical; }
   .js .reveal { opacity: 1; transform: none; }
   .slide img { transform: none; }
 }
+/* Small phones: keep the full "عربية" label and the cart icon in the header. */
+@media (max-width: 400px) {
+  .top-actions { gap: 0; }
+  .top .langs a { padding: 6px 6px; min-width: 0; font-size: 0.78rem; }
+  .top .cart-link { padding: 8px; }
+}
+@media (max-width: 350px) { .top .logo-svg { height: 30px; } }

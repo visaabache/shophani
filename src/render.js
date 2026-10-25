@@ -130,7 +130,7 @@ export function layout(ctx, { title, description = '', path, body, noindex = fal
   const wa = waLink(settings.whatsapp);
   const alternates = LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${esc(origin)}/${l}${esc(path)}">`).join('');
   const langLinks = LANGS.map(
-    (l) => `<a href="/${l}${esc(path)}" hreflang="${l}" lang="${l}"${l === lang ? ' aria-current="true"' : ''}>${l === 'ar' ? 'ع' : l.toUpperCase()}</a>`,
+    (l) => `<a href="/${l}${esc(path)}" hreflang="${l}" lang="${l}"${l === lang ? ' aria-current="true"' : ''}>${l === 'ar' ? 'عربية' : l.toUpperCase()}</a>`,
   ).join('');
   const navCats = categories.map((c) => `<a href="/${lang}/c/${esc(c.slug)}">${esc(catName(c, lang))}</a>`).join('');
   const og = image || BRAND_OG;
@@ -162,7 +162,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=8">
+<link rel="stylesheet" href="/assets/style.css?v=9">
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
