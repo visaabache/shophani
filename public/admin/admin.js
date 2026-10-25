@@ -385,6 +385,7 @@
     arrow: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
     camera: '<path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/>',
+    trash: '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>',
     chevron: '<path d="m15 6-6 6 6 6"/>',
   };
   const icon = (n, s = 20) => `<svg class="i i-${n}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
@@ -402,8 +403,9 @@
   async function api(path, { method = 'GET', body, raw } = {}) {
     const res = await fetch(`/api/admin${path}`, {
       method,
-      headers: raw ? { 'content-type': raw.type } : body ? { 'content-type': 'application/json' } : {},
-      body: raw || (body ? JSON.stringify(body) : undefined),
+      // Writes always go out as JSON (DELETE too): the server refuses any other write.
+      headers: raw ? { 'content-type': raw.type } : body || method !== 'GET' ? { 'content-type': 'application/json' } : {},
+      body: raw || (body || method !== 'GET' ? JSON.stringify(body || {}) : undefined),
       credentials: 'same-origin',
     });
     if (res.status === 401 && path !== '/login') {
@@ -746,14 +748,27 @@
     shell(
       L.nav.products,
       list.length
-        ? `<div class="card flush"><table class="table"><thead><tr><th></th><th>${L.thProduct}</th><th class="hide-sm">${L.thCategory}</th><th>${L.thPrice}</th><th>${L.thStock}</th><th class="hide-sm">${L.thState}</th></tr></thead><tbody>
-      ${list.map((p) => `<tr data-product="${p.id}"><td class="tight"><img class="thumb" src="${esc(JSON.parse(p.images || '[]')[0] || '/assets/placeholder.svg')}" alt=""></td><td><strong>${esc(prodName(p))}</strong>${p.featured ? ` <span class="chip chip-gold">${L.home}</span>` : ''}</td><td class="hide-sm">${esc(cat(p.category_id))}</td><td class="nowrap">${dh(p.price)}</td><td>${p.stock == null ? '<span class="muted">∞</span>' : p.stock <= 3 ? `<span class="chip ${p.stock ? 'chip-warn' : 'chip-bad'}">${p.stock}</span>` : p.stock}</td><td class="hide-sm">${p.active ? `<span class="chip chip-ok">${L.online}</span>` : `<span class="chip">${L.hidden}</span>`}</td></tr>`).join('')}
+        ? `<div class="card flush"><table class="table"><thead><tr><th></th><th>${L.thProduct}</th><th class="hide-sm">${L.thCategory}</th><th>${L.thPrice}</th><th>${L.thStock}</th><th class="hide-sm">${L.thState}</th><th></th></tr></thead><tbody>
+      ${list.map((p) => `<tr data-product="${p.id}"><td class="tight"><img class="thumb" src="${esc(JSON.parse(p.images || '[]')[0] || '/assets/placeholder.svg')}" alt=""></td><td><strong>${esc(prodName(p))}</strong>${p.featured ? ` <span class="chip chip-gold">${L.home}</span>` : ''}</td><td class="hide-sm">${esc(cat(p.category_id))}</td><td class="nowrap">${dh(p.price)}</td><td>${p.stock == null ? '<span class="muted">∞</span>' : p.stock <= 3 ? `<span class="chip ${p.stock ? 'chip-warn' : 'chip-bad'}">${p.stock}</span>` : p.stock}</td><td class="hide-sm">${p.active ? `<span class="chip chip-ok">${L.online}</span>` : `<span class="chip">${L.hidden}</span>`}</td><td class="tight"><button type="button" class="icon-btn danger" data-del-product="${p.id}" title="${L.del}" aria-label="${L.del}">${icon('trash', 18)}</button></td></tr>`).join('')}
       </tbody></table></div>`
         : `<div class="card empty">${icon('products', 36)}<p>${L.noProducts}</p></div>`,
       { sub: L.nProducts(list.length), actions: `<button class="btn" data-new>${icon('plus', 18)}<span>${L.add}</span></button>` },
     );
     app.querySelector('[data-new]').addEventListener('click', () => productForm({ active: 1, images: '[]' }));
     app.querySelectorAll('[data-product]').forEach((tr) => tr.addEventListener('click', () => productForm(list.find((p) => p.id === Number(tr.dataset.product)))));
+    app.querySelectorAll('[data-del-product]').forEach((btn) =>
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm(L.confirmDeleteProduct)) return;
+        try {
+          await api(`/products/${btn.dataset.delProduct}`, { method: 'DELETE' });
+          toast(L.productDeleted);
+          products();
+        } catch (err) {
+          toast(err.message, true);
+        }
+      }),
+    );
   }
 
   function productForm(p) {
@@ -839,9 +854,13 @@
         setList(arr);
       }
       if (e.target.closest('[data-delete]') && confirm(L.confirmDeleteProduct)) {
-        await api(`/products/${p.id}`, { method: 'DELETE' });
-        toast(L.productDeleted);
-        products();
+        try {
+          await api(`/products/${p.id}`, { method: 'DELETE' });
+          toast(L.productDeleted);
+          products();
+        } catch (err) {
+          toast(err.message, true);
+        }
       }
     });
     // Drag tiles to reorder them.
@@ -1041,8 +1060,12 @@
       });
       tr.querySelector('[data-del]')?.addEventListener('click', async () => {
         if (!confirm(L.confirmDeleteCat)) return;
-        await api(`/categories/${id}`, { method: 'DELETE' });
-        categories();
+        try {
+          await api(`/categories/${id}`, { method: 'DELETE' });
+          categories();
+        } catch (err) {
+          toast(err.message, true);
+        }
       });
     });
   }

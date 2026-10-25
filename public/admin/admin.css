@@ -31,6 +31,8 @@ code { background: var(--sand); padding: 1px 6px; border-radius: 6px; font-size:
 .btn-lg { min-height: 52px; font-size: 1rem; }
 .btn.ghost { background: #fff; color: var(--ink); border-color: var(--line); }
 .btn.ghost:hover { border-color: var(--ink); }
+.icon-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--muted); cursor: pointer; }
+.icon-btn.danger:hover { color: var(--danger); border-color: #f2c4bd; background: #fff5f3; }
 .btn.danger { background: #fff; color: var(--danger); border-color: #f2c4bd; }
 .btn.wa { background: #25d366; border-color: #25d366; color: #fff; }
 .link { background: none; border: 0; color: var(--muted); cursor: pointer; font: inherit; text-decoration: underline; padding: 4px; }
