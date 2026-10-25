@@ -24,7 +24,7 @@
   // (the first 10 GB stay free). Until then, product photos can be links. To turn uploads on:
   //   npx wrangler r2 bucket create shophani-images
   // then add:  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "shophani-images" }],
-  // Once shophani.shop is bought and added to Cloudflare, add:
-  //   "routes": [{ "pattern": "shophani.shop", "custom_domain": true }, { "pattern": "www.shophani.shop", "custom_domain": true }],
+  // Once shophani.online is bought and added to Cloudflare, add:
+  //   "routes": [{ "pattern": "shophani.online", "custom_domain": true }, { "pattern": "www.shophani.online", "custom_domain": true }],
   "observability": { "enabled": true }
 }

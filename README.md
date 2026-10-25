@@ -1,4 +1,4 @@
-# Shop Hani (شوپ هاني): online store for Morocco (shophani.shop)
+# Shop Hani (شوپ هاني): online store for Morocco (shophani.online)
 
 A fast, mobile-first general store (electronics, fashion, beauty, home) for Moroccan customers:
 
@@ -45,7 +45,7 @@ In the admin, go to **Réglages** and set the store name, your WhatsApp number, 
 
 **Photo uploads:** in the product form, pick photos from your phone, tablet or computer, take one with the camera, or drag them in. Each photo is shrunk in the browser (longest side 1600 px) and stored in D1, so no extra service or payment card is needed; D1's free 5 GB holds thousands of photos. If you turn on R2 later (see the comment in `wrangler.jsonc`), new uploads go there instead and the old ones keep working.
 
-**Your own domain (later):** once shophani.shop is bought, add it to Cloudflare (point its nameservers to Cloudflare at the registrar), add the `routes` line shown in `wrangler.jsonc`, and run `npm run deploy` again.
+**Your own domain (later):** once shophani.online is bought, add it to Cloudflare (point its nameservers to Cloudflare at the registrar), add the `routes` line shown in `wrangler.jsonc`, and run `npm run deploy` again.
 
 When you change the database later, add a new file to `migrations/` (for example `0003_….sql`) and run `npm run db:migrate`.
 
@@ -57,7 +57,7 @@ The store sends emails through [Brevo](https://www.brevo.com), whose free plan a
 2. Under **SMTP & API → API keys**, create a key, then run `npx wrangler secret put BREVO_API_KEY` and paste the key when asked.
 3. In the admin, go to **Réglages → E-mails automatiques**. Enter the sender address and the address that should receive the alerts, then click **Envoyer un test**.
 
-Once shophani.shop is bought, verify the domain in Brevo and send from an address like `commandes@shophani.shop`. That lands in inboxes more reliably than a Gmail sender.
+Once shophani.online is bought, verify the domain in Brevo and send from an address like `commandes@shophani.online`. That lands in inboxes more reliably than a Gmail sender.
 
 ### Optional: get notified of each new order
 
