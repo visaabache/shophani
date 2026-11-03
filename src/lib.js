@@ -249,11 +249,18 @@ function safeStyle(v) {
   return out.join(';');
 }
 
-// Width the admin picked for a photo or video in the description, as a percentage (10 to 100).
+// Size the admin picked for a photo or video in the description: a width in percent (10 to 100)
+// and a shape (width / height, 0.2 to 5), so it scales the same on a phone.
 function mediaWidth(v) {
-  const m = /(?:^|;)\s*width\s*:\s*(\d{1,3})(?:\.\d+)?%/i.exec(decodeAttr(v || ''));
+  const s = decodeAttr(v || '');
+  const m = /(?:^|;)\s*width\s*:\s*(\d{1,3})(?:\.\d+)?%/i.exec(s);
   const n = m ? Number(m[1]) : 0;
-  return n >= 10 && n < 100 ? ` style="width:${n}%"` : '';
+  const r = /(?:^|;)\s*aspect-ratio\s*:\s*(\d{1,4}(?:\.\d{1,4})?)(?:\s*\/\s*(\d{1,4}(?:\.\d{1,4})?))?\s*(?:;|$)/i.exec(s);
+  const ratio = r ? Number(r[1]) / (r[2] ? Number(r[2]) : 1) : 0;
+  const out = [];
+  if (n >= 10 && n < 100) out.push(`width:${n}%`);
+  if (ratio >= 0.2 && ratio <= 5) out.push(`aspect-ratio:${Number(ratio.toFixed(3))}`);
+  return out.length ? ` style="${out.join(';')}"` : '';
 }
 
 export function sanitizeHtml(html) {

@@ -52,3 +52,11 @@ test('photos and videos keep the size the admin picked', () => {
   assert.match(out, /<img src="\/img\/p\/d.webp" alt="" loading="lazy">/);
   assert.equal(sanitizeHtml(out), out);
 });
+
+test('photos keep the shape the admin dragged them to', () => {
+  const out = sanitizeHtml('<img src="/img/p/a.webp" style="width:60%;aspect-ratio:1.5"><img src="/img/p/b.webp" style="aspect-ratio: 16 / 9"><img src="/img/p/c.webp" style="aspect-ratio:50;width:40%">');
+  assert.match(out, /<img src="\/img\/p\/a.webp" alt="" style="width:60%;aspect-ratio:1.5" loading="lazy">/);
+  assert.match(out, /<img src="\/img\/p\/b.webp" alt="" style="aspect-ratio:1.778" loading="lazy">/);
+  assert.match(out, /<img src="\/img\/p\/c.webp" alt="" style="width:40%" loading="lazy">/);
+  assert.equal(sanitizeHtml(out), out);
+});

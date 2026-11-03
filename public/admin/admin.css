@@ -350,4 +350,14 @@ body.rte-open { overflow: hidden; }
 .rte-size-bar button { border: 0; background: none; color: #fff; font: inherit; font-size: 0.8rem; font-weight: 700; min-width: 34px; height: 30px; padding: 0 7px; border-radius: 7px; cursor: pointer; }
 .rte-size-bar button:hover { background: rgb(255 255 255 / 0.16); }
 .rte-size-bar button.on { background: var(--majorelle); }
-.rte-size-handle { position: absolute; right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 50%; background: var(--majorelle); border: 3px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.3); cursor: nwse-resize; pointer-events: auto; touch-action: none; }
+.rte-size-handle { position: absolute; width: 16px; height: 16px; margin: -8px; border-radius: 50%; background: var(--majorelle); border: 3px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.3); pointer-events: auto; touch-action: none; }
+.rte-size-handle.h-n, .rte-size-handle.h-s { left: 50%; cursor: ns-resize; width: 28px; height: 12px; margin: -6px -14px; border-radius: 6px; }
+.rte-size-handle.h-e, .rte-size-handle.h-w { top: 50%; cursor: ew-resize; width: 12px; height: 28px; margin: -14px -6px; border-radius: 6px; }
+.rte-size-handle.h-n, .h-ne, .h-nw { top: 0; }
+.rte-size-handle.h-s, .h-se, .h-sw { top: 100%; }
+.rte-size-handle.h-w, .h-nw, .h-sw { left: 0; }
+.rte-size-handle.h-e, .h-ne, .h-se { left: 100%; }
+.h-nw, .h-se { cursor: nwse-resize; }
+.h-ne, .h-sw { cursor: nesw-resize; }
+.rte-size-bar { top: 14px; }
+.rte-body img, .rte-body video { object-fit: cover; }

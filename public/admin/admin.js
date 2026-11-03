@@ -111,7 +111,7 @@
         toolbar: 'أدوات التنسيق', bold: 'عريض', italic: 'مائل', underline: 'تسطير', strike: 'يتوسطه خط',
         h2: 'عنوان', h3: 'عنوان فرعي', para: 'نص عادي', quote: 'اقتباس', ul: 'قائمة نقطية', ol: 'قائمة مرقمة',
         left: 'محاذاة لليسار', center: 'توسيط', right: 'محاذاة لليمين', color: 'لون النص', link: 'رابط', hr: 'فاصل',
-        clear: 'إزالة التنسيق', photo: 'صورة / GIF', video: 'فيديو', undo: 'تراجع', redo: 'إعادة', full: 'ملء الشاشة', size: 'حجم الصورة', smaller: 'أصغر', bigger: 'أكبر', dragSize: 'اسحب لتكبير أو تصغير',
+        clear: 'إزالة التنسيق', photo: 'صورة / GIF', video: 'فيديو', undo: 'تراجع', redo: 'إعادة', full: 'ملء الشاشة', size: 'حجم الصورة', smaller: 'أصغر', bigger: 'أكبر', dragSize: 'اسحب لتكبير أو تصغير', resetShape: 'الشكل الأصلي',
         linkPrompt: 'عنوان الرابط (https://…)', placeholder: 'اكتب وصف المنتج هنا…',
         hint: 'اكتب كما في Word: نسّق النص وأضف صورًا (حتى 1 ميغا) وصور GIF وفيديوهات (حتى 5 ميغا) في أي مكان. يمكنك أيضًا سحبها أو لصقها مباشرة. اضغط على صورة أو فيديو لتكبيره أو تصغيره.',
         uploading: (n) => `جارٍ رفع ${n}…`, gifTooBig: (n) => `صورة GIF ${n} أكبر من 5 ميغا.`,
@@ -280,7 +280,7 @@
         toolbar: 'Mise en forme', bold: 'Gras', italic: 'Italique', underline: 'Souligné', strike: 'Barré',
         h2: 'Titre', h3: 'Sous-titre', para: 'Texte normal', quote: 'Citation', ul: 'Liste à puces', ol: 'Liste numérotée',
         left: 'Aligner à gauche', center: 'Centrer', right: 'Aligner à droite', color: 'Couleur du texte', link: 'Lien', hr: 'Séparateur',
-        clear: 'Effacer la mise en forme', photo: 'Photo / GIF', video: 'Vidéo', undo: 'Annuler', redo: 'Rétablir', full: 'Plein écran', size: 'Taille', smaller: 'Plus petit', bigger: 'Plus grand', dragSize: 'Glissez pour agrandir ou réduire',
+        clear: 'Effacer la mise en forme', photo: 'Photo / GIF', video: 'Vidéo', undo: 'Annuler', redo: 'Rétablir', full: 'Plein écran', size: 'Taille', smaller: 'Plus petit', bigger: 'Plus grand', dragSize: 'Glissez pour agrandir ou réduire', resetShape: 'Forme d’origine',
         linkPrompt: 'Adresse du lien (https://…)', placeholder: 'Écrivez la description du produit ici…',
         hint: 'Écrivez comme dans Word : mettez le texte en forme et ajoutez des photos (1 Mo max), des GIF et des vidéos (5 Mo max) où vous voulez. Vous pouvez aussi les glisser ou les coller directement. Cliquez sur une photo ou une vidéo pour changer sa taille.',
         uploading: (n) => `Envoi de ${n}…`, gifTooBig: (n) => `Le GIF ${n} dépasse 5 Mo.`,
@@ -1017,6 +1017,8 @@
           el.setAttribute('src', src);
           const w = parseInt(n.style?.width, 10);
           if (/%$/.test(n.style?.width || '') && w >= 10 && w < 100) el.style.width = `${w}%`;
+          const ar = Number(n.style?.aspectRatio?.split('/').reduce((x, y) => x / y));
+          if (ar >= 0.2 && ar <= 5) el.style.aspectRatio = ar.toFixed(3);
           if (tag === 'video') {
             el.setAttribute('controls', '');
             el.setAttribute('playsinline', '');
@@ -1204,7 +1206,7 @@
         document.execCommand('insertHTML', false, cleanRich(html));
       }
     });
-    // Click a photo or video to resize it: preset sizes, − / +, or drag the corner handle.
+    // Click a photo or video to resize it: preset sizes, − / +, or drag any side or corner.
     const sizer = document.createElement('div');
     sizer.className = 'rte-sizer';
     sizer.hidden = true;
@@ -1212,7 +1214,8 @@
       <button type="button" data-w="-10" title="${R.smaller}" aria-label="${R.smaller}">−</button>
       ${[25, 50, 75, 100].map((w) => `<button type="button" data-w="${w}">${w}%</button>`).join('')}
       <button type="button" data-w="+10" title="${R.bigger}" aria-label="${R.bigger}">+</button>
-    </div><span class="rte-size-handle" title="${R.dragSize}"></span>`;
+      <button type="button" data-reset title="${R.resetShape}" aria-label="${R.resetShape}">↺</button>
+    </div>${['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map((h) => `<span class="rte-size-handle h-${h}" data-h="${h}" title="${R.dragSize}"></span>`).join('')}`;
     wrap.append(sizer);
     let picked = null;
     const inner = () => {
@@ -1265,33 +1268,51 @@
     });
     sizer.addEventListener('mousedown', (e) => e.preventDefault());
     sizer.addEventListener('click', (e) => {
+      if (e.target.closest('[data-reset]') && picked) {
+        picked.style.aspectRatio = '';
+        setWidth(picked, 100);
+        return requestAnimationFrame(place);
+      }
       const btn = e.target.closest('[data-w]');
       if (!btn || !picked) return;
       const v = btn.dataset.w;
       setWidth(picked, /^[+-]/.test(v) ? widthOf(picked) + Number(v) : Number(v));
       requestAnimationFrame(place);
     });
-    const handle = sizer.querySelector('.rte-size-handle');
-    handle.addEventListener('pointerdown', (e) => {
-      if (!picked) return;
-      e.preventDefault();
-      handle.setPointerCapture(e.pointerId);
-      const startX = e.clientX;
-      const startW = picked.getBoundingClientRect().width;
-      const move = (ev) => {
-        const dx = (ev.clientX - startX) * 2; // the media is centred, so it grows on both sides
-        setWidth(picked, ((startW + dx) / inner()) * 100);
-        place();
-      };
-      const up = () => {
-        handle.removeEventListener('pointermove', move);
-        handle.removeEventListener('pointerup', up);
-        handle.removeEventListener('pointercancel', up);
-      };
-      handle.addEventListener('pointermove', move);
-      handle.addEventListener('pointerup', up);
-      handle.addEventListener('pointercancel', up);
-    });
+    // Each handle moves one edge or corner: sides change the width, top and bottom the height.
+    // The media stays centred, so a side handle grows it on both sides.
+    sizer.querySelectorAll('[data-h]').forEach((handle) =>
+      handle.addEventListener('pointerdown', (e) => {
+        if (!picked) return;
+        e.preventDefault();
+        handle.setPointerCapture(e.pointerId);
+        const dir = handle.dataset.h;
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const start = picked.getBoundingClientRect();
+        const move = (ev) => {
+          let w = start.width;
+          let h = start.height;
+          if (dir.includes('e')) w += (ev.clientX - startX) * 2;
+          if (dir.includes('w')) w -= (ev.clientX - startX) * 2;
+          if (dir.includes('s')) h += ev.clientY - startY;
+          if (dir.includes('n')) h -= ev.clientY - startY;
+          w = Math.max(40, Math.min(inner(), w));
+          h = Math.max(40, h);
+          setWidth(picked, (w / inner()) * 100);
+          picked.style.aspectRatio = `${Math.max(0.2, Math.min(5, w / h)).toFixed(3)}`;
+          place();
+        };
+        const up = () => {
+          handle.removeEventListener('pointermove', move);
+          handle.removeEventListener('pointerup', up);
+          handle.removeEventListener('pointercancel', up);
+        };
+        handle.addEventListener('pointermove', move);
+        handle.addEventListener('pointerup', up);
+        handle.addEventListener('pointercancel', up);
+      }),
+    );
     body.addEventListener('dragover', (e) => {
       if ([...e.dataTransfer.types].includes('Files')) e.preventDefault();
     });
