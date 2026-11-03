@@ -111,9 +111,9 @@
         toolbar: 'أدوات التنسيق', bold: 'عريض', italic: 'مائل', underline: 'تسطير', strike: 'يتوسطه خط',
         h2: 'عنوان', h3: 'عنوان فرعي', para: 'نص عادي', quote: 'اقتباس', ul: 'قائمة نقطية', ol: 'قائمة مرقمة',
         left: 'محاذاة لليسار', center: 'توسيط', right: 'محاذاة لليمين', color: 'لون النص', link: 'رابط', hr: 'فاصل',
-        clear: 'إزالة التنسيق', photo: 'صورة / GIF', video: 'فيديو', undo: 'تراجع', redo: 'إعادة', full: 'ملء الشاشة',
+        clear: 'إزالة التنسيق', photo: 'صورة / GIF', video: 'فيديو', undo: 'تراجع', redo: 'إعادة', full: 'ملء الشاشة', size: 'حجم الصورة', smaller: 'أصغر', bigger: 'أكبر', dragSize: 'اسحب لتكبير أو تصغير',
         linkPrompt: 'عنوان الرابط (https://…)', placeholder: 'اكتب وصف المنتج هنا…',
-        hint: 'اكتب كما في Word: نسّق النص وأضف صورًا (حتى 1 ميغا) وصور GIF وفيديوهات (حتى 5 ميغا) في أي مكان. يمكنك أيضًا سحبها أو لصقها مباشرة.',
+        hint: 'اكتب كما في Word: نسّق النص وأضف صورًا (حتى 1 ميغا) وصور GIF وفيديوهات (حتى 5 ميغا) في أي مكان. يمكنك أيضًا سحبها أو لصقها مباشرة. اضغط على صورة أو فيديو لتكبيره أو تصغيره.',
         uploading: (n) => `جارٍ رفع ${n}…`, gifTooBig: (n) => `صورة GIF ${n} أكبر من 5 ميغا.`,
       },
       descMedia: 'صور وفيديوهات الوصف', addMedia: 'إضافة صور أو فيديو',
@@ -280,9 +280,9 @@
         toolbar: 'Mise en forme', bold: 'Gras', italic: 'Italique', underline: 'Souligné', strike: 'Barré',
         h2: 'Titre', h3: 'Sous-titre', para: 'Texte normal', quote: 'Citation', ul: 'Liste à puces', ol: 'Liste numérotée',
         left: 'Aligner à gauche', center: 'Centrer', right: 'Aligner à droite', color: 'Couleur du texte', link: 'Lien', hr: 'Séparateur',
-        clear: 'Effacer la mise en forme', photo: 'Photo / GIF', video: 'Vidéo', undo: 'Annuler', redo: 'Rétablir', full: 'Plein écran',
+        clear: 'Effacer la mise en forme', photo: 'Photo / GIF', video: 'Vidéo', undo: 'Annuler', redo: 'Rétablir', full: 'Plein écran', size: 'Taille', smaller: 'Plus petit', bigger: 'Plus grand', dragSize: 'Glissez pour agrandir ou réduire',
         linkPrompt: 'Adresse du lien (https://…)', placeholder: 'Écrivez la description du produit ici…',
-        hint: 'Écrivez comme dans Word : mettez le texte en forme et ajoutez des photos (1 Mo max), des GIF et des vidéos (5 Mo max) où vous voulez. Vous pouvez aussi les glisser ou les coller directement.',
+        hint: 'Écrivez comme dans Word : mettez le texte en forme et ajoutez des photos (1 Mo max), des GIF et des vidéos (5 Mo max) où vous voulez. Vous pouvez aussi les glisser ou les coller directement. Cliquez sur une photo ou une vidéo pour changer sa taille.',
         uploading: (n) => `Envoi de ${n}…`, gifTooBig: (n) => `Le GIF ${n} dépasse 5 Mo.`,
       },
       descMedia: 'Photos et vidéos de la description', addMedia: 'Ajouter photos ou vidéo',
@@ -1015,6 +1015,8 @@
           const src = n.getAttribute('src') || '';
           if (!okMedia(src)) continue;
           el.setAttribute('src', src);
+          const w = parseInt(n.style?.width, 10);
+          if (/%$/.test(n.style?.width || '') && w >= 10 && w < 100) el.style.width = `${w}%`;
           if (tag === 'video') {
             el.setAttribute('controls', '');
             el.setAttribute('playsinline', '');
@@ -1202,6 +1204,94 @@
         document.execCommand('insertHTML', false, cleanRich(html));
       }
     });
+    // Click a photo or video to resize it: preset sizes, − / +, or drag the corner handle.
+    const sizer = document.createElement('div');
+    sizer.className = 'rte-sizer';
+    sizer.hidden = true;
+    sizer.innerHTML = `<div class="rte-size-bar" role="toolbar" aria-label="${R.size}">
+      <button type="button" data-w="-10" title="${R.smaller}" aria-label="${R.smaller}">−</button>
+      ${[25, 50, 75, 100].map((w) => `<button type="button" data-w="${w}">${w}%</button>`).join('')}
+      <button type="button" data-w="+10" title="${R.bigger}" aria-label="${R.bigger}">+</button>
+    </div><span class="rte-size-handle" title="${R.dragSize}"></span>`;
+    wrap.append(sizer);
+    let picked = null;
+    const inner = () => {
+      const cs = getComputedStyle(body);
+      return body.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    };
+    const widthOf = (el) => Math.round((el.getBoundingClientRect().width / inner()) * 100);
+    const setWidth = (el, w) => {
+      w = Math.max(10, Math.min(100, Math.round(w)));
+      el.style.width = w >= 100 ? '' : `${w}%`;
+      if (!el.getAttribute('style')) el.removeAttribute('style');
+    };
+    const place = () => {
+      if (!picked || !picked.isConnected) return hideSizer();
+      const box = wrap.getBoundingClientRect();
+      const r = picked.getBoundingClientRect();
+      const b = body.getBoundingClientRect();
+      const top = Math.max(r.top, b.top) - box.top;
+      const bottom = Math.min(r.bottom, b.bottom) - box.top;
+      if (bottom <= top) return (sizer.style.visibility = 'hidden');
+      sizer.style.visibility = '';
+      Object.assign(sizer.style, { top: `${top}px`, left: `${r.left - box.left}px`, width: `${r.width}px`, height: `${bottom - top}px` });
+      const pct = widthOf(picked);
+      sizer.querySelectorAll('[data-w]').forEach((x) => x.classList.toggle('on', Number(x.dataset.w) === pct));
+    };
+    function hideSizer() {
+      picked = null;
+      sizer.hidden = true;
+    }
+    const pick = (el) => {
+      picked = el;
+      sizer.hidden = false;
+      place();
+    };
+    body.addEventListener('click', (e) => {
+      const m = e.target.closest('img, video');
+      if (m && body.contains(m) && !m.closest('[data-up]')) pick(m);
+      else hideSizer();
+    });
+    body.addEventListener('scroll', place);
+    body.addEventListener('input', place);
+    addEventListener('resize', place);
+    body.addEventListener('keydown', (e) => {
+      if (!picked) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        picked.remove();
+        hideSizer();
+      } else if (e.key === 'Escape') hideSizer();
+    });
+    sizer.addEventListener('mousedown', (e) => e.preventDefault());
+    sizer.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-w]');
+      if (!btn || !picked) return;
+      const v = btn.dataset.w;
+      setWidth(picked, /^[+-]/.test(v) ? widthOf(picked) + Number(v) : Number(v));
+      requestAnimationFrame(place);
+    });
+    const handle = sizer.querySelector('.rte-size-handle');
+    handle.addEventListener('pointerdown', (e) => {
+      if (!picked) return;
+      e.preventDefault();
+      handle.setPointerCapture(e.pointerId);
+      const startX = e.clientX;
+      const startW = picked.getBoundingClientRect().width;
+      const move = (ev) => {
+        const dx = (ev.clientX - startX) * 2; // the media is centred, so it grows on both sides
+        setWidth(picked, ((startW + dx) / inner()) * 100);
+        place();
+      };
+      const up = () => {
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', up);
+        handle.removeEventListener('pointercancel', up);
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', up);
+      handle.addEventListener('pointercancel', up);
+    });
     body.addEventListener('dragover', (e) => {
       if ([...e.dataTransfer.types].includes('Files')) e.preventDefault();
     });
@@ -1217,6 +1307,7 @@
       busy: () => uploads > 0,
       sync() {
         body.querySelectorAll('[data-up]').forEach((n) => n.remove());
+        hideSizer();
         const html = cleanRich(body.innerHTML);
         area.value = body.textContent.trim() || /<(img|video)\b/.test(html) ? html : '';
       },

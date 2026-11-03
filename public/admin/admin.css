@@ -331,7 +331,7 @@ details summary { cursor: pointer; }
 .rte-body h3 { font-size: 1.12rem; margin: 1em 0 0.4em; }
 .rte-body p { margin: 0 0 0.7em; }
 .rte-body blockquote { margin: 0.8em 0; padding: 4px 14px; border-inline-start: 4px solid var(--majorelle); color: #374151; background: #f5f7ff; border-radius: 6px; }
-.rte-body img, .rte-body video { display: block; max-width: 100%; height: auto; border-radius: 10px; margin: 6px 0; }
+.rte-body img, .rte-body video { display: block; max-width: 100%; height: auto; border-radius: 10px; margin: 6px auto; cursor: pointer; }
 .rte-body video { width: 100%; max-height: 360px; background: #000; }
 .rte-body img:hover { outline: 2px solid var(--majorelle); }
 .rte-body hr { border: 0; border-top: 2px solid var(--line); margin: 1em 0; }
@@ -341,3 +341,13 @@ details summary { cursor: pointer; }
 .rte-full .rte-body { flex: 1; max-height: none; max-width: 860px; width: 100%; margin: 0 auto; }
 body.rte-open { overflow: hidden; }
 @media (max-width: 600px) { .rte-btn span { display: none; } .rte-group { padding-inline-end: 4px; } .rte-bar { gap: 4px; } }
+
+/* Resizing photos and videos in the description */
+.rte:not(.rte-full) { position: relative; }
+.rte-sizer { position: absolute; z-index: 5; pointer-events: none; outline: 2px solid var(--majorelle); border-radius: 10px; }
+.rte-sizer[hidden] { display: none; }
+.rte-size-bar { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; padding: 3px; background: #111827; border-radius: 10px; box-shadow: 0 4px 14px rgb(0 0 0 / 0.25); pointer-events: auto; direction: ltr; white-space: nowrap; }
+.rte-size-bar button { border: 0; background: none; color: #fff; font: inherit; font-size: 0.8rem; font-weight: 700; min-width: 34px; height: 30px; padding: 0 7px; border-radius: 7px; cursor: pointer; }
+.rte-size-bar button:hover { background: rgb(255 255 255 / 0.16); }
+.rte-size-bar button.on { background: var(--majorelle); }
+.rte-size-handle { position: absolute; right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 50%; background: var(--majorelle); border: 3px solid #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.3); cursor: nwse-resize; pointer-events: auto; touch-action: none; }

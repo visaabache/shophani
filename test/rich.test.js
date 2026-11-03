@@ -43,3 +43,12 @@ test('cleaning twice gives the same result', () => {
   const once = sanitizeHtml('<h1>T</h1><div style="text-align:right">x <font color="#e11d48">rouge</font></div><video src="/img/v/a.mp4"></video><img src="/img/p/b.gif">');
   assert.equal(sanitizeHtml(once), once);
 });
+
+test('photos and videos keep the size the admin picked', () => {
+  const out = sanitizeHtml('<img src="/img/p/a.webp" style="width: 50%; float:left"><video src="/img/v/b.mp4" style="width:75%"></video><img src="/img/p/c.webp" style="width:100%"><img src="/img/p/d.webp" style="width:5%;height:9999px">');
+  assert.match(out, /<img src="\/img\/p\/a.webp" alt="" style="width:50%" loading="lazy">/);
+  assert.match(out, /<video src="\/img\/v\/b.mp4#t=0.1" style="width:75%" controls/);
+  assert.match(out, /<img src="\/img\/p\/c.webp" alt="" loading="lazy">/);
+  assert.match(out, /<img src="\/img\/p\/d.webp" alt="" loading="lazy">/);
+  assert.equal(sanitizeHtml(out), out);
+});

@@ -249,6 +249,13 @@ function safeStyle(v) {
   return out.join(';');
 }
 
+// Width the admin picked for a photo or video in the description, as a percentage (10 to 100).
+function mediaWidth(v) {
+  const m = /(?:^|;)\s*width\s*:\s*(\d{1,3})(?:\.\d+)?%/i.exec(decodeAttr(v || ''));
+  const n = m ? Number(m[1]) : 0;
+  return n >= 10 && n < 100 ? ` style="width:${n}%"` : '';
+}
+
 export function sanitizeHtml(html) {
   const src = String(html || '').slice(0, 200000);
   const out = [];
@@ -307,7 +314,7 @@ export function sanitizeHtml(html) {
     if (tag === 'img') {
       const s = attrs.src ? safeUrl(attrs.src, true) : '';
       if (!s) continue;
-      out.push(`<img src="${esc(s)}" alt="${esc(decodeAttr(attrs.alt || ''))}" loading="lazy">`);
+      out.push(`<img src="${esc(s)}" alt="${esc(decodeAttr(attrs.alt || ''))}"${mediaWidth(attrs.style)} loading="lazy">`);
       continue;
     }
     if (tag === 'video') {
@@ -317,7 +324,7 @@ export function sanitizeHtml(html) {
         out.push('<span>');
         continue;
       }
-      out.push(`<video src="${esc(s)}${s.includes('#') ? '' : '#t=0.1'}" controls playsinline preload="metadata">`);
+      out.push(`<video src="${esc(s)}${s.includes('#') ? '' : '#t=0.1'}"${mediaWidth(attrs.style)} controls playsinline preload="metadata">`);
       stack.push(['video', 'video']);
       continue;
     }

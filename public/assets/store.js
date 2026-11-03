@@ -350,10 +350,9 @@
       let bad = null;
       for (const [input, ok, msg] of [
         [f.name, f.name.value.trim().length >= 2, i18n.required],
-        [f.phone, phoneOk(f.phone.value), i18n.badPhone],
-        [f.email, !f.email.value.trim() || /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(f.email.value.trim()), i18n.badEmail],
         [f.city, Boolean(selectedCity()), i18n.required],
         [f.address, f.address.value.trim().length >= 4, i18n.required],
+        [f.phone, phoneOk(f.phone.value), i18n.badPhone],
       ]) {
         fieldError(input, ok ? '' : msg);
         if (!ok && !bad) bad = input;
@@ -371,10 +370,8 @@
             items: load().map(({ id, option, qty }) => ({ id, option, qty })),
             name: f.name.value,
             phone: f.phone.value,
-            email: f.email.value,
             city: selectedCity(),
             address: f.address.value,
-            note: f.note.value,
             website: f.website.value,
             lang,
           }),

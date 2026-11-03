@@ -182,7 +182,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
-<script src="/assets/store.js?v=8" defer></script>
+<script src="/assets/store.js?v=9" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>
@@ -507,12 +507,10 @@ export function checkoutPage(ctx) {
     <div class="form card-box">
       <h2>${esc(t.yourDetails)}</h2>
       <label>${esc(t.fullName)}<input name="name" autocomplete="name" required maxlength="80"></label>
-      <label>${esc(t.phone)}<input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="${esc(t.phoneHint)}" required maxlength="20" dir="ltr"></label>
-      <label>${esc(t.email)}<input name="email" type="email" inputmode="email" autocomplete="email" placeholder="${esc(t.emailHint)}" maxlength="254" dir="ltr"></label>
       <label>${esc(t.city)}<select name="city" required><option value="">${esc(t.chooseCity)}</option>${cities}<option value="__other">${esc(t.otherCity)}</option></select></label>
       <label class="other-city" hidden>${esc(t.otherCity)}<input name="city_other" maxlength="60"></label>
       <label>${esc(t.address)}<textarea name="address" rows="2" placeholder="${esc(t.addressHint)}" required maxlength="300"></textarea></label>
-      <label>${esc(t.note)}<textarea name="note" rows="2" maxlength="500"></textarea></label>
+      <label>${esc(t.phone)}<input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="${esc(t.phoneHint)}" required maxlength="20" dir="ltr"></label>
       <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
     </div>
     <aside class="summary card-box">
