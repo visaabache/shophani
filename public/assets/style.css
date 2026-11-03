@@ -605,10 +605,12 @@ textarea { resize: vertical; }
 /* Product page order form: order this product right here, cash on delivery */
 .quick { position: relative; display: grid; gap: 14px; padding: 18px; border-radius: var(--radius); background: linear-gradient(160deg, var(--brand-soft), #fff 70%); border: 2px solid var(--brand); box-shadow: 0 10px 30px rgb(43 80 238 / 0.14); scroll-margin-top: 90px; }
 .quick::before { content: ''; position: absolute; inset-inline-end: 18px; top: -12px; width: 24px; height: 24px; background: var(--sun); border-radius: 50%; box-shadow: 0 0 0 5px #fff; }
-.quick-head { display: flex; gap: 12px; align-items: center; }
-.quick-head > svg { flex: none; width: 48px; height: 48px; padding: 11px; border-radius: 14px; background: var(--brand); color: #fff; }
-.quick-head h2 { margin: 0; font-size: 1.15rem; line-height: 1.25; color: var(--ink); }
-.quick-head p { margin: 3px 0 0; font-size: 0.86rem; color: var(--muted, #5b6474); line-height: 1.4; }
+.quick-lead { margin: 0; display: flex; align-items: center; justify-content: center; gap: 10px; text-align: center; font-weight: 700; font-size: 1.05rem; line-height: 1.4; color: var(--ink); }
+.finger { display: inline-block; font-size: 1.6rem; animation: finger 1.1s ease-in-out infinite; }
+@keyframes finger { 50% { transform: translateY(7px); } }
+@media (prefers-reduced-motion: reduce) { .finger { animation: none; } }
+[dir='rtl'] .quick-go .icon, [dir='rtl'] .quick-go:hover .icon { transform: none; }
+.free-ship { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; color: var(--green); font-weight: 700; }
 .quick-fields { display: grid; gap: 10px; }
 .qf { position: relative; display: block; }
 .qf > svg { position: absolute; inset-inline-start: 14px; top: 15px; color: var(--brand); pointer-events: none; }

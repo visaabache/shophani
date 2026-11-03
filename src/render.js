@@ -7,7 +7,7 @@ import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
 import { legalDoc } from './legal.js';
 import { CURRENCIES, formatPrice } from './currency.js';
 import { pixelConfig } from './pixels.js';
-import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions, richDescHtml, htmlToText } from './lib.js';
+import { CITIES, LANGS, parseJSON, esc, money, productName, productDesc, productImages, productOptions, richDescHtml, htmlToText } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
 const BRAND_OG = '/assets/brand/og-image-v2.jpg';
@@ -180,7 +180,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=13">
+<link rel="stylesheet" href="/assets/style.css?v=14">
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
@@ -415,6 +415,10 @@ export function productPage(ctx, p, category, related) {
   const options = productOptions(p);
   const soldOut = p.stock != null && p.stock <= 0;
   const onSale = p.compare_price && p.compare_price > p.price;
+  // Delivery is free for this product when the store charges nothing for any city, or the price reaches the free threshold.
+  const freeOver = Number(settings.free_shipping_over) || 0;
+  const rates = Object.values(parseJSON(settings.shipping_rates || '{}', {}));
+  const freeShip = (freeOver > 0 && p.price >= freeOver) || (!(Number(settings.shipping_fee) > 0) && !rates.some((r) => Number(r) > 0));
   const ld = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -443,6 +447,7 @@ export function productPage(ctx, p, category, related) {
     <h1>${esc(name)}</h1>
     <p class="price big">${esc(price(ctx, p.price))}${onSale ? ` <s>${esc(price(ctx, p.compare_price))}</s> <span class="save">−${Math.round((1 - p.price / p.compare_price) * 100)}%</span>` : ''}</p>
     ${ctx.cur && ctx.cur !== 'MAD' ? `<p class="price-mad">${esc(t.paidInMad(money(p.price, lang)))}</p>` : ''}
+    ${freeShip && !soldOut ? `<p class="free-ship">${icon('truck', 20)}<span>${esc(t.finalPrice)}</span></p>` : ''}
     ${onSale ? `<p class="you-save">${esc(t.youSave(price(ctx, p.compare_price - p.price)))}</p>` : ''}
     ${stockLine}
     ${soldOut ? '' : `<div class="eta">${icon('truck', 22)}<div><strong>${esc(t.deliveryLong)}</strong><span data-eta hidden></span></div></div>`}
@@ -453,7 +458,7 @@ export function productPage(ctx, p, category, related) {
         <div class="qty"><button type="button" data-step="-1" aria-label="−">−</button><input id="qty" name="qty" type="number" inputmode="numeric" min="1" max="${p.stock != null ? Math.max(1, Math.min(20, p.stock)) : 20}" value="1"><button type="button" data-step="1" aria-label="+">+</button></div>
       </div>
       ${soldOut ? `<button class="btn btn-block" type="button" disabled>${esc(t.outOfStock)}</button>` : `<div class="quick" id="order">
-        <div class="quick-head">${icon('cash', 26)}<div><h2>${esc(t.quickTitle)}</h2><p>${esc(t.quickText)}</p></div></div>
+        <p class="quick-lead">${esc(t.quickText)}<span class="finger" aria-hidden="true">👇</span></p>
         <div class="quick-fields">
           <label class="qf">${icon('user', 20)}<input name="name" autocomplete="name" required maxlength="80" placeholder="${esc(t.fullName)}" aria-label="${esc(t.fullName)}"></label>
           <label class="qf">${icon('pin', 20)}<select name="city" required aria-label="${esc(t.city)}"><option value="">${esc(t.chooseCity)}</option>${CITIES.map((c) => `<option>${esc(c)}</option>`).join('')}<option value="__other">${esc(t.otherCity)}</option></select></label>
@@ -464,10 +469,10 @@ export function productPage(ctx, p, category, related) {
         </div>
         <ul class="quick-sum" data-quick-sum>
           <li><span>${esc(t.quickItems)}</span><span data-q-sub>${esc(price(ctx, p.price))}</span></li>
-          <li><span>${esc(t.quickShipping)}</span><span data-q-ship>${esc(t.quickShipAfter)}</span></li>
+          <li><span>${esc(t.quickShipping)}</span><span data-q-ship${freeShip ? ' class="free"' : ''}>${esc(freeShip ? t.freeDelivery : t.quickShipAfter)}</span></li>
           <li class="total"><span>${esc(t.quickTotal)}</span><span data-q-total>${esc(price(ctx, p.price))}</span></li>
         </ul>
-        <button class="btn btn-block btn-accent btn-lg quick-go" type="submit" name="go" value="order">${icon('check', 22)}<span>${esc(t.placeOrder)}</span></button>
+        <button class="btn btn-block btn-accent btn-lg quick-go" type="submit" name="go" value="order">${icon('check', 22)}<span>${esc(t.buyNow)}</span></button>
         <p class="form-error" role="alert" hidden></p>
         <p class="quick-note">${icon('lock', 16)} ${esc(t.payOnDelivery)}</p>
         <p class="consent">${t.consent(`/${lang}/terms`, `/${lang}/privacy`)}</p>
@@ -494,7 +499,7 @@ export function productPage(ctx, p, category, related) {
     </div>
   </div>
 </section>
-${soldOut ? '' : `<div class="buy-bar" aria-hidden="true"><div><strong>${esc(price(ctx, p.price))}</strong><small>${esc(t.cod)}</small></div><a class="btn btn-accent" href="#order" data-buy-now>${esc(t.buyNow)}</a></div>`}
+${soldOut ? '' : `<div class="buy-bar" aria-hidden="true"><div><strong>${esc(price(ctx, p.price))}</strong><small>${esc(freeShip ? t.freeDelivery : t.cod)}</small></div><a class="btn btn-accent" href="#order" data-buy-now>${esc(t.buyNow)}</a></div>`}
 ${related.length ? `<section class="section wrap">${sectionHead(t.alsoLike, category ? catName(category, lang) : t.shop, category ? `/${lang}/c/${category.slug}` : `/${lang}/shop`, t.viewAll)}${grid(related, ctx, '')}</section>` : ''}
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
   return layout(ctx, { title: name, description: desc.slice(0, 160), path: `/p/${p.slug}`, body, image: images[0], page: 'product', product: { name, price: money(p.price, lang), slug: p.slug }, track: { event: 'ViewContent', value: p.price, items: [{ id: p.id, name, price: p.price, qty: 1 }] } });
