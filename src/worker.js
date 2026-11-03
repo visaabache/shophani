@@ -2,8 +2,8 @@
 // the admin API (/api/admin/*), product photos from R2 or D1 (/img/*) and static files (public/).
 
 import { T } from './i18n.js';
-import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName, visitorId, recentHits, addHit, sameOrigin } from './lib.js';
-import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, legalPage, aboutPage, catName } from './render.js';
+import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName, visitorId, recentHits, addHit, sameOrigin, parseJSON } from './lib.js';
+import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, legalPage, aboutPage, blogIndexPage, blogPostPage, catName } from './render.js';
 
 const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
 import { handleAdmin, CHUNK as VIDEO_CHUNK } from './admin.js';
@@ -45,15 +45,19 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
+    const site = siteOrigin(env, url);
+    if (site !== url.origin && (request.method === 'GET' || request.method === 'HEAD') && !path.startsWith('/api/') && (url.hostname.startsWith('www.') || url.hostname.endsWith('.workers.dev'))) {
+      return Response.redirect(`${site}${path}${url.search}`, 301);
+    }
     try {
       if (path.startsWith('/api/admin/')) return await handleAdmin(request, env, url, ctx);
       if (path.startsWith('/api/')) return await handleApi(request, env, url, ctx);
       if (path.startsWith('/img/')) return await serveImage(env, path.slice(5), request);
       if (path === '/admin') return Response.redirect(`${url.origin}/admin/`, 301);
-      if (path === '/sitemap.xml') return await sitemap(env, url.origin);
+      if (path === '/sitemap.xml') return await sitemap(env, site);
       if (path === '/currency') return setCurrency(url);
       if (path === '/robots.txt') {
-        return new Response(`User-agent: *\nDisallow: /admin/\nDisallow: /api/\nSitemap: ${url.origin}/sitemap.xml\n`, { headers: { 'content-type': 'text/plain' } });
+        return new Response(`User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nDisallow: /*/cart\nDisallow: /*/checkout\nDisallow: /*/order/\nDisallow: /currency\nSitemap: ${site}/sitemap.xml\n`, { headers: { 'content-type': 'text/plain' } });
       }
       if (path === '/') {
         return new Response(null, { status: 302, headers: { location: `/${pickLang(request)}/`, vary: 'accept-language, cookie' } });
@@ -72,6 +76,13 @@ export default {
   },
 };
 
+// The store's public address (SITE_URL in wrangler.jsonc, e.g. https://shophani.online), used for canonical
+// links, the sitemap and structured data. Without it (local development) the request's own address is used.
+function siteOrigin(env, url) {
+  const s = String(env.SITE_URL || '').trim().replace(/\/+$/, '');
+  return /^https:\/\/[a-z0-9.-]+$/i.test(s) ? s : url.origin;
+}
+
 // Footer currency menu: remembers the choice for a year, then goes back to the page it came from.
 function setCurrency(url) {
   const c = url.searchParams.get('c');
@@ -88,7 +99,7 @@ async function storefront(request, env, url, lang, rest, exec) {
   const [settings, cats] = await Promise.all([getSettings(db), db.prepare('SELECT * FROM categories ORDER BY sort, id').all()]);
   const categories = cats.results;
   const cur = currencyFor(request, settings);
-  const ctx = { lang, settings, categories, origin: url.origin, cur, rates: cur === 'MAD' ? null : ratesFrom(settings, env, exec) };
+  const ctx = { lang, settings, categories, origin: siteOrigin(env, url), cur, rates: cur === 'MAD' ? null : ratesFrom(settings, env, exec) };
   const t = T[lang];
   let res;
 
@@ -127,6 +138,9 @@ async function storefront(request, env, url, lang, rest, exec) {
     res = html(
       listingPage(ctx, {
         title: cat ? catName(cat, lang) : t.allProducts,
+        seoTitle: cat ? t.catSeoTitle(catName(cat, lang)) : t.shopSeoTitle,
+        metaDescription: cat ? t.catSeoDesc(catName(cat, lang)) : t.shopSeoDesc,
+        description: cat ? t.catIntro(catName(cat, lang)) : '',
         path: cat ? `/c/${cat.slug}` : '/shop',
         products: rows.results,
         q,
@@ -135,13 +149,28 @@ async function storefront(request, env, url, lang, rest, exec) {
       }),
     );
   } else if (rest.startsWith('/p/')) {
-    const p = await db.prepare('SELECT * FROM products WHERE active = 1 AND slug = ?').bind(decodeURIComponent(rest.slice(3))).first();
-    if (!p) return html(notFoundPage(ctx), 404);
+    const slug = decodeURIComponent(rest.slice(3));
+    const p = await db.prepare('SELECT * FROM products WHERE active = 1 AND slug = ?').bind(slug).first();
+    if (!p) {
+      const moved = await movedTo(db, slug, categories);
+      return moved ? Response.redirect(`${url.origin}/${lang}${moved.to}`, moved.status) : html(notFoundPage(ctx), 404);
+    }
     const related = await db
       .prepare('SELECT * FROM products WHERE active = 1 AND id != ? AND (category_id IS ?2 OR featured = 1) ORDER BY (category_id IS ?2) DESC, RANDOM() LIMIT 4')
       .bind(p.id, p.category_id)
       .all();
     res = html(productPage(ctx, p, categories.find((c) => c.id === p.category_id), related.results));
+  } else if (rest === '/blog') {
+    const posts = await db.prepare('SELECT * FROM posts WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT 60').all();
+    res = html(blogIndexPage(ctx, posts.results));
+  } else if (rest.startsWith('/blog/')) {
+    const post = await db.prepare('SELECT * FROM posts WHERE published = 1 AND slug = ?').bind(decodeURIComponent(rest.slice(6))).first();
+    if (!post) return html(notFoundPage(ctx), 404);
+    const [others, latest] = await Promise.all([
+      db.prepare('SELECT * FROM posts WHERE published = 1 AND id != ? ORDER BY created_at DESC LIMIT 3').bind(post.id).all(),
+      db.prepare('SELECT * FROM products WHERE active = 1 ORDER BY featured DESC, id DESC LIMIT 4').all(),
+    ]);
+    res = html(blogPostPage(ctx, post, others.results, latest.results));
   } else if (rest === '/about') {
     res = html(aboutPage(ctx));
   } else if (rest === '/credits') {
@@ -321,19 +350,47 @@ async function serveImage(env, key, request) {
   return new Response(out, { headers });
 }
 
+// Where an old product address should go: a hidden product's category or the shop (temporarily, it may come
+// back), or for good the address saved when the product was deleted or renamed.
+async function movedTo(db, slug, categories) {
+  const hidden = await db.prepare('SELECT category_id FROM products WHERE slug = ?').bind(slug).first();
+  if (hidden) {
+    const cat = categories.find((c) => c.id === hidden.category_id);
+    return { to: cat ? `/c/${cat.slug}` : '/shop', status: 302 };
+  }
+  const r = await db.prepare('SELECT target FROM redirects WHERE path = ?').bind(`/p/${slug}`).first();
+  if (!r) return null;
+  const gone = r.target.startsWith('/c/') && !categories.some((c) => `/c/${c.slug}` === r.target);
+  return { to: gone ? '/shop' : r.target, status: 301 };
+}
+
 async function sitemap(env, origin) {
-  const [products, cats] = await Promise.all([
-    env.DB.prepare('SELECT slug FROM products WHERE active = 1').all(),
+  const [products, cats, posts] = await Promise.all([
+    env.DB.prepare('SELECT slug, images, created_at FROM products WHERE active = 1 ORDER BY id DESC').all(),
     env.DB.prepare('SELECT slug FROM categories').all(),
+    env.DB.prepare('SELECT slug, updated_at FROM posts WHERE published = 1 ORDER BY created_at DESC').all(),
   ]);
-  const paths = ['/', '/shop', '/about', '/credits', '/terms', '/privacy', ...cats.results.map((c) => `/c/${c.slug}`), ...products.results.map((p) => `/p/${p.slug}`)];
-  const urls = paths
-    .map((p) => {
-      const alts = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${esc(origin)}/${l}${esc(p)}"/>`).join('');
-      return LANGS.map((l) => `<url><loc>${esc(origin)}/${l}${esc(p)}</loc>${alts}</url>`).join('');
+  const day = (d) => String(d || '').slice(0, 10);
+  const pages = [
+    { p: '/', pri: '1.0' },
+    { p: '/shop', pri: '0.9' },
+    ...cats.results.map((c) => ({ p: `/c/${c.slug}`, pri: '0.8' })),
+    ...products.results.map((x) => ({ p: `/p/${x.slug}`, pri: '0.7', mod: day(x.created_at), img: parseJSON(x.images || '[]', [])[0] })),
+    { p: '/blog', pri: '0.6', mod: day(posts.results[0]?.updated_at) },
+    ...posts.results.map((x) => ({ p: `/blog/${x.slug}`, pri: '0.6', mod: day(x.updated_at) })),
+    { p: '/about', pri: '0.4' },
+    { p: '/terms', pri: '0.2' },
+    { p: '/privacy', pri: '0.2' },
+    { p: '/credits', pri: '0.1' },
+  ];
+  const urls = pages
+    .map(({ p, pri, mod, img }) => {
+      const alts = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${esc(origin)}/${l}${esc(p)}"/>`).join('') + `<xhtml:link rel="alternate" hreflang="x-default" href="${esc(origin)}/fr${esc(p)}"/>`;
+      const image = typeof img === 'string' && img ? `<image:image><image:loc>${esc(img.startsWith('http') ? img : origin + img)}</image:loc></image:image>` : '';
+      return LANGS.map((l) => `<url><loc>${esc(origin)}/${l}${esc(p)}</loc>${mod ? `<lastmod>${mod}</lastmod>` : ''}<priority>${pri}</priority>${alts}${image}</url>`).join('');
     })
     .join('');
-  return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${urls}</urlset>`, {
+  return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">${urls}</urlset>`, {
     headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' },
   });
 }

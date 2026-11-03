@@ -10,6 +10,32 @@ import { pixelConfig } from './pixels.js';
 import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions, richDescHtml, htmlToText } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
+const OG_LOCALE = { fr: 'fr_FR', en: 'en_US', ar: 'ar_MA' };
+const DATE_LOCALE = { fr: 'fr-FR', en: 'en-GB', ar: 'ar-MA' };
+
+// Structured data shared by several pages.
+const abs = (origin, u) => (/^https?:/.test(u) ? u : origin + u);
+function breadcrumbLd(origin, items) {
+  return { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items.map(([name, url], i) => ({ '@type': 'ListItem', position: i + 1, name, item: abs(origin, url) })) };
+}
+function organizationLd(ctx) {
+  const { origin, settings } = ctx;
+  const sameAs = ['instagram', 'facebook', 'tiktok'].map((k) => socialUrl(k, settings[k])).filter(Boolean);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'OnlineStore',
+    name: settings.store_name || 'Shop Hani',
+    url: `${origin}/`,
+    logo: `${origin}/assets/brand/logo-stacked-gold.png`,
+    image: `${origin}/assets/brand/og-image-v2.jpg`,
+    areaServed: 'MA',
+    currenciesAccepted: 'MAD',
+    paymentAccepted: 'Cash',
+    ...(settings.whatsapp ? { telephone: `+${settings.whatsapp}` } : {}),
+    ...(settings.contact_email ? { email: settings.contact_email } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
+  };
+}
 const BRAND_OG = '/assets/brand/og-image-v2.jpg';
 
 // The drawn Shop Hani logo, or a sparkle and the plain name when the store has been renamed in admin.
@@ -137,13 +163,18 @@ function srcset(url) {
   return s !== url ? ` srcset="${esc(s)} 480w, ${esc(url)} 1000w"` : '';
 }
 
-export function layout(ctx, { title, description = '', path, body, noindex = false, image = '', page = '', product = null, track = null }) {
+export function layout(ctx, { title, seoTitle = '', description = '', path, body, noindex = false, image = '', page = '', product = null, track = null, ld = [], ogType = 'website' }) {
   const { lang, settings, origin, categories = [] } = ctx;
   const t = T[lang];
   const px = pixelConfig(settings);
   const pixels = px.meta || px.tiktok;
   const store = settings.store_name || 'Shop Hani';
-  const fullTitle = title ? `${title} · ${store}` : `${store} · ${t.tagline}`;
+  // Search titles carry the keywords: "<page> · <keywords> | Shop Hani", or "Shop Hani · <keywords>" on the home page.
+  const fullTitle = seoTitle ? `${seoTitle} | ${store}` : title ? `${title} · ${store}` : `${store} · ${t.seoTitle}`;
+  const metaDesc = description || t.seoDesc;
+  const pageUrl = `${origin}/${lang}${path}`;
+  const verify = String(settings.google_verify || '').match(/content=["']?([\w-]{10,100})/)?.[1] || (/^[\w-]{10,100}$/.test(String(settings.google_verify || '').trim()) ? String(settings.google_verify).trim() : '');
+  const ldTags = ld.filter(Boolean).map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`).join('');
   const announcement = settings[`announcement_${lang}`] || '';
   const wa = waLink(settings.whatsapp);
   const alternates = LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${esc(origin)}/${l}${esc(path)}">`).join('');
@@ -165,11 +196,13 @@ export function layout(ctx, { title, description = '', path, body, noindex = fal
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(fullTitle)}</title>
-<meta name="description" content="${esc(description || t.heroText)}">
+<meta name="description" content="${esc(metaDesc)}">
 ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${esc(origin)}/${lang}${esc(path)}">${alternates}<link rel="alternate" hreflang="x-default" href="${esc(origin)}/fr${esc(path)}">`}
 <meta property="og:title" content="${esc(fullTitle)}">
-<meta property="og:description" content="${esc(description || t.heroText)}">
-<meta property="og:type" content="website">
+<meta property="og:description" content="${esc(metaDesc)}">
+<meta property="og:type" content="${ogType}">
+${noindex ? '' : `<meta property="og:url" content="${esc(pageUrl)}">`}<meta property="og:locale" content="${OG_LOCALE[lang]}">${LANGS.filter((l) => l !== lang).map((l) => `<meta property="og:locale:alternate" content="${OG_LOCALE[l]}">`).join('')}
+${verify ? `<meta name="google-site-verification" content="${esc(verify)}">` : ''}${ldTags}
 <meta property="og:site_name" content="${esc(store)}">
 <meta property="og:image" content="${esc(ogImage)}"><meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#2b50ee">
@@ -192,7 +225,7 @@ ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px
 <header class="top">
   <div class="wrap top-row">
     <a class="logo" href="/${lang}/" aria-label="${esc(store)}">${brandLogo(store, lang)}</a>
-    <nav class="main-nav" aria-label="${esc(t.categories)}"><a href="/${lang}/shop">${esc(t.shop)}</a>${navCats}</nav>
+    <nav class="main-nav" aria-label="${esc(t.categories)}"><a href="/${lang}/shop">${esc(t.shop)}</a>${navCats}<a href="/${lang}/blog">${esc(t.blog)}</a></nav>
     <div class="top-actions">
       <form class="top-search" action="/${lang}/shop" method="get" role="search"><input type="search" name="q" placeholder="${esc(t.search)}" aria-label="${esc(t.search)}"><button aria-label="${esc(t.search)}">${icon('search', 20)}</button></form>
       <span class="langs">${langLinks}</span>
@@ -220,6 +253,7 @@ ${body}
       <h3>${esc(t.help)}</h3>
       <ul>
         <li><a href="/${lang}/about">${esc(t.aboutUs)}</a></li>
+        <li><a href="/${lang}/blog">${esc(t.blog)}</a></li>
         <li>${esc(t.deliveryLong)}</li>
         <li>${esc(t.confirm)}</li>
         ${wa ? `<li><a href="${esc(wa)}" rel="noopener">${esc(t.whatsappUs)}</a></li>` : ''}
@@ -373,10 +407,23 @@ ${latest.length ? `<section class="section wrap">${sectionHead(t.newArrivals, t.
   ${sectionHead(t.howTitle)}
   <ol class="steps">${t.steps.map((s, i) => `<li class="reveal" style="--d:${i * 110}ms"><span class="step-n">${i + 1}</span><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></li>`).join('')}</ol>
 </section>`;
-  return layout(ctx, { title: '', path: '/', body, image: BRAND_OG, page: 'home' });
+  const seo = t.homeSeo;
+  const seoBlock = `<section class="section wrap seo-block">
+  <div class="seo-grid">
+    <div class="seo-text reveal"><h2>${esc(seo.title)}</h2>${seo.paras.map((x) => `<p>${x}</p>`).join('')}
+      <h3>${esc(seo.citiesTitle)}</h3><p class="cities">${CITIES.map(esc).join(' · ')}</p></div>
+    <div class="seo-faq reveal"><h2>${esc(seo.faqTitle)}</h2><div class="accordion">${seo.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><div>${esc(a)}</div></details>`).join('')}</div></div>
+  </div>
+</section>`;
+  const ld = [
+    organizationLd(ctx),
+    { '@context': 'https://schema.org', '@type': 'WebSite', name: settings.store_name || 'Shop Hani', url: `${ctx.origin}/${lang}/`, inLanguage: lang, potentialAction: { '@type': 'SearchAction', target: `${ctx.origin}/${lang}/shop?q={search_term_string}`, 'query-input': 'required name=search_term_string' } },
+    { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: seo.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
+  ];
+  return layout(ctx, { title: '', path: '/', body: body + seoBlock, image: BRAND_OG, page: 'home', ld });
 }
 
-export function listingPage(ctx, { title, path, products, q = '', sort = '', description = '', image = '' }) {
+export function listingPage(ctx, { title, path, products, q = '', sort = '', description = '', image = '', seoTitle = '', metaDescription = '' }) {
   const { lang } = ctx;
   const t = T[lang];
   const sortOpts = [
@@ -400,7 +447,11 @@ export function listingPage(ctx, { title, path, products, q = '', sort = '', des
   const query = new URLSearchParams();
   if (q) query.set('q', q);
   if (sort) query.set('sort', sort);
-  return layout(ctx, { title, path: query.size ? `${path}?${query}` : path, body, noindex: Boolean(q || sort), image, page: 'shop' });
+  const ld = [
+    breadcrumbLd(ctx.origin, [[t.home, `/${lang}/`], [title, `/${lang}${path}`]]),
+    products.length ? { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: products.slice(0, 30).map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: `${ctx.origin}/${lang}/p/${p.slug}`, name: productName(p, lang) })) } : null,
+  ];
+  return layout(ctx, { title, seoTitle, description: metaDescription, path: query.size ? `${path}?${query}` : path, body, noindex: Boolean(q || sort), image, page: 'shop', ld });
 }
 
 export function productPage(ctx, p, category, related) {
@@ -429,7 +480,18 @@ export function productPage(ctx, p, category, related) {
       priceCurrency: 'MAD',
       availability: soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
       url: `${origin}/${lang}/p/${p.slug}`,
+      itemCondition: 'https://schema.org/NewCondition',
+      seller: { '@type': 'Organization', name: settings.store_name || 'Shop Hani' },
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: { '@type': 'MonetaryAmount', value: '0', currency: 'MAD' },
+        shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'MA' },
+        deliveryTime: { '@type': 'ShippingDeliveryTime', handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' }, transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 3, unitCode: 'DAY' } },
+      },
+      hasMerchantReturnPolicy: { '@type': 'MerchantReturnPolicy', applicableCountry: 'MA', returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow', merchantReturnDays: 7, returnMethod: 'https://schema.org/ReturnByMail', returnFees: 'https://schema.org/FreeReturn' },
     },
+    brand: { '@type': 'Brand', name: settings.store_name || 'Shop Hani' },
+    ...(category ? { category: catName(category, lang) } : {}),
   };
   const wa = waLink(settings.whatsapp, `${name} — ${money(p.price, lang)}\n${origin}/${lang}/p/${p.slug}`);
   const stockLine = soldOut ? '' : p.stock != null && p.stock <= 5 ? `<p class="stock stock-low"><span class="dot"></span>${esc(t.onlyLeft(p.stock))}</p>` : `<p class="stock"><span class="dot"></span>${esc(t.inStock)}</p>`;
@@ -499,7 +561,8 @@ export function productPage(ctx, p, category, related) {
 ${soldOut ? '' : `<div class="buy-bar" aria-hidden="true"><div><strong>${esc(price(ctx, p.price))}</strong><small>${esc(freeShip ? t.freeDelivery : t.cod)}</small></div><a class="btn btn-accent" href="#order" data-buy-now>${esc(t.buyNow)}</a></div>`}
 ${related.length ? `<section class="section wrap">${sectionHead(t.alsoLike, category ? catName(category, lang) : t.shop, category ? `/${lang}/c/${category.slug}` : `/${lang}/shop`, t.viewAll)}${grid(related, ctx, '')}</section>` : ''}
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
-  return layout(ctx, { title: name, description: desc.slice(0, 160), path: `/p/${p.slug}`, body, image: images[0], page: 'product', product: { name, price: money(p.price, lang), slug: p.slug }, track: { event: 'ViewContent', value: p.price, items: [{ id: p.id, name, price: p.price, qty: 1 }] } });
+  const crumbs = [[t.home, `/${lang}/`], ...(category ? [[catName(category, lang), `/${lang}/c/${category.slug}`]] : []), [name, `/${lang}/p/${p.slug}`]];
+  return layout(ctx, { title: name, seoTitle: t.productSeoTitle(name), description: desc.length >= 70 ? desc.slice(0, 158) : t.productSeoDesc(name, money(p.price, lang)), ld: [breadcrumbLd(origin, crumbs)], path: `/p/${p.slug}`, body, image: images[0], page: 'product', product: { name, price: money(p.price, lang), slug: p.slug }, track: { event: 'ViewContent', value: p.price, items: [{ id: p.id, name, price: p.price, qty: 1 }] } });
 }
 
 function stepsBar(lang, current) {
@@ -643,8 +706,99 @@ export function aboutPage(ctx) {
 
 export function notFoundPage(ctx) {
   const t = T[ctx.lang];
-  const body = `<section class="wrap section narrow center notfound">${star('burst-star')}<h1>${esc(t.notFound)}</h1><p>${esc(t.notFoundText)}</p><p><a class="btn" href="/${ctx.lang}/">${esc(t.backHome)}</a></p></section>`;
+  const cats = (ctx.categories || []).map((c) => `<a class="chip" href="/${ctx.lang}/c/${esc(c.slug)}">${esc(catName(c, ctx.lang))}</a>`).join('');
+  const body = `<section class="wrap section narrow center notfound">${star('burst-star')}<h1>${esc(t.notFound)}</h1><p>${esc(t.notFoundText)}</p><p class="about-ctas"><a class="btn" href="/${ctx.lang}/shop">${esc(t.allProducts)}</a><a class="btn btn-outline" href="/${ctx.lang}/">${esc(t.backHome)}</a></p>${cats ? `<div class="post-chips">${cats}</div>` : ''}</section>`;
   return layout(ctx, { title: t.notFound, path: '/', body, noindex: true });
+}
+
+
+// Blog. Posts come from the posts table (written in the admin). Each post page ends with the shop's
+// current categories and newest products, so articles keep leading to products whatever is in stock.
+const postField = (post, key, lang) => post[`${key}_${lang}`] || post[`${key}_fr`] || post[`${key}_en`] || post[`${key}_ar`] || '';
+const postDate = (iso, lang) => {
+  const d = new Date(`${String(iso || '').replace(' ', 'T')}Z`);
+  return Number.isNaN(d.getTime()) ? '' : new Intl.DateTimeFormat(DATE_LOCALE[lang], { dateStyle: 'long', numberingSystem: 'latn' }).format(d);
+};
+const isoDate = (iso) => `${String(iso || '').replace(' ', 'T')}Z`;
+
+function postCard(post, lang, i = 0) {
+  const t = T[lang];
+  const title = postField(post, 'title', lang);
+  const url = `/${lang}/blog/${esc(post.slug)}`;
+  return `<article class="post-card reveal" style="--d:${(i % 3) * 80}ms">
+  <a class="post-img" href="${url}" tabindex="-1" aria-hidden="true"><img src="${esc(small(post.cover || PLACEHOLDER))}" alt="" loading="lazy" width="480" height="600"></a>
+  <div class="post-body">
+    <p class="post-date">${esc(postDate(post.created_at, lang))}</p>
+    <h2><a href="${url}">${esc(title)}</a></h2>
+    <p>${esc(postField(post, 'excerpt', lang))}</p>
+    <a class="more" href="${url}">${esc(t.readMore)}</a>
+  </div>
+</article>`;
+}
+
+export function blogIndexPage(ctx, posts) {
+  const { lang } = ctx;
+  const t = T[lang];
+  const body = `<section class="page-hero">
+  <div class="wrap"><p class="kicker">${star('tick-star')}${esc(t.blog)}</p><h1>${esc(t.blogTitle)}</h1><p class="lead">${esc(t.blogIntro)}</p></div>
+</section>
+<section class="wrap section">
+  ${posts.length ? `<div class="post-grid">${posts.map((p, i) => postCard(p, lang, i)).join('')}</div>` : `<p class="empty">${esc(t.noPosts)}</p>`}
+</section>`;
+  const ld = [
+    breadcrumbLd(ctx.origin, [[t.home, `/${lang}/`], [t.blog, `/${lang}/blog`]]),
+    { '@context': 'https://schema.org', '@type': 'Blog', name: t.blogTitle, url: `${ctx.origin}/${lang}/blog`, inLanguage: lang, blogPost: posts.slice(0, 20).map((p) => ({ '@type': 'BlogPosting', headline: postField(p, 'title', lang), url: `${ctx.origin}/${lang}/blog/${p.slug}`, datePublished: isoDate(p.created_at) })) },
+  ];
+  return layout(ctx, { title: t.blog, seoTitle: t.blogSeoTitle, description: t.blogIntro, path: '/blog', body, page: 'blog', ld });
+}
+
+export function blogPostPage(ctx, post, others, products) {
+  const { lang, origin, settings, categories = [] } = ctx;
+  const t = T[lang];
+  const store = settings.store_name || 'Shop Hani';
+  const title = postField(post, 'title', lang);
+  const excerpt = postField(post, 'excerpt', lang);
+  const raw = postField(post, 'body', lang);
+  const words = richText(raw).split(/\s+/).filter(Boolean).length;
+  const cover = post.cover || '';
+  const chips = categories.map((c) => `<a class="chip" href="/${lang}/c/${esc(c.slug)}">${esc(catName(c, lang))}</a>`).join('');
+  const body = `<nav class="crumbs wrap" aria-label="breadcrumb"><a href="/${lang}/">${esc(t.home)}</a><span>/</span><a href="/${lang}/blog">${esc(t.blog)}</a><span>/</span><span aria-current="page">${esc(title)}</span></nav>
+<article class="wrap narrow post">
+  <header class="post-head">
+    <p class="kicker">${esc(t.blog)}</p>
+    <h1>${esc(title)}</h1>
+    <p class="post-meta">${esc(t.publishedOn(postDate(post.created_at, lang)))} · ${esc(t.minRead(Math.max(1, Math.ceil(words / 200))))}</p>
+  </header>
+  ${cover ? `<img class="post-cover" src="${esc(cover)}" alt="${esc(title)}" width="1000" height="1250" fetchpriority="high">` : ''}
+  <div class="rich post-text">${richHtml(raw)}</div>
+  <aside class="post-cta">
+    <h2>${esc(t.shopTheStore)}</h2>
+    <p>${esc(t.shopTheStoreText)}</p>
+    ${chips ? `<div class="post-chips">${chips}</div>` : ''}
+    <a class="btn" href="/${lang}/shop">${esc(t.allProducts)}</a>
+  </aside>
+</article>
+${products.length ? `<section class="section wrap">${sectionHead(t.latestProducts, t.shop, `/${lang}/shop`, t.viewAll)}${grid(products, ctx, '')}</section>` : ''}
+${others.length ? `<section class="section wrap">${sectionHead(t.morePosts, t.blog, `/${lang}/blog`, t.viewAll)}<div class="post-grid">${others.map((p, i) => postCard(p, lang, i)).join('')}</div></section>` : ''}`;
+  const url = `${origin}/${lang}/blog/${post.slug}`;
+  const ld = [
+    breadcrumbLd(origin, [[t.home, `/${lang}/`], [t.blog, `/${lang}/blog`], [title, `/${lang}/blog/${post.slug}`]]),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: title,
+      description: excerpt,
+      ...(cover ? { image: abs(origin, cover) } : {}),
+      datePublished: isoDate(post.created_at),
+      dateModified: isoDate(post.updated_at || post.created_at),
+      inLanguage: lang,
+      wordCount: words,
+      mainEntityOfPage: url,
+      author: { '@type': 'Organization', name: store, url: `${origin}/` },
+      publisher: { '@type': 'Organization', name: store, logo: { '@type': 'ImageObject', url: `${origin}/assets/brand/logo-stacked-gold.png` } },
+    },
+  ];
+  return layout(ctx, { title, seoTitle: title, description: excerpt || richText(raw).slice(0, 158), path: `/blog/${post.slug}`, body, image: cover || BRAND_OG, page: 'blog', ld, ogType: 'article' });
 }
 
 export { catName };
