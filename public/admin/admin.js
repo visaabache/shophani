@@ -165,7 +165,7 @@
         'على حاسوبك، في مجلد المتجر، شغّل <code>npx wrangler secret put BREVO_API_KEY</code> والصق المفتاح عندما يُطلب منك.',
         'أدخل العنوان المؤكد أسفله، احفظ، ثم اضغط «إرسال رسالة تجريبية».',
       ],
-      shipping: 'التوصيل', shippingFee: 'ثمن التوصيل الافتراضي (درهم)', freeOver: 'توصيل مجاني ابتداءً من (درهم، 0 = أبدًا)',
+      shipping: 'التوصيل', shippingIncluded: 'التوصيل مجاني لجميع المدن: ثمنه داخل في ثمن المنتجات، والزبون يدفع ثمن المنتج فقط عند الاستلام.', shippingFee: 'ثمن التوصيل الافتراضي (درهم)', freeOver: 'توصيل مجاني ابتداءً من (درهم، 0 = أبدًا)',
       rates: 'أثمنة حسب المدينة (سطر لكل مدينة: المدينة = الثمن)',
       banner: 'شريط الإعلان', bannerHint: 'الرسالة التي تمر أعلى كل صفحة.',
       homePage: 'الصفحة الرئيسية', homeHint: 'اتركه فارغًا للاحتفاظ بالنص الافتراضي.',
@@ -334,7 +334,7 @@
         'Sur votre PC, dans le dossier de la boutique, lancez <code>npx wrangler secret put BREVO_API_KEY</code> et collez la clé quand on vous la demande.',
         'Indiquez ci-dessous l’adresse vérifiée, enregistrez, puis cliquez sur « Envoyer un test ».',
       ],
-      shipping: 'Livraison', shippingFee: 'Frais de livraison par défaut (DH)', freeOver: 'Livraison gratuite à partir de (DH, 0 = jamais)',
+      shipping: 'Livraison', shippingIncluded: 'Livraison gratuite dans toutes les villes : elle est comprise dans le prix des produits, le client paie seulement le prix affiché à la livraison.', shippingFee: 'Frais de livraison par défaut (DH)', freeOver: 'Livraison gratuite à partir de (DH, 0 = jamais)',
       rates: 'Tarifs par ville (une ligne par ville : Ville = prix)',
       banner: 'Bandeau d’annonce', bannerHint: 'Le message qui défile en haut de chaque page.',
       homePage: 'Accueil', homeHint: 'Laissez vide pour garder le texte par défaut.',
@@ -1377,10 +1377,6 @@
   function settings() {
     const s = state.settings;
     const field = (k, label, attrs = '') => `<label>${label}<input name="${k}" value="${esc(s[k] ?? '')}" ${attrs}></label>`;
-    let rates = {};
-    try {
-      rates = JSON.parse(s.shipping_rates || '{}');
-    } catch {}
     const steps = `<ol class="howto">${L.steps.map((x) => `<li>${x}</li>`).join('')}</ol>`;
     shell(
       L.nav.settings,
@@ -1419,13 +1415,7 @@
         ${field('legal_address', L.legalAddress)}
         <p class="muted small">${L.viewPages} <a href="/${lang}/privacy" target="_blank" rel="noopener">${L.legalPrivacy}</a> · <a href="/${lang}/terms" target="_blank" rel="noopener">${L.legalTerms}</a></p>
       </div>
-      <div class="card"><h2>${L.shipping}</h2>
-        <div class="cols">
-          ${field('shipping_fee', L.shippingFee, 'type="number" min="0"')}
-          ${field('free_shipping_over', L.freeOver, 'type="number" min="0"')}
-        </div>
-        <label>${L.rates}<textarea name="rates" rows="4" dir="ltr" placeholder="Casablanca = 20">${esc(Object.entries(rates).map(([c, v]) => `${c} = ${v}`).join('\n'))}</textarea></label>
-      </div>
+      <div class="card"><h2>${L.shipping}</h2><p class="muted small">${L.shippingIncluded}</p></div>
       <div class="card"><h2>${L.currency}</h2><p class="muted small">${L.currencyHint}</p>
         <label class="switch"><input type="checkbox" name="auto_currency"${s.auto_currency !== '0' ? ' checked' : ''}><span></span> ${L.autoCurrency}</label>
       </div>
@@ -1441,13 +1431,6 @@
     const f = document.getElementById('sform');
     const save = async () => {
       const data = Object.fromEntries(new FormData(f));
-      const map = {};
-      for (const line of data.rates.split('\n')) {
-        const [city, price] = line.split('=').map((x) => x?.trim());
-        if (city && price !== undefined && price !== '' && !Number.isNaN(Number(price))) map[city] = Number(price);
-      }
-      delete data.rates;
-      data.shipping_rates = JSON.stringify(map);
       data.whatsapp = data.whatsapp.replace(/\D/g, '').replace(/^0(?=[5-7])/, '212');
       data.email_status_updates = f.email_status_updates.checked ? '1' : '0';
       data.auto_currency = f.auto_currency.checked ? '1' : '0';

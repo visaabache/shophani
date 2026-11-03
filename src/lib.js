@@ -207,7 +207,8 @@ export async function quote(db, rawItems, city, settings) {
     lines.push({ product: p, id: p.id, option, qty, price: p.price, total: p.price * qty });
   }
   const subtotal = lines.reduce((s, l) => s + l.total, 0);
-  const shipping = lines.length ? shippingFor(city, subtotal, settings) : 0;
+  // Delivery is included in the product prices (free delivery, cash on delivery), so nothing is added on top.
+  const shipping = 0;
   return { lines, subtotal, shipping, total: subtotal + shipping, issues };
 }
 

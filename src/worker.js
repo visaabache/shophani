@@ -191,7 +191,7 @@ async function handleApi(request, env, url, ctx) {
     if (!body) return json({ error: 'bad_request' }, 400);
     const settings = await getSettings(env.DB);
     const q = await quote(env.DB, body.items, body.city, settings);
-    return json({ lines: q.lines.map((l) => publicLine(l, lang)), subtotal: q.subtotal, shipping: q.shipping, total: q.total, issues: q.issues, freeOver: Number(settings.free_shipping_over) || 0 });
+    return json({ lines: q.lines.map((l) => publicLine(l, lang)), subtotal: q.subtotal, shipping: q.shipping, total: q.total, issues: q.issues, freeOver: 0 });
   }
 
   // POST /api/orders {items, name, phone, email, city, address, note, lang} → a cash-on-delivery order.

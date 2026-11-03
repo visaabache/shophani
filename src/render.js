@@ -7,7 +7,7 @@ import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
 import { legalDoc } from './legal.js';
 import { CURRENCIES, formatPrice } from './currency.js';
 import { pixelConfig } from './pixels.js';
-import { CITIES, LANGS, parseJSON, esc, money, productName, productDesc, productImages, productOptions, richDescHtml, htmlToText } from './lib.js';
+import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions, richDescHtml, htmlToText } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
 const BRAND_OG = '/assets/brand/og-image-v2.jpg';
@@ -415,10 +415,7 @@ export function productPage(ctx, p, category, related) {
   const options = productOptions(p);
   const soldOut = p.stock != null && p.stock <= 0;
   const onSale = p.compare_price && p.compare_price > p.price;
-  // Delivery is free for this product when the store charges nothing for any city, or the price reaches the free threshold.
-  const freeOver = Number(settings.free_shipping_over) || 0;
-  const rates = Object.values(parseJSON(settings.shipping_rates || '{}', {}));
-  const freeShip = (freeOver > 0 && p.price >= freeOver) || (!(Number(settings.shipping_fee) > 0) && !rates.some((r) => Number(r) > 0));
+  const freeShip = true; // delivery is included in every price
   const ld = {
     '@context': 'https://schema.org',
     '@type': 'Product',
