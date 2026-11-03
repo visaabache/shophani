@@ -759,7 +759,7 @@ export function blogPostPage(ctx, post, others, products) {
   const title = postField(post, 'title', lang);
   const excerpt = postField(post, 'excerpt', lang);
   const raw = postField(post, 'body', lang);
-  const words = richText(raw).split(/\s+/).filter(Boolean).length;
+  const words = htmlToText(raw).split(/\s+/).filter(Boolean).length;
   const cover = post.cover || '';
   const chips = categories.map((c) => `<a class="chip" href="/${lang}/c/${esc(c.slug)}">${esc(catName(c, lang))}</a>`).join('');
   const body = `<nav class="crumbs wrap" aria-label="breadcrumb"><a href="/${lang}/">${esc(t.home)}</a><span>/</span><a href="/${lang}/blog">${esc(t.blog)}</a><span>/</span><span aria-current="page">${esc(title)}</span></nav>
@@ -770,7 +770,7 @@ export function blogPostPage(ctx, post, others, products) {
     <p class="post-meta">${esc(t.publishedOn(postDate(post.created_at, lang)))} · ${esc(t.minRead(Math.max(1, Math.ceil(words / 200))))}</p>
   </header>
   ${cover ? `<img class="post-cover" src="${esc(cover)}" alt="${esc(title)}" width="1000" height="1250" fetchpriority="high">` : ''}
-  <div class="rich post-text">${richHtml(raw)}</div>
+  <div class="rich post-text">${richDescHtml(raw)}</div>
   <aside class="post-cta">
     <h2>${esc(t.shopTheStore)}</h2>
     <p>${esc(t.shopTheStoreText)}</p>
@@ -798,7 +798,7 @@ ${others.length ? `<section class="section wrap">${sectionHead(t.morePosts, t.bl
       publisher: { '@type': 'Organization', name: store, logo: { '@type': 'ImageObject', url: `${origin}/assets/brand/logo-stacked-gold.png` } },
     },
   ];
-  return layout(ctx, { title, seoTitle: title, description: excerpt || richText(raw).slice(0, 158), path: `/blog/${post.slug}`, body, image: cover || BRAND_OG, page: 'blog', ld, ogType: 'article' });
+  return layout(ctx, { title, seoTitle: title, description: excerpt || htmlToText(raw).slice(0, 158), path: `/blog/${post.slug}`, body, image: cover || BRAND_OG, page: 'blog', ld, ogType: 'article' });
 }
 
 export { catName };

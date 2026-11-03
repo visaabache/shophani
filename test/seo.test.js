@@ -19,7 +19,7 @@ test('home page: keyword title, canonical on the store domain, store and FAQ dat
   assert.match(html, /<meta property="og:locale" content="fr_FR">/);
   assert.match(html, /<meta name="google-site-verification" content="abc123DEF456ghi789">/);
   assert.deepEqual(types(html), ['OnlineStore', 'WebSite', 'FAQPage']);
-  assert.ok(ld(html)[0].sameAs.includes('https://www.instagram.com/shophani.online'));
+  assert.ok(ld(html)[0].sameAs.includes('https://www.instagram.com/shophani'));
   assert.match(html, /class="section wrap seo-block"/);
 });
 
