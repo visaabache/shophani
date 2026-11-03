@@ -18,13 +18,19 @@
       "migrations_dir": "migrations"
     }
   ],
-  // Free address: https://shophani.<your-subdomain>.workers.dev
+  // The store's public address. www.shophani.online and the workers.dev address redirect here, and it is used
+  // for canonical links, the sitemap and Google's structured data.
+  "vars": { "SITE_URL": "https://shophani.online" },
+  // shophani.online must be added to this Cloudflare account (nameservers pointed to Cloudflare at the registrar).
+  "routes": [
+    { "pattern": "shophani.online", "custom_domain": true },
+    { "pattern": "www.shophani.online", "custom_domain": true }
+  ],
+  // Still reachable at https://shophani.<your-subdomain>.workers.dev (it redirects to SITE_URL).
   "workers_dev": true,
   // Photo uploads from the admin need R2, which Cloudflare only turns on once a payment card is on the account
   // (the first 10 GB stay free). Until then, product photos can be links. To turn uploads on:
   //   npx wrangler r2 bucket create shophani-images
   // then add:  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "shophani-images" }],
-  // Once shophani.online is bought and added to Cloudflare, add:
-  //   "routes": [{ "pattern": "shophani.online", "custom_domain": true }, { "pattern": "www.shophani.online", "custom_domain": true }],
   "observability": { "enabled": true }
 }

@@ -13,7 +13,7 @@ const SETTING_KEYS = [
   'announcement_ar', 'announcement_fr', 'announcement_en',
   'hero_title_ar', 'hero_title_fr', 'hero_title_en', 'hero_text_ar', 'hero_text_fr', 'hero_text_en',
   'email_from', 'notify_email', 'email_status_updates', 'auto_currency',
-  'instagram', 'facebook', 'tiktok', 'meta_pixel_id', 'tiktok_pixel_id',
+  'instagram', 'facebook', 'tiktok', 'meta_pixel_id', 'tiktok_pixel_id', 'google_verify',
   'legal_name', 'legal_ice', 'legal_rc', 'legal_address', 'legal_cndp',
 ];
 
@@ -254,7 +254,25 @@ export async function handleAdmin(request, env, url, ctx) {
     const id = Number(m[1]);
     if (method === 'PUT') return saveProduct(db, id, await body(request));
     if (method === 'DELETE') {
-      await db.prepare('DELETE FROM products WHERE id = ?').bind(id).run();
+      const old = await db.prepare('SELECT p.slug, c.slug AS cat FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = ?').bind(id).first();
+      const stmts = [db.prepare('DELETE FROM products WHERE id = ?').bind(id)];
+      if (old) stmts.push(saveRedirect(db, `/p/${old.slug}`, old.cat ? `/c/${old.cat}` : '/shop'));
+      await db.batch(stmts);
+      return json({ ok: true });
+    }
+  }
+
+  // Blog posts
+  if (path === '/posts' && method === 'GET') {
+    const rows = await db.prepare('SELECT * FROM posts ORDER BY created_at DESC, id DESC').all();
+    return json({ posts: rows.results });
+  }
+  if (path === '/posts' && method === 'POST') return savePost(db, null, await body(request));
+  if ((m = path.match(/^\/posts\/(\d+)$/))) {
+    const id = Number(m[1]);
+    if (method === 'PUT') return savePost(db, id, await body(request));
+    if (method === 'DELETE') {
+      await db.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
       return json({ ok: true });
     }
   }
@@ -358,6 +376,48 @@ function cleanDesc(v) {
   return htmlToText(html) || /<(img|video)\b/.test(html) ? html : '';
 }
 
+function saveRedirect(db, path, target) {
+  return db.prepare('INSERT INTO redirects (path, target) VALUES (?, ?) ON CONFLICT(path) DO UPDATE SET target = excluded.target').bind(path, target);
+}
+
+// Blog posts: title, short summary (used as the search description), body from the rich editor, cover photo.
+async function savePost(db, id, b) {
+  if (!b) return json({ error: 'bad_request' }, 400);
+  const L3 = ['ar', 'fr', 'en'];
+  const title = Object.fromEntries(L3.map((l) => [l, String(b[`title_${l}`] || '').trim().slice(0, 200)]));
+  if (!title.fr && !title.ar && !title.en) return json({ error: 'title_required' }, 422);
+  const slug = slugify(b.slug || title.fr || title.en) || `article-${Date.now().toString(36)}`;
+  const cover = String(b.cover || '').trim();
+  const values = [
+    slug,
+    ...L3.map((l) => title[l]),
+    ...L3.map((l) => String(b[`excerpt_${l}`] || '').trim().slice(0, 300)),
+    ...L3.map((l) => {
+      const d = String(b[`body_${l}`] || '');
+      return isRichHtml(d) ? cleanDesc(d) : d.slice(0, 50000);
+    }),
+    cover.startsWith('/') || cover.startsWith('https://') ? cover.slice(0, 500) : '',
+    b.published === false || b.published === 0 ? 0 : 1,
+  ];
+  try {
+    if (id) {
+      await db
+        .prepare("UPDATE posts SET slug=?, title_ar=?, title_fr=?, title_en=?, excerpt_ar=?, excerpt_fr=?, excerpt_en=?, body_ar=?, body_fr=?, body_en=?, cover=?, published=?, updated_at=datetime('now') WHERE id=?")
+        .bind(...values, id)
+        .run();
+      return json({ ok: true, id });
+    }
+    const row = await db
+      .prepare('INSERT INTO posts (slug, title_ar, title_fr, title_en, excerpt_ar, excerpt_fr, excerpt_en, body_ar, body_fr, body_en, cover, published) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id')
+      .bind(...values)
+      .first();
+    return json({ ok: true, id: row.id }, 201);
+  } catch (err) {
+    if (String(err).includes('UNIQUE')) return json({ error: 'slug_taken' }, 409);
+    throw err;
+  }
+}
+
 async function saveProduct(db, id, b) {
   if (!b) return json({ error: 'bad_request' }, 400);
   const names = { ar: String(b.name_ar || '').trim(), fr: String(b.name_fr || '').trim(), en: String(b.name_en || '').trim() };
@@ -379,13 +439,20 @@ async function saveProduct(db, id, b) {
     JSON.stringify(descMedia(b.desc_media)),
   ];
   try {
+    const live = db.prepare('DELETE FROM redirects WHERE path = ?').bind(`/p/${slug}`);
     if (id) {
-      await db
-        .prepare('UPDATE products SET slug=?, category_id=?, name_ar=?, name_fr=?, name_en=?, desc_ar=?, desc_fr=?, desc_en=?, price=?, compare_price=?, stock=?, options=?, images=?, featured=?, active=?, sort=?, desc_media=? WHERE id=?')
-        .bind(...values, id)
-        .run();
+      const before = await db.prepare('SELECT slug FROM products WHERE id = ?').bind(id).first();
+      const stmts = [
+        db
+          .prepare('UPDATE products SET slug=?, category_id=?, name_ar=?, name_fr=?, name_en=?, desc_ar=?, desc_fr=?, desc_en=?, price=?, compare_price=?, stock=?, options=?, images=?, featured=?, active=?, sort=?, desc_media=? WHERE id=?')
+          .bind(...values, id),
+        live,
+      ];
+      if (before && before.slug !== slug) stmts.push(saveRedirect(db, `/p/${before.slug}`, `/p/${slug}`));
+      await db.batch(stmts);
       return json({ ok: true, id });
     }
+    await live.run();
     const row = await db
       .prepare('INSERT INTO products (slug, category_id, name_ar, name_fr, name_en, desc_ar, desc_fr, desc_en, price, compare_price, stock, options, images, featured, active, sort, desc_media) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id')
       .bind(...values)
