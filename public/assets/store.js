@@ -177,21 +177,165 @@
     else toast(i18n.added, true);
   }
 
+  // Product page order form: the visitor orders this product right here, without the cart.
+  const fieldError = (input, msg) => {
+    const label = input.closest('label');
+    let p = label.querySelector('.field-error');
+    if (!msg) return p?.remove();
+    if (!p) {
+      p = document.createElement('span');
+      p.className = 'field-error';
+      label.append(p);
+    }
+    p.textContent = msg;
+  };
+  const phoneOk = (v) => /^(?:(?:\+|00)212|0)?[5-7]\d{8}$/.test(v.replace(/[\s.\-()]/g, ''));
+
+  function quickOrder(form) {
+    const quick = $('.quick', form);
+    const unit = Number(form.dataset.price);
+    const cityOf = () => (form.city.value === '__other' ? form.city_other.value.trim() : form.city.value);
+    const item = () => ({
+      id: Number(form.dataset.product),
+      option: $$('input[name=option]', form).find((o) => o.checked)?.value || '',
+      qty: Math.max(1, Math.min(20, Number(form.qty.value) || 1)),
+    });
+    let seq = 0;
+    const quote = async () => {
+      const n = ++seq;
+      const it = item();
+      $('[data-q-sub]', quick).textContent = `${it.qty} × ${money(unit)}`;
+      $('[data-q-total]', quick).textContent = money(unit * it.qty);
+      try {
+        const res = await fetch(`/api/quote?lang=${lang}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ items: [it], city: cityOf() }),
+        });
+        const q = await res.json();
+        // No line back means the size or colour isn't picked yet: keep the product price showing.
+        if (n !== seq || !res.ok || !q.lines.length) return;
+        const known = Boolean(cityOf());
+        const ship = $('[data-q-ship]', quick);
+        ship.textContent = !q.shipping ? i18n.free : known ? money(q.shipping) : i18n.quickShipAfter;
+        ship.classList.toggle('free', !q.shipping);
+        const el = $('[data-q-total]', quick);
+        el.textContent = money(known || !q.shipping ? q.total : q.subtotal);
+        el.classList.remove('pop');
+        void el.offsetWidth;
+        el.classList.add('pop');
+      } catch {}
+    };
+    form.city.addEventListener('change', () => {
+      $('.other-city', form).hidden = form.city.value !== '__other';
+      if (form.city.value === '__other') form.city_other.focus();
+      quote();
+    });
+    form.city_other.addEventListener('change', quote);
+    form.qty.addEventListener('change', quote);
+    $$('[data-step]', form).forEach((b) => b.addEventListener('click', () => setTimeout(quote)));
+    $$('input[name=option]', form).forEach((o) => o.addEventListener('change', quote));
+    quote();
+    form.addEventListener('input', (e) => e.target.closest('label')?.querySelector('.field-error')?.remove());
+    let started = false;
+    form.addEventListener('focusin', (e) => {
+      if (started || !quick.contains(e.target)) return;
+      started = true;
+      const it = item();
+      window.shTrack?.('InitiateCheckout', { value: unit * it.qty, items: [{ ...it, name: form.dataset.name, price: unit }] });
+    });
+
+    return async function send() {
+      const err = $('.form-error', quick);
+      err.hidden = true;
+      const options = $$('input[name=option]', form);
+      if (options.length && !options.some((o) => o.checked)) {
+        toast(i18n.chooseOption);
+        const fs = $('.options', form);
+        fs.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+        fs.classList.add('shake');
+        setTimeout(() => fs.classList.remove('shake'), 500);
+        return;
+      }
+      let bad = null;
+      for (const [input, ok, msg] of [
+        [form.name, form.name.value.trim().length >= 2, i18n.required],
+        [form.city, Boolean(cityOf()), i18n.required],
+        [form.address, form.address.value.trim().length >= 4, i18n.required],
+        [form.phone, phoneOk(form.phone.value), i18n.badPhone],
+      ]) {
+        fieldError(input, ok ? '' : msg);
+        if (!ok && !bad) bad = input;
+      }
+      if (bad) return bad.focus();
+      const btn = $('.quick-go', quick);
+      const label = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span>${esc(i18n.sending)}</span>`;
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            items: [item()],
+            name: form.name.value,
+            phone: form.phone.value,
+            city: cityOf(),
+            address: form.address.value,
+            website: form.website.value,
+            lang,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 201) {
+          location.href = data.url;
+          return;
+        }
+        if (res.status === 409) {
+          err.textContent = i18n.issueStock;
+          err.hidden = false;
+        } else if (res.status === 429) {
+          err.textContent = i18n.tooMany;
+          err.hidden = false;
+        } else if (res.status === 422 && data.fields) {
+          for (const [k, v] of Object.entries(data.fields)) if (form[k]) fieldError(form[k], v === 'phone' ? i18n.badPhone : i18n.required);
+        } else {
+          err.textContent = i18n.error;
+          err.hidden = false;
+        }
+      } catch {
+        err.textContent = i18n.error;
+        err.hidden = false;
+      }
+      btn.disabled = false;
+      btn.innerHTML = label;
+    };
+  }
+
   $$('form.buy').forEach((form) => {
+    const order = $('.quick', form) ? quickOrder(form) : null;
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      submitBuy(form, e.submitter?.value || 'cart');
+      const go = e.submitter?.value || (order ? 'order' : 'cart');
+      if (go === 'order' && order) order();
+      else submitBuy(form, go);
     });
-    // Sticky "order now" bar on phones once the buy buttons scroll out of view.
+    // Sticky "order now" bar on phones while the order form is out of view: it brings the visitor back to it.
     const bar = $('.buy-bar');
     if (bar) {
-      $('[data-buy-now]', bar).addEventListener('click', () => submitBuy(form, 'checkout'));
+      $('[data-buy-now]', bar).addEventListener('click', (e) => {
+        const quick = $('.quick', form);
+        if (!quick) return;
+        e.preventDefault();
+        quick.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+        setTimeout(() => form.name.focus({ preventScroll: true }), reduceMotion ? 0 : 450);
+      });
       if ('IntersectionObserver' in window) {
         new IntersectionObserver(([e]) => {
-          const show = !e.isIntersecting && e.boundingClientRect.top < 0;
+          const show = !e.isIntersecting;
           bar.classList.toggle('show', show);
           document.body.classList.toggle('bar-up', show);
-        }).observe(form);
+        }).observe($('.quick', form) || form);
       }
     }
   });
@@ -328,19 +472,7 @@
     });
     checkout.city_other.addEventListener('change', refresh);
 
-    const fieldError = (input, msg) => {
-      const label = input.closest('label');
-      let p = label.querySelector('.field-error');
-      if (!msg) return p?.remove();
-      if (!p) {
-        p = document.createElement('span');
-        p.className = 'field-error';
-        label.append(p);
-      }
-      p.textContent = msg;
-    };
     checkout.addEventListener('input', (e) => e.target.closest('label')?.querySelector('.field-error')?.remove());
-    const phoneOk = (v) => /^(?:(?:\+|00)212|0)?[5-7]\d{8}$/.test(v.replace(/[\s.\-()]/g, ''));
 
     checkout.addEventListener('submit', async (e) => {
       e.preventDefault();
