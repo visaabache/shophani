@@ -121,7 +121,7 @@
       rte: {
         toolbar: 'أدوات التنسيق', bold: 'عريض', italic: 'مائل', underline: 'تسطير', strike: 'يتوسطه خط',
         h2: 'عنوان', h3: 'عنوان فرعي', para: 'نص عادي', quote: 'اقتباس', ul: 'قائمة نقطية', ol: 'قائمة مرقمة',
-        left: 'محاذاة لليسار', center: 'توسيط', right: 'محاذاة لليمين', color: 'لون النص', link: 'رابط', hr: 'فاصل',
+        left: 'محاذاة لليسار', center: 'توسيط', right: 'محاذاة لليمين', justify: 'ضبط من الجهتين', textSize: 'حجم النص', sizes: [['1', 'صغير جدًا'], ['2', 'صغير'], ['3', 'عادي'], ['4', 'كبير'], ['5', 'كبير جدًا'], ['6', 'ضخم'], ['7', 'عنوان كبير']], color: 'لون النص', link: 'رابط', hr: 'فاصل',
         clear: 'إزالة التنسيق', photo: 'صورة / GIF', video: 'فيديو', undo: 'تراجع', redo: 'إعادة', full: 'ملء الشاشة', size: 'حجم الصورة', smaller: 'أصغر', bigger: 'أكبر', dragSize: 'اسحب لتكبير أو تصغير', resetShape: 'الشكل الأصلي',
         linkPrompt: 'عنوان الرابط (https://…)', placeholder: 'اكتب وصف المنتج هنا…',
         hint: 'اكتب كما في Word: نسّق النص وأضف صورًا (حتى 1 ميغا) وصور GIF وفيديوهات (حتى 5 ميغا) في أي مكان. يمكنك أيضًا سحبها أو لصقها مباشرة. اضغط على صورة أو فيديو لتكبيره أو تصغيره.',
@@ -301,7 +301,7 @@
       rte: {
         toolbar: 'Mise en forme', bold: 'Gras', italic: 'Italique', underline: 'Souligné', strike: 'Barré',
         h2: 'Titre', h3: 'Sous-titre', para: 'Texte normal', quote: 'Citation', ul: 'Liste à puces', ol: 'Liste numérotée',
-        left: 'Aligner à gauche', center: 'Centrer', right: 'Aligner à droite', color: 'Couleur du texte', link: 'Lien', hr: 'Séparateur',
+        left: 'Aligner à gauche', center: 'Centrer', right: 'Aligner à droite', justify: 'Justifier', textSize: 'Taille du texte', sizes: [['1', 'Très petit'], ['2', 'Petit'], ['3', 'Normal'], ['4', 'Grand'], ['5', 'Très grand'], ['6', 'Énorme'], ['7', 'Titre géant']], color: 'Couleur du texte', link: 'Lien', hr: 'Séparateur',
         clear: 'Effacer la mise en forme', photo: 'Photo / GIF', video: 'Vidéo', undo: 'Annuler', redo: 'Rétablir', full: 'Plein écran', size: 'Taille', smaller: 'Plus petit', bigger: 'Plus grand', dragSize: 'Glissez pour agrandir ou réduire', resetShape: 'Forme d’origine',
         linkPrompt: 'Adresse du lien (https://…)', placeholder: 'Écrivez la description du produit ici…',
         hint: 'Écrivez comme dans Word : mettez le texte en forme et ajoutez des photos (1 Mo max), des GIF et des vidéos (5 Mo max) où vous voulez. Vous pouvez aussi les glisser ou les coller directement. Cliquez sur une photo ou une vidéo pour changer sa taille.',
@@ -1008,7 +1008,8 @@
 
   // Rich description editor ("like Word"): text formatting plus photos, GIFs and videos anywhere.
   // The HTML is cleaned here when pasted or loaded, and again on the server when saved and shown.
-  const RTE_TAGS = { P: 'p', BR: 'br', STRONG: 'strong', B: 'strong', EM: 'em', I: 'em', U: 'u', S: 's', STRIKE: 's', H1: 'h2', H2: 'h2', H3: 'h3', H4: 'h3', UL: 'ul', OL: 'ol', LI: 'li', BLOCKQUOTE: 'blockquote', A: 'a', IMG: 'img', VIDEO: 'video', FIGURE: 'figure', FIGCAPTION: 'figcaption', HR: 'hr', SPAN: 'span', FONT: 'span', DIV: 'p' };
+  const RTE_TAGS = { P: 'p', BR: 'br', STRONG: 'strong', B: 'strong', EM: 'em', I: 'em', U: 'u', S: 's', STRIKE: 's', H1: 'h2', H2: 'h2', H3: 'h3', H4: 'h3', UL: 'ul', OL: 'ol', LI: 'li', BLOCKQUOTE: 'blockquote', A: 'a', IMG: 'img', VIDEO: 'video', FIGURE: 'figure', FIGCAPTION: 'figcaption', HR: 'hr', SPAN: 'span', FONT: 'span', DIV: 'div' };
+  const FONT_SIZES = { 1: '0.75em', 2: '0.875em', 4: '1.15em', 5: '1.35em', 6: '1.6em', 7: '2em' };
   const RTE_DROP = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'TEMPLATE', 'NOSCRIPT', 'SVG', 'MATH', 'HEAD', 'TITLE', 'META', 'LINK', 'BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'FORM']);
   const okMedia = (u) => /^\/(img|assets)\/[a-z0-9/_.-]+(#t=[\d.]+)?$/i.test(u) || /^https:\/\//i.test(u);
   function cleanRich(html) {
@@ -1026,10 +1027,12 @@
           continue;
         }
         const el = document.createElement(tag);
-        const align = n.style?.textAlign;
+        const align = n.style?.textAlign || (n.getAttribute('align') || '').toLowerCase();
         if (align && /^(left|right|center|justify|start|end)$/.test(align) && !['img', 'video'].includes(tag)) el.style.textAlign = align;
         const color = n.tagName === 'FONT' ? n.getAttribute('color') : n.style?.color;
         if (color && tag !== 'img' && tag !== 'video') el.style.color = color;
+        const size = n.tagName === 'FONT' ? FONT_SIZES[n.getAttribute('size')] : n.style?.fontSize;
+        if (size && /^\d(\.\d{1,3})?em$/.test(size) && parseFloat(size) >= 0.7 && parseFloat(size) <= 2.5 && tag !== 'img' && tag !== 'video') el.style.fontSize = size;
         if (tag === 'a') {
           const href = n.getAttribute('href') || '';
           if (/^(https?:|mailto:|tel:|\/[^/])/i.test(href)) el.setAttribute('href', href);
@@ -1065,6 +1068,7 @@
     left: '<path d="M4 6h16M4 10h10M4 14h16M4 18h10"/>',
     center: '<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>',
     right: '<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>',
+    justify: '<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>',
     link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
     quote: '<path d="M7 7h4v4c0 3-2 5-4 6M14 7h4v4c0 3-2 5-4 6"/>',
     image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
@@ -1087,7 +1091,8 @@
         <span class="rte-group">${b('bold', R.bold, '<b>B</b>')}${b('italic', R.italic, '<i>I</i>')}${b('underline', R.underline, '<u>U</u>')}${b('strikeThrough', R.strike, '<s>S</s>')}</span>
         <span class="rte-group">${b('formatBlock', R.h2, '<strong>H2</strong>', 'h2')}${b('formatBlock', R.h3, '<strong>H3</strong>', 'h3')}${b('formatBlock', R.para, '¶', 'p')}${b('formatBlock', R.quote, rsvg('quote'), 'blockquote')}</span>
         <span class="rte-group">${b('insertUnorderedList', R.ul, rsvg('ul'))}${b('insertOrderedList', R.ol, rsvg('ol'))}</span>
-        <span class="rte-group">${b('justifyLeft', R.left, rsvg('left'))}${b('justifyCenter', R.center, rsvg('center'))}${b('justifyRight', R.right, rsvg('right'))}</span>
+        <span class="rte-group">${b('justifyRight', R.right, rsvg('right'))}${b('justifyCenter', R.center, rsvg('center'))}${b('justifyLeft', R.left, rsvg('left'))}${b('justifyFull', R.justify, rsvg('justify'))}</span>
+        <span class="rte-group"><select class="rte-size" data-rte-size title="${R.textSize}" aria-label="${R.textSize}"><option value="">${R.textSize}</option>${R.sizes.map(([v, label]) => `<option value="${v}">${label}</option>`).join('')}</select></span>
         <span class="rte-group rte-colors">${RTE_COLORS.map((c) => `<button type="button" data-cmd="foreColor" data-arg="${c}" title="${R.color}" aria-label="${R.color} ${c}" style="--c:${c}"><span></span></button>`).join('')}</span>
         <span class="rte-group">${b('link', R.link, rsvg('link'))}${b('insertHorizontalRule', R.hr, rsvg('hr'))}${b('removeFormat', R.clear, rsvg('clear'))}</span>
         <span class="rte-group rte-media"><label class="rte-btn" title="${R.photo}">${rsvg('image')}<span>${R.photo}</span><input type="file" accept="image/*" multiple hidden data-rte-file></label><label class="rte-btn" title="${R.video}">${rsvg('video')}<span>${R.video}</span><input type="file" accept="video/mp4,video/webm,video/quicktime" hidden data-rte-file></label></span>
@@ -1159,6 +1164,25 @@
         if (url && /^(https?:\/\/|mailto:|tel:|\/)/i.test(url.trim())) document.execCommand('createLink', false, url.trim());
       } else if (cmd === 'formatBlock') document.execCommand('formatBlock', false, `<${arg}>`);
       else document.execCommand(cmd, false, arg || null);
+      keep();
+    });
+    // Text size: the browser writes <font size>, turned straight into a span with a font size.
+    const sizeMenu = wrap.querySelector('[data-rte-size]');
+    sizeMenu.addEventListener('change', () => {
+      const v = sizeMenu.value;
+      sizeMenu.value = '';
+      if (!v) return;
+      restore();
+      document.execCommand('fontSize', false, v);
+      body.querySelectorAll('font[size]').forEach((f) => {
+        const span = document.createElement('span');
+        if (FONT_SIZES[f.getAttribute('size')]) span.style.fontSize = FONT_SIZES[f.getAttribute('size')];
+        if (f.getAttribute('color')) span.style.color = f.getAttribute('color');
+        span.append(...f.childNodes);
+        f.replaceWith(span);
+      });
+      // Normal size: drop the sizes left inside the selection.
+      if (v === '3') body.querySelectorAll('span[style*="font-size"]').forEach((sp) => { if (getSelection().containsNode(sp, true)) sp.style.fontSize = ''; });
       keep();
     });
     // Uploads: photos are shrunk (1 MB max), GIFs keep their animation (5 MB max), videos 5 MB max.

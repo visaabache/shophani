@@ -217,7 +217,7 @@ export async function quote(db, rawItems, city, settings) {
 const RICH_TAGS = new Set(['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'a', 'img', 'video', 'figure', 'figcaption', 'hr', 'span', 'div']);
 const RICH_VOID = new Set(['br', 'hr', 'img']);
 const RICH_DROP = new Set(['script', 'style', 'iframe', 'object', 'embed', 'template', 'noscript', 'svg', 'math', 'textarea', 'select', 'button', 'form', 'head', 'title']);
-const RICH_RENAME = { b: 'strong', i: 'em', div: 'p', font: 'span', strike: 's', h1: 'h2', h4: 'h3', h5: 'h3', h6: 'h3' };
+const RICH_RENAME = { b: 'strong', i: 'em', font: 'span', strike: 's', h1: 'h2', h4: 'h3', h5: 'h3', h6: 'h3' };
 
 function decodeAttr(v) {
   return v
@@ -246,9 +246,13 @@ function safeStyle(v) {
     const val = rest.join(':').trim().toLowerCase();
     if (p === 'text-align' && /^(left|right|center|justify|start|end)$/.test(val)) out.push(`text-align:${val}`);
     if (p === 'color' && /^(#[0-9a-f]{3,8}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/.test(val)) out.push(`color:${val}`);
+    if (p === 'font-size' && /^\d(\.\d{1,3})?em$/.test(val) && parseFloat(val) >= 0.7 && parseFloat(val) <= 2.5) out.push(`font-size:${val}`);
   }
   return out.join(';');
 }
+
+// Text sizes of the editor's size menu (and of <font size>, which browsers write for it).
+export const FONT_SIZES = { 1: '0.75em', 2: '0.875em', 4: '1.15em', 5: '1.35em', 6: '1.6em', 7: '2em' };
 
 // Size the admin picked for a photo or video in the description: a width in percent (10 to 100)
 // and a shape (width / height, 0.2 to 5), so it scales the same on a phone.
@@ -305,9 +309,13 @@ export function sanitizeHtml(html) {
     let a;
     while ((a = ar.exec(m[3] || ''))) attrs[a[1].toLowerCase()] = a[2] ?? a[3] ?? a[4] ?? '';
     let extra = '';
-    const style = attrs.style ? safeStyle(attrs.style) : '';
-    if (raw === 'font' && attrs.color && /^#[0-9a-f]{3,8}$/i.test(attrs.color)) extra += ` style="color:${attrs.color.toLowerCase()}"`;
-    else if (style && tag !== 'img' && tag !== 'video') extra += ` style="${style}"`;
+    const styles = attrs.style ? safeStyle(attrs.style).split(';').filter(Boolean) : [];
+    if (attrs.align && /^(left|right|center|justify)$/i.test(attrs.align) && !styles.some((x) => x.startsWith('text-align'))) styles.push(`text-align:${attrs.align.toLowerCase()}`);
+    if (raw === 'font') {
+      if (attrs.color && /^#[0-9a-f]{3,8}$/i.test(attrs.color)) styles.push(`color:${attrs.color.toLowerCase()}`);
+      if (FONT_SIZES[attrs.size]) styles.push(`font-size:${FONT_SIZES[attrs.size]}`);
+    }
+    if (styles.length && tag !== 'img' && tag !== 'video') extra += ` style="${styles.join(';')}"`;
     if (attrs.dir && /^(rtl|ltr|auto)$/i.test(attrs.dir)) extra += ` dir="${attrs.dir.toLowerCase()}"`;
     if (tag === 'a') {
       const href = attrs.href ? safeUrl(attrs.href, false) : '';

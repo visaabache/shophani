@@ -60,3 +60,13 @@ test('photos keep the shape the admin dragged them to', () => {
   assert.match(out, /<img src="\/img\/p\/c.webp" alt="" style="width:40%" loading="lazy">/);
   assert.equal(sanitizeHtml(out), out);
 });
+
+test('alignment and text size survive, also from Safari and pasted text', () => {
+  const out = sanitizeHtml('<div style="text-align:center"><p>Un</p><p>Deux</p></div><div align="center">Trois</div><p><font size="5" color="#e11d48">Grand</font> <span style="font-size:1.35em">aussi</span> <span style="font-size:40px">non</span></p>');
+  assert.match(out, /<div style="text-align:center"><p>Un<\/p><p>Deux<\/p><\/div>/);
+  assert.match(out, /<div style="text-align:center">Trois<\/div>/);
+  assert.match(out, /<span style="color:#e11d48;font-size:1.35em">Grand<\/span>/);
+  assert.match(out, /<span style="font-size:1.35em">aussi<\/span>/);
+  assert.match(out, /<span>non<\/span>/);
+  assert.equal(sanitizeHtml(out), out);
+});

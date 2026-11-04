@@ -365,3 +365,5 @@ body.rte-open { overflow: hidden; }
 /* Blog: cover photo picker */
 .cover-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 10px 0; }
 .cover-preview { width: 120px; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 10px; background: var(--sand); transition: opacity 0.2s; }
+.rte-size { width: auto; min-height: 34px; height: 34px; padding: 0 28px 0 10px; font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--line); background-color: #fff; cursor: pointer; }
+.rte-body div { margin: 0 0 0.7em; }
