@@ -276,7 +276,10 @@ textarea { resize: vertical; }
 .crumbs { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.85rem; color: var(--muted); padding-block: 14px 4px; }
 .crumbs a { text-decoration: none; }
 .crumbs a:hover { color: var(--accent); }
-.product { display: grid; gap: 22px; padding-block: 8px 24px; }
+.product { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding-block: 8px 24px; }
+/* Pasted descriptions must never widen the page (Safari sizes grid columns from photo widths). */
+.product > *, .product-info, .accordion, .desc-block { min-width: 0; max-width: 100%; }
+.desc-block { contain: inline-size; }
 .gallery { position: relative; margin-inline: -16px; }
 .gallery-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; scroll-behavior: smooth; }
 .gallery-track::-webkit-scrollbar { display: none; }
@@ -565,7 +568,7 @@ textarea { resize: vertical; }
   .banner { min-height: 560px; margin-inline: 16px; border-radius: 28px; max-width: 1400px; margin-inline: auto; }
   .banner-text { padding-block: 64px; }
   .page-hero { padding: 80px 0 64px; }
-  .product { grid-template-columns: 1.15fr 1fr; gap: 56px; align-items: start; padding-block: 12px 40px; }
+  .product { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 56px; align-items: start; padding-block: 12px 40px; }
   .gallery { margin-inline: 0; position: sticky; top: 90px; display: grid; grid-template-columns: 76px 1fr; gap: 12px; }
   .gallery-track { order: 2; border-radius: var(--radius); }
   .thumbs { order: 1; flex-direction: column; padding: 0; overflow: visible; }
@@ -669,3 +672,7 @@ textarea { resize: vertical; }
 .desc-block { border-top: 1px solid var(--line); padding-top: 16px; margin-bottom: 8px; }
 .desc-block > h2 { font-size: 1rem; margin: 0 0 12px; }
 .rich div { margin: 0 0 0.8em; }
+.rich, .rich * { max-width: 100%; box-sizing: border-box; white-space: normal !important; overflow-wrap: anywhere; word-break: normal; }
+.rich { width: 100%; overflow-x: clip; }
+.rich img, .rich video, .desc-media img, .desc-media video { max-width: 100% !important; height: auto !important; min-width: 0; }
+.rich figure { margin: 12px 0; }
