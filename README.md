@@ -49,6 +49,8 @@ In the admin, go to **Réglages** and set the store name, your WhatsApp number, 
 
 **Photo uploads:** in the product form, pick photos from your phone, tablet or computer, take one with the camera, or drag them in. Each photo is shrunk in the browser (longest side 1600 px) and stored in D1, so no extra service or payment card is needed; D1's free 5 GB holds thousands of photos. If you turn on R2 later (see the comment in `wrangler.jsonc`), new uploads go there instead and the old ones keep working.
 
+**Automatic deploys:** the Worker is connected to this repo through Cloudflare's Git builds (Worker → Settings → Builds). Every push to the `redesign` branch is deployed to shophani.online by itself. Database migrations are not run automatically: run `npm run db:migrate` yourself when a change adds one.
+
 **Your own domain (later):** once shophani.online is bought, add it to Cloudflare (point its nameservers to Cloudflare at the registrar), add the `routes` line shown in `wrangler.jsonc`, and run `npm run deploy` again.
 
 When you change the database later, add a new file to `migrations/` (for example `0003_….sql`) and run `npm run db:migrate`.
