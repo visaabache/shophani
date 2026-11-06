@@ -121,7 +121,7 @@
       rte: {
         toolbar: 'أدوات التنسيق', bold: 'عريض', italic: 'مائل', underline: 'تسطير', strike: 'يتوسطه خط',
         h2: 'عنوان', h3: 'عنوان فرعي', para: 'نص عادي', quote: 'اقتباس', ul: 'قائمة نقطية', ol: 'قائمة مرقمة',
-        left: 'محاذاة لليسار', center: 'توسيط', right: 'محاذاة لليمين', justify: 'ضبط من الجهتين', textSize: 'حجم النص', sizes: [['1', 'صغير جدًا'], ['2', 'صغير'], ['3', 'عادي'], ['4', 'كبير'], ['5', 'كبير جدًا'], ['6', 'ضخم'], ['7', 'عنوان كبير']], color: 'لون النص', link: 'رابط', hr: 'فاصل',
+        left: 'محاذاة لليسار', center: 'توسيط', right: 'محاذاة لليمين', justify: 'ضبط من الجهتين', textSize: 'حجم النص', sizes: [['1', 'صغير جدًا'], ['2', 'صغير'], ['3', 'عادي'], ['4', 'كبير'], ['5', 'كبير جدًا'], ['6', 'ضخم'], ['7', 'عنوان كبير']], color: 'لون النص', colorMore: 'المزيد من الألوان', colorAuto: 'تلقائي', colorTheme: 'ألوان النسق', colorStandard: 'ألوان قياسية', colorStore: 'ألوان المتجر', colorRecent: 'ألوان حديثة', colorCustom: 'ألوان أخرى…', colorApply: 'تطبيق', link: 'رابط', hr: 'فاصل',
         clear: 'إزالة التنسيق', photo: 'صورة / GIF', video: 'فيديو', undo: 'تراجع', redo: 'إعادة', full: 'ملء الشاشة', size: 'حجم الصورة', smaller: 'أصغر', bigger: 'أكبر', dragSize: 'اسحب لتكبير أو تصغير', resetShape: 'الشكل الأصلي',
         linkPrompt: 'عنوان الرابط (https://…)', placeholder: 'اكتب وصف المنتج هنا…',
         hint: 'اكتب كما في Word: نسّق النص وأضف صورًا (حتى 1 ميغا) وصور GIF وفيديوهات (حتى 5 ميغا) في أي مكان. يمكنك أيضًا سحبها أو لصقها مباشرة. اضغط على صورة أو فيديو لتكبيره أو تصغيره.',
@@ -301,7 +301,7 @@
       rte: {
         toolbar: 'Mise en forme', bold: 'Gras', italic: 'Italique', underline: 'Souligné', strike: 'Barré',
         h2: 'Titre', h3: 'Sous-titre', para: 'Texte normal', quote: 'Citation', ul: 'Liste à puces', ol: 'Liste numérotée',
-        left: 'Aligner à gauche', center: 'Centrer', right: 'Aligner à droite', justify: 'Justifier', textSize: 'Taille du texte', sizes: [['1', 'Très petit'], ['2', 'Petit'], ['3', 'Normal'], ['4', 'Grand'], ['5', 'Très grand'], ['6', 'Énorme'], ['7', 'Titre géant']], color: 'Couleur du texte', link: 'Lien', hr: 'Séparateur',
+        left: 'Aligner à gauche', center: 'Centrer', right: 'Aligner à droite', justify: 'Justifier', textSize: 'Taille du texte', sizes: [['1', 'Très petit'], ['2', 'Petit'], ['3', 'Normal'], ['4', 'Grand'], ['5', 'Très grand'], ['6', 'Énorme'], ['7', 'Titre géant']], color: 'Couleur du texte', colorMore: 'Plus de couleurs', colorAuto: 'Automatique', colorTheme: 'Couleurs du thème', colorStandard: 'Couleurs standard', colorStore: 'Couleurs de la boutique', colorRecent: 'Couleurs récentes', colorCustom: 'Autres couleurs…', colorApply: 'Appliquer', link: 'Lien', hr: 'Séparateur',
         clear: 'Effacer la mise en forme', photo: 'Photo / GIF', video: 'Vidéo', undo: 'Annuler', redo: 'Rétablir', full: 'Plein écran', size: 'Taille', smaller: 'Plus petit', bigger: 'Plus grand', dragSize: 'Glissez pour agrandir ou réduire', resetShape: 'Forme d’origine',
         linkPrompt: 'Adresse du lien (https://…)', placeholder: 'Écrivez la description du produit ici…',
         hint: 'Écrivez comme dans Word : mettez le texte en forme et ajoutez des photos (1 Mo max), des GIF et des vidéos (5 Mo max) où vous voulez. Vous pouvez aussi les glisser ou les coller directement. Cliquez sur une photo ou une vidéo pour changer sa taille.',
@@ -1081,6 +1081,44 @@
   };
   const rsvg = (n) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${RTE_SVG[n]}</svg>`;
   const RTE_COLORS = ['#111827', '#2b50ee', '#ff6a3d', '#16a34a', '#e11d48', '#a16207'];
+  // Word-style palette: 10 theme colours, each with lighter and darker variants, then the standard row.
+  const THEME_COLORS = ['#ffffff', '#000000', '#e7e6e6', '#44546a', '#4472c4', '#ed7d31', '#a5a5a5', '#ffc000', '#5b9bd5', '#70ad47'];
+  const STANDARD_COLORS = ['#c00000', '#ff0000', '#ffc000', '#ffff00', '#92d050', '#00b050', '#00b0f0', '#0070c0', '#002060', '#7030a0'];
+  const hex2 = (n) => Math.round(Math.max(0, Math.min(255, n))).toString(16).padStart(2, '0');
+  const mix = (hex, t) => { // t > 0 lighter (towards white), t < 0 darker
+    const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    return `#${c.map((v) => hex2(t > 0 ? v + (255 - v) * t : v * (1 + t))).join('')}`;
+  };
+  const themeShades = (hex) => {
+    if (hex === '#ffffff') return [-0.05, -0.15, -0.25, -0.35, -0.5];
+    if (hex === '#000000') return [0.5, 0.35, 0.25, 0.15, 0.05];
+    if (hex === '#e7e6e6') return [-0.1, -0.25, -0.5, -0.75, -0.9];
+    if (hex === '#44546a') return [0.8, 0.6, 0.4, -0.25, -0.5];
+    return [0.8, 0.6, 0.4, -0.25, -0.5];
+  };
+  const THEME_GRID = [THEME_COLORS, ...[0, 1, 2, 3, 4].map((r) => THEME_COLORS.map((c) => mix(c, themeShades(c)[r])))];
+  const RECENT_KEY = 'admin.rteColors';
+  const readRecent = () => { try { return (JSON.parse(localStorage.getItem(RECENT_KEY)) || []).filter((c) => /^#[0-9a-f]{6}$/.test(c)).slice(0, 10); } catch { return []; } };
+  const saveRecent = (c) => { try { localStorage.setItem(RECENT_KEY, JSON.stringify([c, ...readRecent().filter((x) => x !== c)].slice(0, 10))); } catch {} };
+  const swatch = (c, R) => `<button type="button" class="rte-sw" data-color="${c}" title="${c}" aria-label="${R.color} ${c}" style="--c:${c}"></button>`;
+  function colorPanel(R) {
+    return `<div class="rte-pal" hidden role="dialog" aria-label="${R.color}">
+      <button type="button" class="rte-pal-auto" data-color="auto"><span class="rte-sw-auto"></span>${R.colorAuto}</button>
+      <div class="rte-pal-h">${R.colorTheme}</div>
+      <div class="rte-pal-grid rte-pal-theme">${THEME_GRID.map((row, i) => `<div class="rte-pal-row${i === 0 ? ' first' : ''}">${row.map((c) => swatch(c, R)).join('')}</div>`).join('')}</div>
+      <div class="rte-pal-h">${R.colorStandard}</div>
+      <div class="rte-pal-row">${STANDARD_COLORS.map((c) => swatch(c, R)).join('')}</div>
+      <div class="rte-pal-h">${R.colorStore}</div>
+      <div class="rte-pal-row">${RTE_COLORS.map((c) => swatch(c, R)).join('')}</div>
+      <div class="rte-pal-recent-wrap" hidden><div class="rte-pal-h">${R.colorRecent}</div><div class="rte-pal-row rte-pal-recent"></div></div>
+      <div class="rte-pal-h">${R.colorMore}</div>
+      <div class="rte-pal-more">
+        <label class="rte-pal-pick" title="${R.colorCustom}"><input type="color" value="#2b50ee" data-rte-pick><span>${R.colorCustom}</span></label>
+        <input type="text" class="rte-pal-hex" maxlength="7" placeholder="#2b50ee" dir="ltr" spellcheck="false" aria-label="HEX" data-rte-hex>
+        <button type="button" class="rte-pal-ok" data-rte-hex-ok>${R.colorApply}</button>
+      </div>
+    </div>`;
+  }
   function editorHtml(l, value, name = 'desc') {
     const R = L.rte;
     const b = (cmd, label, inner, arg = '') => `<button type="button" data-cmd="${cmd}"${arg ? ` data-arg="${arg}"` : ''} title="${label}" aria-label="${label}">${inner}</button>`;
@@ -1093,7 +1131,7 @@
         <span class="rte-group">${b('insertUnorderedList', R.ul, rsvg('ul'))}${b('insertOrderedList', R.ol, rsvg('ol'))}</span>
         <span class="rte-group">${b('justifyRight', R.right, rsvg('right'))}${b('justifyCenter', R.center, rsvg('center'))}${b('justifyLeft', R.left, rsvg('left'))}${b('justifyFull', R.justify, rsvg('justify'))}</span>
         <span class="rte-group"><select class="rte-size" data-rte-size title="${R.textSize}" aria-label="${R.textSize}"><option value="">${R.textSize}</option>${R.sizes.map(([v, label]) => `<option value="${v}">${label}</option>`).join('')}</select></span>
-        <span class="rte-group rte-colors">${RTE_COLORS.map((c) => `<button type="button" data-cmd="foreColor" data-arg="${c}" title="${R.color}" aria-label="${R.color} ${c}" style="--c:${c}"><span></span></button>`).join('')}</span>
+        <span class="rte-group rte-colors"><button type="button" class="rte-color-main" data-rte-color title="${R.color}" aria-label="${R.color}" style="--c:#e11d48"><span class="rte-a">A</span><span class="rte-bar-c"></span></button><button type="button" class="rte-color-more" data-rte-pal title="${R.colorMore}" aria-label="${R.colorMore}" aria-haspopup="true" aria-expanded="false"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>${colorPanel(R)}</span>
         <span class="rte-group">${b('link', R.link, rsvg('link'))}${b('insertHorizontalRule', R.hr, rsvg('hr'))}${b('removeFormat', R.clear, rsvg('clear'))}</span>
         <span class="rte-group rte-media"><label class="rte-btn" title="${R.photo}">${rsvg('image')}<span>${R.photo}</span><input type="file" accept="image/*" multiple hidden data-rte-file></label><label class="rte-btn" title="${R.video}">${rsvg('video')}<span>${R.video}</span><input type="file" accept="video/mp4,video/webm,video/quicktime" hidden data-rte-file></label></span>
         <span class="rte-group">${b('undo', R.undo, rsvg('undo'))}${b('redo', R.redo, rsvg('redo'))}${b('full', R.full, rsvg('full'))}</span>
@@ -1166,6 +1204,91 @@
       else document.execCommand(cmd, false, arg || null);
       keep();
     });
+    // Text colour: Word-style palette (theme, standard, store, recent and any custom colour).
+    const colorMain = wrap.querySelector('[data-rte-color]');
+    const palBtn = wrap.querySelector('[data-rte-pal]');
+    const pal = wrap.querySelector('.rte-pal');
+    const pickIn = pal.querySelector('[data-rte-pick]');
+    const hexIn = pal.querySelector('[data-rte-hex]');
+    let current = readRecent()[0] || '#e11d48';
+    colorMain.style.setProperty('--c', current);
+    const applyColor = (c) => {
+      restore();
+      if (c === 'auto') {
+        // Paint with a marker colour, then take the colour off again so the text inherits.
+        document.execCommand('foreColor', false, '#010203');
+        body.querySelectorAll('font[color]').forEach((f) => {
+          if (f.getAttribute('color').toLowerCase() !== '#010203') return;
+          f.querySelectorAll('[style*="color"]').forEach((x) => { x.style.color = ''; });
+          f.replaceWith(...f.childNodes);
+        });
+        body.querySelectorAll('[style*="color"]').forEach((x) => {
+          if (/rgb\(1, 2, 3\)|#010203/i.test(x.style.color)) x.style.color = '';
+        });
+      } else {
+        document.execCommand('foreColor', false, c);
+        current = c;
+        colorMain.style.setProperty('--c', c);
+        saveRecent(c);
+      }
+      keep();
+    };
+    const fillRecent = () => {
+      const rec = readRecent();
+      pal.querySelector('.rte-pal-recent-wrap').hidden = !rec.length;
+      pal.querySelector('.rte-pal-recent').innerHTML = rec.map((c) => swatch(c, R)).join('');
+    };
+    const home = pal.parentNode;
+    const closePal = () => {
+      pal.hidden = true;
+      home.append(pal); // back inside the editor until it opens again
+      palBtn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', outside, true);
+    };
+    const outside = (e) => { if (!pal.contains(e.target) && !palBtn.contains(e.target)) closePal(); };
+    const openPal = () => {
+      fillRecent();
+      // Shown at page level so no other toolbar can cover it.
+      pal.dir = document.documentElement.dir || 'ltr';
+      document.body.append(pal);
+      pal.hidden = false;
+      palBtn.setAttribute('aria-expanded', 'true');
+      // Fixed position under the button, kept inside the screen.
+      const r = palBtn.getBoundingClientRect();
+      const w = pal.offsetWidth;
+      const h = pal.offsetHeight;
+      const left = Math.max(8, Math.min(innerWidth - w - 8, r.left - w / 2 + r.width / 2));
+      const top = r.bottom + 6 + h > innerHeight - 8 ? Math.max(8, r.top - h - 6) : r.bottom + 6;
+      pal.style.left = `${left}px`;
+      pal.style.top = `${top}px`;
+      document.addEventListener('pointerdown', outside, true);
+    };
+    colorMain.addEventListener('click', () => applyColor(current));
+    palBtn.addEventListener('click', () => (pal.hidden ? openPal() : closePal()));
+    pal.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
+    pal.addEventListener('click', (e) => {
+      const sw = e.target.closest('[data-color]');
+      if (!sw) return;
+      applyColor(sw.dataset.color);
+      closePal();
+    });
+    pal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { closePal(); palBtn.focus(); }
+    });
+    pickIn.addEventListener('change', () => { applyColor(pickIn.value.toLowerCase()); closePal(); });
+    const hexOk = () => {
+      let v = hexIn.value.trim().toLowerCase();
+      if (!v.startsWith('#')) v = `#${v}`;
+      if (/^#[0-9a-f]{3}$/.test(v)) v = `#${[...v.slice(1)].map((x) => x + x).join('')}`;
+      if (!/^#[0-9a-f]{6}$/.test(v)) { hexIn.focus(); return hexIn.select(); }
+      hexIn.value = '';
+      applyColor(v);
+      closePal();
+    };
+    pal.querySelector('[data-rte-hex-ok]').addEventListener('click', hexOk);
+    hexIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); hexOk(); } });
+    window.addEventListener('scroll', () => { if (!pal.hidden) closePal(); }, { passive: true });
+    window.addEventListener('resize', () => { if (!pal.hidden) closePal(); });
     // Text size: the browser writes <font size>, turned straight into a span with a font size.
     const sizeMenu = wrap.querySelector('[data-rte-size]');
     sizeMenu.addEventListener('change', () => {

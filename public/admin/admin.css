@@ -322,8 +322,29 @@ details summary { cursor: pointer; }
 .rte-bar button, .rte-btn { min-width: 34px; height: 34px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: inherit; font-size: 0.9rem; cursor: pointer; min-height: 0; }
 .rte-bar button:hover, .rte-btn:hover { background: #e9eeff; color: var(--majorelle); }
 .rte-btn span { font-size: 0.8rem; font-weight: 700; }
-.rte-colors button { min-width: 26px; padding: 0; }
-.rte-colors button span { width: 16px; height: 16px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12); }
+.rte-colors { gap: 0; }
+.rte-bar .rte-color-main { flex-direction: column; gap: 1px; min-width: 32px; padding: 0 6px; border-start-end-radius: 0; border-end-end-radius: 0; }
+.rte-color-main .rte-a { font-weight: 800; font-size: 1rem; line-height: 1; font-family: Georgia, serif; }
+.rte-color-main .rte-bar-c { width: 18px; height: 4px; border-radius: 2px; background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12); }
+.rte-bar .rte-color-more { min-width: 20px; padding: 0 3px; border-start-start-radius: 0; border-end-start-radius: 0; }
+.rte-pal { position: fixed; z-index: 200; width: 252px; max-width: calc(100vw - 16px); padding: 10px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgb(17 24 39 / 0.18); text-align: start; }
+.rte-pal[hidden] { display: none; }
+.rte-pal-h { font-size: 0.75rem; font-weight: 700; color: var(--muted); margin: 8px 0 4px; }
+.rte-pal-grid { display: flex; flex-direction: column; gap: 0; }
+.rte-pal-row { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.rte-pal-theme .rte-pal-row { gap: 0 4px; }
+.rte-pal-theme .rte-pal-row.first { margin-bottom: 4px; }
+.rte-pal .rte-sw { width: 100%; aspect-ratio: 1; min-width: 0; height: auto; min-height: 0; padding: 0; border: 0; border-radius: 2px; background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.14); cursor: pointer; }
+.rte-pal .rte-sw:hover, .rte-pal .rte-sw:focus-visible { outline: 2px solid var(--majorelle); outline-offset: 1px; position: relative; z-index: 1; }
+.rte-pal-auto { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font: inherit; font-size: 0.85rem; cursor: pointer; min-height: 0; }
+.rte-pal-auto:hover { background: #e9eeff; }
+.rte-sw-auto { width: 16px; height: 16px; border-radius: 3px; background: #111827; }
+.rte-pal-more { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rte-pal-pick { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer; flex: 1 1 100%; padding: 4px 6px; border-radius: 8px; }
+.rte-pal-pick:hover { background: #e9eeff; }
+.rte-pal-pick input { width: 30px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; min-height: 0; }
+.rte-pal-hex { flex: 1; min-width: 0; height: 30px; min-height: 0; padding: 0 8px; font: inherit; font-size: 0.85rem; border: 1px solid var(--line); border-radius: 8px; }
+.rte-pal-ok { height: 30px; min-height: 0; padding: 0 12px; border: 0; border-radius: 8px; background: var(--majorelle); color: #fff; font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
 .rte-body { min-height: 220px; max-height: 60vh; overflow-y: auto; padding: 14px 16px; outline: none; line-height: 1.6; font-size: 16px; }
 .rte-body:empty::before { content: attr(data-placeholder); color: #9ca3af; }
 .rte-body > :first-child { margin-top: 0; }
