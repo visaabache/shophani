@@ -26,3 +26,15 @@ All storefront photos in `public/assets/photos/` come from [Unsplash](https://un
 | `delivery` | RoseBox رز باکس | [Unsplash](https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55) |
 | `kitchen` | Jason Briscoe | [Unsplash](https://images.unsplash.com/photo-1556911220-bff31c812dba) |
 | `shop-bags` | Iuliia Pilipeichenko | [Unsplash](https://images.unsplash.com/photo-1760565030346-4b947220fe3a) |
+| `blog-black-friday` | Tim Mossholder | [Unsplash](https://images.unsplash.com/photo-1604532081136-b157aa1729e8) |
+| `blog-black-friday-2` | Tamanna Rumee | [Unsplash](https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da) |
+| `blog-earbuds` | Yasin Hasan | [Unsplash](https://images.unsplash.com/photo-1655560378428-7605bda51749) |
+| `blog-earbuds-2` | Yogesh Phuyal | [Unsplash](https://images.unsplash.com/photo-1667178173387-7e0cb51c0b4f) |
+| `blog-smartwatch` | Ivan Shilov | [Unsplash](https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6) |
+| `blog-smartwatch-2` | Infino Photography | [Unsplash](https://images.unsplash.com/photo-1617043786394-f977fa12eddf) |
+| `blog-skincare` | Nataliya Melnychuk | [Unsplash](https://images.unsplash.com/photo-1619451427882-6aaaded0cc61) |
+| `blog-skincare-2` | Birgith Roosipuu | [Unsplash](https://images.unsplash.com/photo-1638609269267-f0128098a809) |
+| `blog-handbag` | Irene Kredenets | [Unsplash](https://images.unsplash.com/photo-1560891958-68bb1fe7fb78) |
+| `blog-handbag-2` | Muneeb Malhotra | [Unsplash](https://images.unsplash.com/photo-1713425885188-f1daa057691f) |
+| `blog-decor` | Minh Pham | [Unsplash](https://images.unsplash.com/photo-1583847268964-b28dc8f51f92) |
+| `blog-decor-2` | Spacejoy | [Unsplash](https://images.unsplash.com/photo-1631679706909-1844bbd07221) |

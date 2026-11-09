@@ -112,5 +112,65 @@ export const PHOTO_CREDITS = [
     "file": "shop-bags",
     "photographer": "Iuliia Pilipeichenko",
     "url": "https://images.unsplash.com/photo-1760565030346-4b947220fe3a"
+  },
+  {
+    "file": "blog-black-friday",
+    "photographer": "Tim Mossholder",
+    "url": "https://images.unsplash.com/photo-1604532081136-b157aa1729e8"
+  },
+  {
+    "file": "blog-black-friday-2",
+    "photographer": "Tamanna Rumee",
+    "url": "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da"
+  },
+  {
+    "file": "blog-earbuds",
+    "photographer": "Yasin Hasan",
+    "url": "https://images.unsplash.com/photo-1655560378428-7605bda51749"
+  },
+  {
+    "file": "blog-earbuds-2",
+    "photographer": "Yogesh Phuyal",
+    "url": "https://images.unsplash.com/photo-1667178173387-7e0cb51c0b4f"
+  },
+  {
+    "file": "blog-smartwatch",
+    "photographer": "Ivan Shilov",
+    "url": "https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6"
+  },
+  {
+    "file": "blog-smartwatch-2",
+    "photographer": "Infino Photography",
+    "url": "https://images.unsplash.com/photo-1617043786394-f977fa12eddf"
+  },
+  {
+    "file": "blog-skincare",
+    "photographer": "Nataliya Melnychuk",
+    "url": "https://images.unsplash.com/photo-1619451427882-6aaaded0cc61"
+  },
+  {
+    "file": "blog-skincare-2",
+    "photographer": "Birgith Roosipuu",
+    "url": "https://images.unsplash.com/photo-1638609269267-f0128098a809"
+  },
+  {
+    "file": "blog-handbag",
+    "photographer": "Irene Kredenets",
+    "url": "https://images.unsplash.com/photo-1560891958-68bb1fe7fb78"
+  },
+  {
+    "file": "blog-handbag-2",
+    "photographer": "Muneeb Malhotra",
+    "url": "https://images.unsplash.com/photo-1713425885188-f1daa057691f"
+  },
+  {
+    "file": "blog-decor",
+    "photographer": "Minh Pham",
+    "url": "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92"
+  },
+  {
+    "file": "blog-decor-2",
+    "photographer": "Spacejoy",
+    "url": "https://images.unsplash.com/photo-1631679706909-1844bbd07221"
   }
 ];
