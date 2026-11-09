@@ -153,11 +153,76 @@ export function productImages(p) {
   return Array.isArray(list) ? list.filter((u) => typeof u === 'string' && u) : [];
 }
 
+// Product options (variants): groups such as Colour or Size, each with values the customer picks one of.
+// Stored as JSON in products.options:
+//   [{ name: {ar, fr, en}, type: 'text' | 'color', values: [{ label, color, price }] }]
+// `price` is added to (or, when negative, taken from) the product price for that choice.
+// Older products hold a plain comma list ("S, M, L"); it is read as one unnamed group.
+const OPTION_SEP = ' / ';
+const cleanLabel = (v) => String(v ?? '').replace(/\s*\/\s*/g, '/').replace(/[\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40);
+
+export function cleanOptions(raw) {
+  let list = raw;
+  if (typeof raw === 'string') {
+    const text = raw.trim();
+    if (!text) return [];
+    if (text.startsWith('[')) list = parseJSON(text, []);
+    else list = [{ values: text.split(',').map((label) => ({ label })) }];
+  }
+  if (!Array.isArray(list)) return [];
+  const groups = [];
+  for (const g of list.slice(0, 6)) {
+    if (!g || typeof g !== 'object') continue;
+    const n = g.name && typeof g.name === 'object' ? g.name : { fr: g.name };
+    const name = Object.fromEntries(['ar', 'fr', 'en'].map((l) => [l, String(n[l] ?? '').trim().slice(0, 40)]));
+    const type = g.type === 'color' ? 'color' : 'text';
+    const seen = new Set();
+    const values = [];
+    for (const v of Array.isArray(g.values) ? g.values.slice(0, 40) : []) {
+      const label = cleanLabel(typeof v === 'object' && v ? v.label : v);
+      if (!label || seen.has(label)) continue;
+      seen.add(label);
+      const price = Math.max(-100000, Math.min(100000, Math.round(Number(v?.price) || 0)));
+      const color = /^#[0-9a-f]{6}$/i.test(v?.color || '') ? v.color.toLowerCase() : '';
+      values.push({ label, ...(type === 'color' ? { color: color || '#cccccc' } : {}), price });
+    }
+    if (values.length) groups.push({ name, type, values });
+  }
+  return groups;
+}
+
 export function productOptions(p) {
-  return String(p.options || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return cleanOptions(p.options || '');
+}
+
+export function optionGroupName(g, lang) {
+  return g.name[lang] || g.name.fr || g.name.en || g.name.ar || '';
+}
+
+// The cart keeps a choice as the picked labels joined in group order ("Rouge / M").
+// Returns the matching values and the price change, or null when it isn't a valid choice.
+export function resolveChoice(groups, key) {
+  if (!groups.length) return { key: '', picks: [], extra: 0 };
+  const parts = String(key ?? '').split(OPTION_SEP);
+  if (parts.length !== groups.length) return null;
+  const picks = [];
+  for (let i = 0; i < groups.length; i++) {
+    const v = groups[i].values.find((x) => x.label === parts[i]);
+    if (!v) return null;
+    picks.push({ group: groups[i], value: v });
+  }
+  return { key: parts.join(OPTION_SEP), picks, extra: picks.reduce((s, x) => s + x.value.price, 0) };
+}
+
+// "Couleur : Rouge · Taille : M" for orders, emails and the cart.
+export function choiceText(choice, lang) {
+  if (!choice) return '';
+  return choice.picks
+    .map(({ group, value }) => {
+      const n = optionGroupName(group, lang);
+      return n ? `${n}: ${value.label}` : value.label;
+    })
+    .join(' · ');
 }
 
 export async function getSettings(db) {
@@ -185,12 +250,13 @@ export async function quote(db, rawItems, city, settings) {
       issues.push({ id: item?.id, issue: 'unavailable' });
       continue;
     }
-    const options = productOptions(p);
-    const option = options.length ? String(item.option || '') : '';
-    if (options.length && !options.includes(option)) {
+    const choice = resolveChoice(productOptions(p), item.option);
+    if (!choice) {
       issues.push({ id: p.id, issue: 'option' });
       continue;
     }
+    const option = choice.key;
+    const unit = Math.max(0, p.price + choice.extra);
     let qty = Math.min(20, Math.max(1, Math.floor(Number(item.qty) || 1)));
     if (p.stock != null) {
       const left = p.stock - (used.get(p.id) || 0);
@@ -204,7 +270,7 @@ export async function quote(db, rawItems, city, settings) {
       }
     }
     used.set(p.id, (used.get(p.id) || 0) + qty);
-    lines.push({ product: p, id: p.id, option, qty, price: p.price, total: p.price * qty });
+    lines.push({ product: p, id: p.id, option, choice, qty, price: unit, total: unit * qty });
   }
   const subtotal = lines.reduce((s, l) => s + l.total, 0);
   // Delivery is included in the product prices (free delivery, cash on delivery), so nothing is added on top.

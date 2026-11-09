@@ -7,7 +7,7 @@ import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
 import { legalDoc } from './legal.js';
 import { CURRENCIES, formatPrice } from './currency.js';
 import { pixelConfig } from './pixels.js';
-import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions, richDescHtml, htmlToText } from './lib.js';
+import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions, optionGroupName, richDescHtml, htmlToText } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
 const OG_LOCALE = { fr: 'fr_FR', en: 'en_US', ar: 'ar_MA' };
@@ -213,11 +213,11 @@ ${verify ? `<meta name="google-site-verification" content="${esc(verify)}">` : '
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=17">
+<link rel="stylesheet" href="/assets/style.css?v=18">
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
-<script src="/assets/store.js?v=10" defer></script>
+<script src="/assets/store.js?v=11" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>
@@ -454,6 +454,19 @@ export function listingPage(ctx, { title, path, products, q = '', sort = '', des
   return layout(ctx, { title, seoTitle, description: metaDescription, path: query.size ? `${path}?${query}` : path, body, noindex: Boolean(q || sort), image, page: 'shop', ld });
 }
 
+// One group of choices on the product page (colours as swatches, anything else as pills).
+function optionFieldset(ctx, g, gi) {
+  const t = T[ctx.lang];
+  const name = optionGroupName(g, ctx.lang);
+  const only = g.values.length === 1;
+  const extra = (n) => (n ? `<small class="opt-extra">${n > 0 ? '+' : '−'}${esc(price(ctx, Math.abs(n)))}</small>` : '');
+  return `<fieldset class="options${g.type === 'color' ? ' swatches' : ''}"><legend>${esc(name || t.choose)}<em class="picked" data-picked>${only ? `: ${esc(g.values[0].label)}` : ''}</em></legend><div>${g.values
+    .map(
+      (v) => `<label title="${esc(v.label)}"><input type="radio" name="opt${gi}" value="${esc(v.label)}" data-extra="${v.price}"${only ? ' checked' : ''} required><span>${g.type === 'color' ? `<i class="dot" style="background:${esc(v.color)}"></i>` : ''}${esc(v.label)}${extra(v.price)}</span></label>`,
+    )
+    .join('')}</div></fieldset>`;
+}
+
 export function productPage(ctx, p, category, related) {
   const { lang, origin, settings } = ctx;
   const t = T[lang];
@@ -504,14 +517,14 @@ export function productPage(ctx, p, category, related) {
   <div class="product-info">
     ${category ? `<p class="kicker">${star('tick-star')}${esc(catName(category, lang))}</p>` : ''}
     <h1>${esc(name)}</h1>
-    <p class="price big">${esc(price(ctx, p.price))}${onSale ? ` <s>${esc(price(ctx, p.compare_price))}</s> <span class="save">−${Math.round((1 - p.price / p.compare_price) * 100)}%</span>` : ''}</p>
+    <p class="price big"><span data-unit>${esc(price(ctx, p.price))}</span>${onSale ? ` <s>${esc(price(ctx, p.compare_price))}</s> <span class="save">−${Math.round((1 - p.price / p.compare_price) * 100)}%</span>` : ''}</p>
     ${ctx.cur && ctx.cur !== 'MAD' ? `<p class="price-mad">${esc(t.paidInMad(money(p.price, lang)))}</p>` : ''}
     ${freeShip && !soldOut ? `<p class="free-ship">${icon('truck', 20)}<span>${esc(t.finalPrice)}</span></p>` : ''}
     ${onSale ? `<p class="you-save">${esc(t.youSave(price(ctx, p.compare_price - p.price)))}</p>` : ''}
     ${stockLine}
     ${soldOut ? '' : `<div class="eta">${icon('truck', 22)}<div><strong>${esc(t.deliveryLong)}</strong><span data-eta hidden></span></div></div>`}
     <form class="buy" novalidate data-product="${p.id}" data-name="${esc(name)}" data-price="${p.price}" data-image="${esc(images[0])}" data-slug="${esc(p.slug)}">
-      ${options.length ? `<fieldset class="options"><legend>${esc(t.choose)}</legend><div>${options.map((o, i) => `<label><input type="radio" name="option" value="${esc(o)}"${i === 0 && options.length === 1 ? ' checked' : ''} required><span>${esc(o)}</span></label>`).join('')}</div></fieldset>` : ''}
+      ${options.map((g, gi) => optionFieldset(ctx, g, gi)).join('')}
       <div class="qty-row">
         <label for="qty">${esc(t.quantity)}</label>
         <div class="qty"><button type="button" data-step="-1" aria-label="−">−</button><input id="qty" name="qty" type="number" inputmode="numeric" min="1" max="${p.stock != null ? Math.max(1, Math.min(20, p.stock)) : 20}" value="1"><button type="button" data-step="1" aria-label="+">+</button></div>
@@ -556,7 +569,7 @@ export function productPage(ctx, p, category, related) {
     </div>
   </div>
 </section>
-${soldOut ? '' : `<div class="buy-bar" aria-hidden="true"><div><strong>${esc(price(ctx, p.price))}</strong><small>${esc(freeShip ? t.freeDelivery : t.cod)}</small></div><a class="btn btn-accent" href="#order" data-buy-now>${esc(t.buyNow)}</a></div>`}
+${soldOut ? '' : `<div class="buy-bar" aria-hidden="true"><div><strong data-unit>${esc(price(ctx, p.price))}</strong><small>${esc(freeShip ? t.freeDelivery : t.cod)}</small></div><a class="btn btn-accent" href="#order" data-buy-now>${esc(t.buyNow)}</a></div>`}
 ${related.length ? `<section class="section wrap">${sectionHead(t.alsoLike, category ? catName(category, lang) : t.shop, category ? `/${lang}/c/${category.slug}` : `/${lang}/shop`, t.viewAll)}${grid(related, ctx, '')}</section>` : ''}
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
   const crumbs = [[t.home, `/${lang}/`], ...(category ? [[catName(category, lang), `/${lang}/c/${category.slug}`]] : []), [name, `/${lang}/p/${p.slug}`]];

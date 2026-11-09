@@ -151,23 +151,44 @@
     });
   });
 
+  // Options (colour, size…): one radio group per fieldset. The cart keeps the picked labels as "Rouge / M".
+  function readChoice(form) {
+    const sets = $$('.options', form);
+    const picked = sets.map((fs) => $('input:checked', fs));
+    const missing = sets[picked.findIndex((x) => !x)] || null;
+    return {
+      missing,
+      key: missing ? '' : picked.map((x) => x.value).join(' / '),
+      extra: picked.reduce((s, x) => s + (Number(x?.dataset.extra) || 0), 0),
+    };
+  }
+  function askChoice(fs) {
+    toast(i18n.chooseOption);
+    fs.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+    fs.classList.add('shake');
+    setTimeout(() => fs.classList.remove('shake'), 500);
+  }
+  $$('form.buy').forEach((form) => {
+    const base = Number(form.dataset.price);
+    form.addEventListener('change', (e) => {
+      const fs = e.target.closest('.options');
+      if (!fs) return;
+      const picked = $('[data-picked]', fs);
+      if (picked) picked.textContent = `: ${e.target.value}`;
+      const unit = Math.max(0, base + readChoice(form).extra);
+      $$('[data-unit]').forEach((el) => (el.textContent = money(unit)));
+    });
+  });
+
   function submitBuy(form, go) {
-    const options = $$('input[name=option]', form);
-    const chosen = options.find((o) => o.checked);
-    if (options.length && !chosen) {
-      toast(i18n.chooseOption);
-      const fs = $('.options', form);
-      fs.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
-      fs.classList.add('shake');
-      setTimeout(() => fs.classList.remove('shake'), 500);
-      return;
-    }
+    const choice = readChoice(form);
+    if (choice.missing) return askChoice(choice.missing);
     const item = {
       id: Number(form.dataset.product),
-      option: chosen ? chosen.value : '',
+      option: choice.key,
       qty: Math.max(1, Math.min(20, Number(form.qty.value) || 1)),
       name: form.dataset.name,
-      price: Number(form.dataset.price),
+      price: Math.max(0, Number(form.dataset.price) + choice.extra),
       image: form.dataset.image,
       slug: form.dataset.slug,
     };
@@ -193,17 +214,18 @@
 
   function quickOrder(form) {
     const quick = $('.quick', form);
-    const unit = Number(form.dataset.price);
+    const unitPrice = () => Math.max(0, Number(form.dataset.price) + readChoice(form).extra);
     const cityOf = () => (form.city.value === '__other' ? form.city_other.value.trim() : form.city.value);
     const item = () => ({
       id: Number(form.dataset.product),
-      option: $$('input[name=option]', form).find((o) => o.checked)?.value || '',
+      option: readChoice(form).key,
       qty: Math.max(1, Math.min(20, Number(form.qty.value) || 1)),
     });
     let seq = 0;
     const quote = async () => {
       const n = ++seq;
       const it = item();
+      const unit = unitPrice();
       $('[data-q-sub]', quick).textContent = `${it.qty} × ${money(unit)}`;
       $('[data-q-total]', quick).textContent = money(unit * it.qty);
       try {
@@ -234,7 +256,7 @@
     form.city_other.addEventListener('change', quote);
     form.qty.addEventListener('change', quote);
     $$('[data-step]', form).forEach((b) => b.addEventListener('click', () => setTimeout(quote)));
-    $$('input[name=option]', form).forEach((o) => o.addEventListener('change', quote));
+    $$('.options input', form).forEach((o) => o.addEventListener('change', quote));
     quote();
     form.addEventListener('input', (e) => e.target.closest('label')?.querySelector('.field-error')?.remove());
     let started = false;
@@ -242,21 +264,15 @@
       if (started || !quick.contains(e.target)) return;
       started = true;
       const it = item();
+      const unit = unitPrice();
       window.shTrack?.('InitiateCheckout', { value: unit * it.qty, items: [{ ...it, name: form.dataset.name, price: unit }] });
     });
 
     return async function send() {
       const err = $('.form-error', quick);
       err.hidden = true;
-      const options = $$('input[name=option]', form);
-      if (options.length && !options.some((o) => o.checked)) {
-        toast(i18n.chooseOption);
-        const fs = $('.options', form);
-        fs.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
-        fs.classList.add('shake');
-        setTimeout(() => fs.classList.remove('shake'), 500);
-        return;
-      }
+      const choice = readChoice(form);
+      if (choice.missing) return askChoice(choice.missing);
       let bad = null;
       for (const [input, ok, msg] of [
         [form.name, form.name.value.trim().length >= 2, i18n.required],
@@ -410,7 +426,7 @@
         <a href="/${lang}/p/${esc(l.slug)}"><img src="${esc(small(l.image))}" alt="" width="76" height="95"></a>
         <div class="line-info">
           <a href="/${lang}/p/${esc(l.slug)}">${esc(l.name)}</a>
-          ${l.option ? `<small>${esc(l.option)}</small>` : ''}
+          ${l.option ? `<small>${esc(l.optionLabel || l.option)}</small>` : ''}
           ${editable ? `<div class="qty small"><button type="button" data-d="-1" aria-label="−">−</button><span>${l.qty}</span><button type="button" data-d="1" aria-label="+">+</button></div>` : `<small>× ${l.qty}</small>`}
         </div>
         <div class="line-end"><strong>${money(l.total)}</strong>${editable ? `<button type="button" class="link" data-remove>${esc(i18n.remove)}</button>` : ''}</div>

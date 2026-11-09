@@ -304,6 +304,12 @@ textarea { resize: vertical; }
 .options span:hover { border-color: var(--ink); }
 .options input:checked + span { border-color: var(--ink); background: var(--ink); color: #fff; }
 .options input:focus-visible + span { box-shadow: 0 0 0 3px var(--sun); }
+.options + .options { margin-top: 14px; }
+.options legend .picked { font-style: normal; font-weight: 500; color: var(--muted, #667); }
+.options .opt-extra { margin-inline-start: 6px; font-size: 0.78em; font-weight: 600; opacity: 0.75; }
+.options .dot { width: 18px; height: 18px; border-radius: 50%; margin-inline-end: 8px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18); flex: none; }
+.swatches input:checked + span { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
+
 .shake { animation: shake 0.4s; }
 @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 .qty-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

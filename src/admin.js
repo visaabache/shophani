@@ -2,7 +2,7 @@
 // logging in sets a signed, HttpOnly session cookie that lasts 7 days.
 
 import { sendEmail, sendStatusEmail, emailConfig, confirmationEmail, validEmail, STATUS_EMAILS } from './email.js';
-import { json, getSettings, slugify, STATUSES, RESTOCK_STATUSES, randomToken, parseJSON, displayPhone, visitorId, recentHits, addHit, sameOrigin, looksLikeImage, looksLikeVideo, sanitizeHtml, isRichHtml, htmlToText } from './lib.js';
+import { json, getSettings, slugify, STATUSES, RESTOCK_STATUSES, randomToken, parseJSON, displayPhone, visitorId, recentHits, addHit, sameOrigin, looksLikeImage, looksLikeVideo, sanitizeHtml, isRichHtml, htmlToText, cleanOptions } from './lib.js';
 
 const SESSION_DAYS = 7;
 // Password guessing: after 5 wrong passwords in 15 minutes, or 20 in a day, that visitor is locked out for a while.
@@ -434,7 +434,7 @@ async function saveProduct(db, id, b) {
     slug, int(b.category_id), names.ar, names.fr, names.en,
     cleanDesc(b.desc_ar), cleanDesc(b.desc_fr), cleanDesc(b.desc_en),
     price, int(b.compare_price), stock == null ? null : Math.max(0, stock),
-    String(b.options || '').split(',').map((s) => s.trim()).filter(Boolean).join(', '),
+    (() => { const g = cleanOptions(b.options); return g.length ? JSON.stringify(g) : ''; })(),
     JSON.stringify(images), b.featured ? 1 : 0, b.active === false || b.active === 0 ? 0 : 1, int(b.sort, 0),
     JSON.stringify(descMedia(b.desc_media)),
   ];

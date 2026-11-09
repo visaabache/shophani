@@ -2,7 +2,7 @@
 // the admin API (/api/admin/*), product photos from R2 or D1 (/img/*) and static files (public/).
 
 import { T } from './i18n.js';
-import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName, visitorId, recentHits, addHit, sameOrigin, parseJSON } from './lib.js';
+import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName, visitorId, recentHits, addHit, sameOrigin, parseJSON, choiceText } from './lib.js';
 import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, legalPage, aboutPage, blogIndexPage, blogPostPage, catName } from './render.js';
 
 const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
@@ -207,7 +207,7 @@ async function readJSON(request, limit = 20000) {
 
 function publicLine(line, lang) {
   const p = line.product;
-  return { id: line.id, option: line.option, qty: line.qty, price: line.price, total: line.total, name: productName(p, lang), slug: p.slug, image: (JSON.parse(p.images || '[]')[0]) || '/assets/placeholder.svg', stock: p.stock };
+  return { id: line.id, option: line.option, optionLabel: choiceText(line.choice, lang), qty: line.qty, price: line.price, total: line.total, name: productName(p, lang), slug: p.slug, image: (JSON.parse(p.images || '[]')[0]) || '/assets/placeholder.svg', stock: p.stock };
 }
 
 async function handleApi(request, env, url, ctx) {
@@ -268,7 +268,7 @@ async function handleApi(request, env, url, ctx) {
       statements.push(
         db
           .prepare('INSERT INTO order_items (order_id, product_id, name, option, price, qty) VALUES ((SELECT id FROM orders WHERE number = ?), ?, ?, ?, ?, ?)')
-          .bind(number, l.id, productName(l.product, 'fr'), l.option, l.price, l.qty),
+          .bind(number, l.id, productName(l.product, 'fr'), choiceText(l.choice, 'fr'), l.price, l.qty),
       );
       // The CHECK (stock >= 0) on products makes this fail, and the whole order roll back, if stock ran out meanwhile.
       statements.push(db.prepare('UPDATE products SET stock = stock - ? WHERE id = ? AND stock IS NOT NULL').bind(l.qty, l.id));
@@ -282,7 +282,7 @@ async function handleApi(request, env, url, ctx) {
     }
     // Confirmation to the customer and an alert to the store, sent after the response so checkout stays fast.
     const saved = await db.prepare('SELECT * FROM orders WHERE number = ?').bind(number).first();
-    const items = q.lines.map((l) => ({ name: productName(l.product, orderLang), option: l.option, price: l.price, qty: l.qty }));
+    const items = q.lines.map((l) => ({ name: productName(l.product, orderLang), option: choiceText(l.choice, orderLang), price: l.price, qty: l.qty }));
     ctx.waitUntil(sendOrderEmails(env, settings, url.origin, saved, items));
     if (env.ORDER_WEBHOOK) {
       // Optional: notify a webhook (Telegram bot, Slack, Make, Zapier…) about the new order.

@@ -388,3 +388,19 @@ body.rte-open { overflow: hidden; }
 .cover-preview { width: 120px; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 10px; background: var(--sand); transition: opacity 0.2s; }
 .rte-size { width: auto; min-height: 34px; height: 34px; padding: 0 28px 0 10px; font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--line); background-color: #fff; cursor: pointer; }
 .rte-body div { margin: 0 0 0.7em; }
+
+/* Product options builder (colours, sizes…) */
+.opt-group { border: 1px solid var(--line, #e5e7eb); border-radius: 12px; padding: 12px; margin-bottom: 12px; display: grid; gap: 10px; }
+.opt-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; justify-content: space-between; }
+.opt-tools label { min-width: 160px; }
+.opt-values { display: grid; gap: 6px; }
+.opt-row { display: grid; grid-template-columns: 1fr 120px 36px; gap: 8px; align-items: center; }
+.opt-row.has-color { grid-template-columns: 44px 1fr 120px 36px; }
+.opt-row.opt-labels { font-size: 0.8rem; color: var(--muted, #6b7280); }
+.opt-row input[type=color] { width: 44px; height: 40px; padding: 2px; border-radius: 8px; cursor: pointer; }
+.opt-row .x { border: 0; background: none; font-size: 1rem; cursor: pointer; color: var(--muted, #6b7280); min-height: 36px; }
+.opt-row .x:hover { color: #c0392b; }
+.opt-group .small { justify-self: start; }
+.danger-text { color: #c0392b; }
+.opt-add { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatch-ico { width: 16px; height: 16px; border-radius: 50%; background: conic-gradient(#ef4444, #f59e0b, #22c55e, #3b82f6, #a855f7, #ef4444); display: inline-block; }
