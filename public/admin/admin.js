@@ -111,7 +111,15 @@
       editProduct: 'تعديل المنتج', newProduct: 'منتج جديد',
       name: 'الاسم', priceStock: 'الثمن والمخزون',
       price: 'الثمن (درهم)', comparePrice: 'الثمن القديم (مشطوب، اختياري)', stock: 'المخزون (فارغ = غير محدود)', category: 'الصنف',
-      options: 'الخيارات (المقاسات، الألوان…) مفصولة بفواصل',
+      options: 'الخيارات (الألوان، المقاسات…)',
+      opt: {
+        hint: 'أضف ما يختاره الزبون قبل الطلب: اللون، المقاس، السعة… يظهر اختياره في الطلب وفي الرسائل.',
+        color: 'لون', size: 'مقاس', other: 'خيار آخر',
+        colorName: 'اللون', sizeName: 'المقاس',
+        groupName: 'اسم الخيار', type: 'النوع', typeText: 'أزرار نص', typeColor: 'ألوان',
+        value: 'القيمة', valuePh: 'مثال: أحمر، XL، 128GB', extra: 'فرق الثمن (درهم)', addValue: 'إضافة قيمة', removeGroup: 'حذف هذا الخيار',
+        needValue: 'أضف قيمة واحدة على الأقل لكل خيار، أو احذفه.',
+      },
       photos: 'الصور', addPhotos: 'اختيار صور', takePhoto: 'التقاط صورة',
       dropHere: 'اسحب الصور هنا أو اخترها من جهازك', dropHint: 'JPG، PNG، WEBP… تُصغَّر تلقائيًا قبل الرفع. الصورة الأولى هي الرئيسية.',
       mainPhoto: 'رئيسية', moveBefore: 'تقديم', moveAfter: 'تأخير', pasteLinks: 'أو الصق روابط صور',
@@ -291,7 +299,15 @@
       editProduct: 'Modifier le produit', newProduct: 'Nouveau produit',
       name: 'Nom', priceStock: 'Prix et stock',
       price: 'Prix (DH)', comparePrice: 'Ancien prix (barré, facultatif)', stock: 'Stock (vide = illimité)', category: 'Catégorie',
-      options: 'Options (tailles, couleurs…) séparées par des virgules',
+      options: 'Options (couleurs, tailles…)',
+      opt: {
+        hint: 'Ajoutez ce que le client choisit avant de commander : couleur, taille, capacité… Son choix apparaît dans la commande et les e-mails.',
+        color: 'Couleur', size: 'Taille', other: 'Autre option',
+        colorName: 'Couleur', sizeName: 'Taille',
+        groupName: 'Nom de l’option', type: 'Type', typeText: 'Boutons texte', typeColor: 'Couleurs',
+        value: 'Valeur', valuePh: 'ex. Rouge, XL, 128 Go', extra: 'Écart de prix (DH)', addValue: 'Ajouter une valeur', removeGroup: 'Supprimer cette option',
+        needValue: 'Ajoutez au moins une valeur à chaque option, ou supprimez-la.',
+      },
       photos: 'Photos', addPhotos: 'Choisir des photos', takePhoto: 'Prendre une photo',
       dropHere: 'Glissez vos photos ici ou choisissez-les sur votre appareil', dropHint: 'JPG, PNG, WEBP… réduites automatiquement avant l’envoi. La première photo est la photo principale.',
       mainPhoto: 'Principale', moveBefore: 'Avancer', moveAfter: 'Reculer', pasteLinks: 'Ou collez des liens d’images',
@@ -752,7 +768,7 @@
         </div>
       </section>
       <section class="box">
-        <ul class="lines">${items.map((i) => `<li><span>${esc(i.name)}${i.option ? ` <small>(${esc(i.option)})</small>` : ''} <small dir="ltr">× ${i.qty}</small></span><b>${dh(i.price * i.qty)}</b></li>`).join('')}
+        <ul class="lines">${items.map((i) => `<li><span>${esc(i.name)}${i.option ? ` <small dir="auto">(${esc(i.option)})</small>` : ''} <small dir="ltr">× ${i.qty}</small></span><b>${dh(i.price * i.qty)}</b></li>`).join('')}
           <li class="muted"><span>${L.delivery}</span><span>${o.shipping ? dh(o.shipping) : L.free}</span></li>
           <li class="total"><span>${L.toCollect}</span><b>${dh(o.total)}</b></li></ul>
       </section>
@@ -831,6 +847,18 @@
     for (let q = 0.75; blob.size > 0.95 * 1024 * 1024 && q > 0.4; q -= 0.15) blob = await encode(blob.type, q);
     return blob;
   }
+  function parseOptions(raw) {
+    const text = String(raw || '').trim();
+    if (!text) return [];
+    if (text.startsWith('[')) {
+      try {
+        return JSON.parse(text).map((g) => ({ name: { ar: '', fr: '', en: '', ...g.name }, type: g.type === 'color' ? 'color' : 'text', values: (g.values || []).map((v) => ({ label: v.label || '', price: v.price || 0, color: v.color || '#cccccc' })) }));
+      } catch {
+        return [];
+      }
+    }
+    return [{ name: { ar: '', fr: '', en: '' }, type: 'text', values: text.split(',').map((x) => x.trim()).filter(Boolean).map((label) => ({ label, price: 0 })) }];
+  }
   function productForm(p) {
     const images = JSON.parse(p.images || '[]');
     const field = (name, label, attrs = '') => `<label>${label}<input name="${name}" value="${esc(p[name] ?? '')}" ${attrs}></label>`;
@@ -846,7 +874,16 @@
         ${field('stock', L.stock, 'type="number" min="0" step="1" inputmode="numeric"')}
         <label>${L.category}<select name="category_id"><option value="">—</option>${state.categories.map((c) => `<option value="${c.id}"${c.id === p.category_id ? ' selected' : ''}>${esc(catName(c))}</option>`).join('')}</select></label>
       </div>
-      ${field('options', L.options, 'placeholder="S, M, L, XL"')}</div>
+      </div>
+      <div class="card"><h2>${L.options}</h2>
+        <p class="muted small">${L.opt.hint}</p>
+        <div id="opts"></div>
+        <div class="actions opt-add">
+          <button type="button" class="btn ghost" data-opt-add="color"><span class="swatch-ico"></span>${L.opt.color}</button>
+          <button type="button" class="btn ghost" data-opt-add="size">${icon('plus', 18)}<span>${L.opt.size}</span></button>
+          <button type="button" class="btn ghost" data-opt-add="other">${icon('plus', 18)}<span>${L.opt.other}</span></button>
+        </div>
+      </div>
       <div class="card"><h2>${L.photos}</h2>
         <div class="photos" id="photos"></div>
         <div class="drop" id="drop">
@@ -989,6 +1026,78 @@
     });
     // Word-style description editors (one per language).
     const editors = [...f.querySelectorAll('[data-rte]')].map((el) => setupEditor(el, shrink));
+    // Options builder (colours, sizes…). Saved as JSON; older products with "S, M, L" open as one group.
+    const opts = parseOptions(p.options);
+    const optsBox = document.getElementById('opts');
+    const drawOpts = () => {
+      optsBox.innerHTML = opts
+        .map(
+          (g, gi) => `<div class="opt-group" data-g="${gi}">
+          <div class="opt-head">
+            <div class="cols3">${contentLangs().map((l) => `<label>${L.opt.groupName} · ${LANG_LABEL[l]}<input data-k="name" data-l="${l}" value="${esc(g.name[l] || '')}" ${dirOf(l)} maxlength="40"></label>`).join('')}</div>
+            <div class="opt-tools"><label>${L.opt.type}<select data-k="type"><option value="text"${g.type !== 'color' ? ' selected' : ''}>${L.opt.typeText}</option><option value="color"${g.type === 'color' ? ' selected' : ''}>${L.opt.typeColor}</option></select></label>
+            <button type="button" class="btn ghost danger-text" data-opt-del>${L.opt.removeGroup}</button></div>
+          </div>
+          <div class="opt-values">
+            <div class="opt-row opt-labels${g.type === 'color' ? ' has-color' : ''}">${g.type === 'color' ? '<span></span>' : ''}<span>${L.opt.value}</span><span>${L.opt.extra}</span><span></span></div>
+            ${g.values
+              .map(
+                (v, vi) => `<div class="opt-row${g.type === 'color' ? ' has-color' : ''}" data-v="${vi}">
+                ${g.type === 'color' ? `<input type="color" data-k="color" value="${esc(v.color || '#cccccc')}" aria-label="${L.opt.colorName}">` : ''}
+                <input data-k="label" value="${esc(v.label)}" placeholder="${L.opt.valuePh}" maxlength="40" aria-label="${L.opt.value}">
+                <input data-k="price" type="number" step="1" inputmode="numeric" value="${v.price ? v.price : ''}" placeholder="0" aria-label="${L.opt.extra}" dir="ltr">
+                <button type="button" class="x" data-val-del title="${L.remove}" aria-label="${L.remove}">✕</button>
+              </div>`,
+              )
+              .join('')}
+          </div>
+          <button type="button" class="btn ghost small" data-val-add>${icon('plus', 16)}<span>${L.opt.addValue}</span></button>
+        </div>`,
+        )
+        .join('');
+    };
+    drawOpts();
+    optsBox.addEventListener('input', (e) => {
+      const el = e.target;
+      const g = opts[Number(el.closest('[data-g]')?.dataset.g)];
+      if (!g) return;
+      const v = g.values[Number(el.closest('[data-v]')?.dataset.v)];
+      if (el.dataset.k === 'name') g.name[el.dataset.l] = el.value;
+      else if (el.dataset.k === 'type') {
+        g.type = el.value;
+        drawOpts();
+      } else if (v && el.dataset.k === 'label') v.label = el.value;
+      else if (v && el.dataset.k === 'price') v.price = Math.round(Number(el.value) || 0);
+      else if (v && el.dataset.k === 'color') v.color = el.value;
+    });
+    f.addEventListener('click', (e) => {
+      const add = e.target.closest('[data-opt-add]');
+      const gEl = e.target.closest('[data-g]');
+      const g = gEl && opts[Number(gEl.dataset.g)];
+      if (add) {
+        const kind = add.dataset.optAdd;
+        const names = {
+          color: { ar: 'اللون', fr: 'Couleur', en: 'Color' },
+          size: { ar: 'المقاس', fr: 'Taille', en: 'Size' },
+          other: { ar: '', fr: '', en: '' },
+        };
+        const values = kind === 'size' ? ['S', 'M', 'L', 'XL'].map((label) => ({ label, price: 0 })) : [{ label: '', price: 0, color: '#000000' }];
+        opts.push({ name: names[kind], type: kind === 'color' ? 'color' : 'text', values });
+        drawOpts();
+        optsBox.querySelector(`[data-g="${opts.length - 1}"] [data-k="${kind === 'other' ? 'name' : 'label'}"]`)?.focus();
+      } else if (g && e.target.closest('[data-opt-del]')) {
+        opts.splice(Number(gEl.dataset.g), 1);
+        drawOpts();
+      } else if (g && e.target.closest('[data-val-add]')) {
+        g.values.push({ label: '', price: 0, color: '#000000' });
+        drawOpts();
+        const rows = optsBox.querySelectorAll(`[data-g="${gEl.dataset.g}"] [data-k="label"]`);
+        rows[rows.length - 1]?.focus();
+      } else if (g && e.target.closest('[data-val-del]')) {
+        g.values.splice(Number(e.target.closest('[data-v]').dataset.v), 1);
+        drawOpts();
+      }
+    });
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (pending.length || editors.some((ed) => ed.busy())) return toast(L.waitUploads, true);
@@ -996,6 +1105,9 @@
       const data = Object.fromEntries(new FormData(f));
       data.featured = f.featured.checked;
       data.active = f.active.checked;
+      const groups = opts.map((g) => ({ ...g, values: g.values.filter((v) => v.label.trim()) }));
+      if (groups.some((g) => !g.values.length)) return toast(L.opt.needValue, true);
+      data.options = JSON.stringify(groups);
       try {
         await api(p.id ? `/products/${p.id}` : '/products', { method: p.id ? 'PUT' : 'POST', body: data });
         toast(L.productSaved);
