@@ -217,7 +217,7 @@ ${verify ? `<meta name="google-site-verification" content="${esc(verify)}">` : '
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
-<script src="/assets/store.js?v=13" defer></script>
+<script src="/assets/store.js?v=14" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>
@@ -544,10 +544,16 @@ export function productPage(ctx, p, category, related) {
   <div class="product-info">
     ${category ? `<p class="kicker">${star('tick-star')}${esc(catName(category, lang))}</p>` : ''}
     <h1>${esc(name)}</h1>
-    <p class="price big"><span data-unit>${esc(price(ctx, p.price))}</span>${onSale ? ` <s>${esc(price(ctx, p.compare_price))}</s> <span class="save">−${Math.round((1 - p.price / p.compare_price) * 100)}%</span>` : ''}</p>
-    ${ctx.cur && ctx.cur !== 'MAD' ? `<p class="price-mad">${esc(t.paidInMad(money(p.price, lang)))}</p>` : ''}
+    ${bundles.length && !soldOut
+      ? (() => {
+          const b = defaultOffer(bundles);
+          const was = p.price * b.qty;
+          return `<p class="price big"><span data-bar-total>${esc(price(ctx, b.price))}</span> <s data-top-was>${esc(price(ctx, was))}</s> <span class="save" data-top-save>−${Math.round((1 - b.price / was) * 100)}%</span></p>`;
+        })()
+      : `<p class="price big"><span data-unit>${esc(price(ctx, p.price))}</span>${onSale ? ` <s>${esc(price(ctx, p.compare_price))}</s> <span class="save">−${Math.round((1 - p.price / p.compare_price) * 100)}%</span>` : ''}</p>`}
+    ${ctx.cur && ctx.cur !== 'MAD' && !bundles.length ? `<p class="price-mad">${esc(t.paidInMad(money(p.price, lang)))}</p>` : ''}
     ${freeShip && !soldOut ? `<p class="free-ship">${icon('truck', 20)}<span>${esc(t.finalPrice)}</span></p>` : ''}
-    ${onSale ? `<p class="you-save">${esc(t.youSave(price(ctx, p.compare_price - p.price)))}</p>` : ''}
+    ${onSale && !bundles.length ? `<p class="you-save">${esc(t.youSave(price(ctx, p.compare_price - p.price)))}</p>` : ''}
     ${stockLine}
     ${soldOut ? '' : `<div class="eta">${icon('truck', 22)}<div><strong>${esc(t.deliveryLong)}</strong><span data-eta hidden></span></div></div>`}
     <form class="buy" novalidate data-product="${p.id}" data-name="${esc(name)}" data-price="${p.price}" data-image="${esc(images[0])}" data-slug="${esc(p.slug)}">

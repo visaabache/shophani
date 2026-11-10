@@ -201,6 +201,17 @@
     });
     const pick = offerPick(form);
     $$('[data-bar-total]').forEach((el) => (el.textContent = money(pick ? pick.total : unit)));
+    // Price under the product name: the picked offer, with the normal price of those pieces struck through.
+    const was = unit * (pick ? pick.qty : 1);
+    const now = pick ? pick.total : unit;
+    $$('[data-top-was]').forEach((el) => {
+      el.textContent = money(was);
+      el.hidden = now >= was;
+    });
+    $$('[data-top-save]').forEach((el) => {
+      el.textContent = `−${Math.round((1 - now / was) * 100)}%`;
+      el.hidden = now >= was;
+    });
   }
   $$('form.buy').forEach((form) => {
     const base = Number(form.dataset.price);

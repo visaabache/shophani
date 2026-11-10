@@ -334,6 +334,7 @@ textarea { resize: vertical; }
   .offer-tags { grid-column: 2 / -1; justify-items: start; grid-auto-flow: column; justify-content: start; align-items: center; gap: 8px; }
 }
 .offers + .quick { margin-top: 18px; }
+.price [hidden] { display: none; }
 
 .shake { animation: shake 0.4s; }
 @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
