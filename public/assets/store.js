@@ -199,12 +199,15 @@
       const save = $('[data-offer-save]', card);
       if (save) save.textContent = `${(i18n.offerSave || '{amount}').replace('{amount}', money(unit * qty - now))}${card.classList.contains('hot') ? ' 🔥' : ''}`;
     });
+    const pick = offerPick(form);
+    $$('[data-bar-total]').forEach((el) => (el.textContent = money(pick ? pick.total : unit)));
   }
   $$('form.buy').forEach((form) => {
     const base = Number(form.dataset.price);
     form.addEventListener('change', (e) => {
       if (e.target.closest('[data-offers]')) {
         form.qty.value = e.target.value;
+        priceOffers(form);
         return;
       }
       const fs = e.target.closest('.options');
