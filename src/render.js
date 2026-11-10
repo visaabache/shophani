@@ -7,7 +7,7 @@ import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
 import { legalDoc } from './legal.js';
 import { CURRENCIES, formatPrice } from './currency.js';
 import { pixelConfig } from './pixels.js';
-import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions, optionGroupName, richDescHtml, htmlToText } from './lib.js';
+import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions, liveBundles, bundleTitle, optionGroupName, richDescHtml, htmlToText } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
 const OG_LOCALE = { fr: 'fr_FR', en: 'en_US', ar: 'ar_MA' };
@@ -213,11 +213,11 @@ ${verify ? `<meta name="google-site-verification" content="${esc(verify)}">` : '
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=18">
+<link rel="stylesheet" href="/assets/style.css?v=19">
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
-<script src="/assets/store.js?v=11" defer></script>
+<script src="/assets/store.js?v=12" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>
@@ -467,6 +467,25 @@ function optionFieldset(ctx, g, gi) {
     .join('')}</div></fieldset>`;
 }
 
+// Quantity offers as cards to pick from ("1 piece", "2 pieces −60 DH", "3 pieces −120 DH 🔥").
+// Picking one sets the quantity; the server prices it again from the database.
+function offerCards(ctx, p, bundles, image) {
+  const t = T[ctx.lang];
+  const tiers = [{ qty: 1, price: p.price, label: {}, hot: false }, ...bundles];
+  return `<fieldset class="offers" data-offers><legend>${esc(t.offersTitle)}</legend>${tiers
+    .map((b, i) => {
+      const was = p.price * b.qty;
+      const save = was - b.price;
+      const title = bundleTitle(b, ctx.lang) || t.offerPieces(b.qty);
+      return `<label class="offer${b.hot ? ' hot' : ''}"><input type="radio" name="offer" value="${b.qty}" data-price="${b.price}"${i === 0 ? ' checked' : ''}>
+        <span class="offer-pic"><img src="${esc(small(image))}" alt="" width="64" height="80" loading="lazy">${b.qty > 1 ? `<b>×${b.qty}</b>` : ''}</span>
+        <span class="offer-main"><strong>${esc(title)}</strong><span class="offer-price"><span data-offer-now>${esc(price(ctx, b.price))}</span>${save > 0 ? ` <s data-offer-was>${esc(price(ctx, was))}</s>` : ''}</span></span>
+        ${save > 0 ? `<span class="offer-tags">${b.hot ? `<em>${esc(t.offerHot)}</em>` : ''}<span class="offer-save" data-offer-save>${esc(t.offerSave(price(ctx, save)))}${b.hot ? ' 🔥' : ''}</span></span>` : ''}
+      </label>`;
+    })
+    .join('')}</fieldset>`;
+}
+
 export function productPage(ctx, p, category, related) {
   const { lang, origin, settings } = ctx;
   const t = T[lang];
@@ -477,6 +496,7 @@ export function productPage(ctx, p, category, related) {
   const images = productImages(p);
   if (!images.length) images.push(PLACEHOLDER);
   const options = productOptions(p);
+  const bundles = liveBundles(p).filter((b) => p.stock == null || b.qty <= p.stock);
   const soldOut = p.stock != null && p.stock <= 0;
   const onSale = p.compare_price && p.compare_price > p.price;
   const freeShip = true; // delivery is included in every price
@@ -525,10 +545,10 @@ export function productPage(ctx, p, category, related) {
     ${soldOut ? '' : `<div class="eta">${icon('truck', 22)}<div><strong>${esc(t.deliveryLong)}</strong><span data-eta hidden></span></div></div>`}
     <form class="buy" novalidate data-product="${p.id}" data-name="${esc(name)}" data-price="${p.price}" data-image="${esc(images[0])}" data-slug="${esc(p.slug)}">
       ${options.map((g, gi) => optionFieldset(ctx, g, gi)).join('')}
-      <div class="qty-row">
+      ${bundles.length && !soldOut ? `${offerCards(ctx, p, bundles, images[0])}<input type="hidden" name="qty" value="1">` : `<div class="qty-row">
         <label for="qty">${esc(t.quantity)}</label>
         <div class="qty"><button type="button" data-step="-1" aria-label="−">−</button><input id="qty" name="qty" type="number" inputmode="numeric" min="1" max="${p.stock != null ? Math.max(1, Math.min(20, p.stock)) : 20}" value="1"><button type="button" data-step="1" aria-label="+">+</button></div>
-      </div>
+      </div>`}
       ${soldOut ? `<button class="btn btn-block" type="button" disabled>${esc(t.outOfStock)}</button>` : `<div class="quick" id="order">
         <p class="quick-lead">${esc(t.quickText)}<span class="finger" aria-hidden="true">👇</span></p>
         <div class="quick-fields">

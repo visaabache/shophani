@@ -168,15 +168,52 @@
     fs.classList.add('shake');
     setTimeout(() => fs.classList.remove('shake'), 500);
   }
+  // Quantity offers ("2 for 340 DH"): the picked card sets the quantity. A colour or size that costs more
+  // is added to every piece, so the cards are re-priced when it changes (the server prices it again anyway).
+  function offerPick(form) {
+    const input = $('[data-offers] input:checked', form);
+    if (!input) return null;
+    const qty = Number(input.value) || 1;
+    const total = Math.max(0, Number(input.dataset.price) + readChoice(form).extra * qty);
+    return { qty, total };
+  }
+  // Total for the current choice: the offer's price, or the unit price times the quantity.
+  function buyTotal(form) {
+    const offer = offerPick(form);
+    if (offer) return offer;
+    const qty = Math.max(1, Math.min(20, Number(form.qty.value) || 1));
+    return { qty, total: Math.max(0, Number(form.dataset.price) + readChoice(form).extra) * qty };
+  }
+  function priceOffers(form) {
+    const box = $('[data-offers]', form);
+    if (!box) return;
+    const extra = readChoice(form).extra;
+    const unit = Math.max(0, Number(form.dataset.price) + extra);
+    $$('input', box).forEach((input) => {
+      const card = input.closest('.offer');
+      const qty = Number(input.value) || 1;
+      const now = Math.max(0, Number(input.dataset.price) + extra * qty);
+      $('[data-offer-now]', card).textContent = money(now);
+      const was = $('[data-offer-was]', card);
+      if (was) was.textContent = money(unit * qty);
+      const save = $('[data-offer-save]', card);
+      if (save) save.textContent = `${(i18n.offerSave || '{amount}').replace('{amount}', money(unit * qty - now))}${card.classList.contains('hot') ? ' 🔥' : ''}`;
+    });
+  }
   $$('form.buy').forEach((form) => {
     const base = Number(form.dataset.price);
     form.addEventListener('change', (e) => {
+      if (e.target.closest('[data-offers]')) {
+        form.qty.value = e.target.value;
+        return;
+      }
       const fs = e.target.closest('.options');
       if (!fs) return;
       const picked = $('[data-picked]', fs);
       if (picked) picked.textContent = `: ${e.target.value}`;
       const unit = Math.max(0, base + readChoice(form).extra);
       $$('[data-unit]').forEach((el) => (el.textContent = money(unit)));
+      priceOffers(form);
     });
   });
 
@@ -193,7 +230,7 @@
       slug: form.dataset.slug,
     };
     add(item);
-    window.shTrack?.('AddToCart', { value: item.price * item.qty, items: [item] });
+    window.shTrack?.('AddToCart', { value: buyTotal(form).total, items: [item] });
     if (go === 'checkout') location.href = `/${lang}/checkout`;
     else toast(i18n.added, true);
   }
@@ -226,8 +263,9 @@
       const n = ++seq;
       const it = item();
       const unit = unitPrice();
-      $('[data-q-sub]', quick).textContent = `${it.qty} × ${money(unit)}`;
-      $('[data-q-total]', quick).textContent = money(unit * it.qty);
+      const { total } = buyTotal(form);
+      $('[data-q-sub]', quick).textContent = it.qty > 1 && total === unit * it.qty ? `${it.qty} × ${money(unit)}` : money(total);
+      $('[data-q-total]', quick).textContent = money(total);
       try {
         const res = await fetch(`/api/quote?lang=${lang}`, {
           method: 'POST',
@@ -256,7 +294,7 @@
     form.city_other.addEventListener('change', quote);
     form.qty.addEventListener('change', quote);
     $$('[data-step]', form).forEach((b) => b.addEventListener('click', () => setTimeout(quote)));
-    $$('.options input', form).forEach((o) => o.addEventListener('change', quote));
+    $$('.options input, [data-offers] input', form).forEach((o) => o.addEventListener('change', () => setTimeout(quote)));
     quote();
     form.addEventListener('input', (e) => e.target.closest('label')?.querySelector('.field-error')?.remove());
     let started = false;
@@ -265,7 +303,7 @@
       started = true;
       const it = item();
       const unit = unitPrice();
-      window.shTrack?.('InitiateCheckout', { value: unit * it.qty, items: [{ ...it, name: form.dataset.name, price: unit }] });
+      window.shTrack?.('InitiateCheckout', { value: buyTotal(form).total, items: [{ ...it, name: form.dataset.name, price: unit }] });
     });
 
     return async function send() {

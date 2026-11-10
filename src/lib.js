@@ -161,14 +161,18 @@ export function productImages(p) {
 const OPTION_SEP = ' / ';
 const cleanLabel = (v) => String(v ?? '').replace(/\s*\/\s*/g, '/').replace(/[\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40);
 
+// With quantity offers the column holds an object instead: { groups: [...], bundles: [...] } (see cleanBundles).
+function optionsData(raw) {
+  if (typeof raw !== 'string') return raw;
+  const text = raw.trim();
+  if (!text) return [];
+  if (text.startsWith('[') || text.startsWith('{')) return parseJSON(text, []);
+  return [{ values: text.split(',').map((label) => ({ label })) }];
+}
+
 export function cleanOptions(raw) {
-  let list = raw;
-  if (typeof raw === 'string') {
-    const text = raw.trim();
-    if (!text) return [];
-    if (text.startsWith('[')) list = parseJSON(text, []);
-    else list = [{ values: text.split(',').map((label) => ({ label })) }];
-  }
+  let list = optionsData(raw);
+  if (list && !Array.isArray(list) && typeof list === 'object') list = list.groups;
   if (!Array.isArray(list)) return [];
   const groups = [];
   for (const g of list.slice(0, 6)) {
@@ -193,6 +197,81 @@ export function cleanOptions(raw) {
 
 export function productOptions(p) {
   return cleanOptions(p.options || '');
+}
+
+// Quantity offers ("2 for 340 DH, 3 for 480 DH"): each one is a number of pieces and the price for all of them
+// at the product's base price, with an optional title per language and a "most popular" flag.
+//   [{ qty, price, label: {ar, fr, en}, hot }]
+// One piece at the normal price is always offered first, so only offers from 2 pieces up are stored.
+export function cleanBundles(raw) {
+  const data = optionsData(raw);
+  const list = Array.isArray(data) ? null : data?.bundles;
+  if (!Array.isArray(list)) return [];
+  const byQty = new Map();
+  for (const b of list.slice(0, 8)) {
+    const qty = Math.floor(Number(b?.qty));
+    const price = Math.round(Number(b?.price));
+    if (!(qty >= 2 && qty <= 20) || !(price > 0) || price > 10000000 || byQty.has(qty)) continue;
+    const l = b.label && typeof b.label === 'object' ? b.label : {};
+    const label = Object.fromEntries(['ar', 'fr', 'en'].map((k) => [k, String(l[k] ?? '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 60)]));
+    byQty.set(qty, { qty, price, label, hot: Boolean(b.hot) });
+  }
+  return [...byQty.values()].sort((a, b) => a.qty - b.qty).slice(0, 5);
+}
+
+export function productBundles(p) {
+  return cleanBundles(p.options || '');
+}
+
+// What goes in products.options: the plain list of groups, or an object when the product has offers.
+export function packOptions(groups, bundles) {
+  const g = cleanOptions(groups);
+  const b = cleanBundles({ bundles });
+  if (b.length) return JSON.stringify({ groups: g, bundles: b });
+  return g.length ? JSON.stringify(g) : '';
+}
+
+// The offers that are real discounts for this product's current price (an offer typed before a price cut is dropped).
+export function liveBundles(p) {
+  return productBundles(p).filter((b) => b.price < p.price * b.qty);
+}
+
+// Price of `qty` pieces: the biggest offer that fits, then any extra pieces at the normal price.
+// `extra` is the per-piece price change of the chosen colour/size, added to every piece.
+export function bundleTotal(bundles, base, extra, qty) {
+  const unit = Math.max(0, base + extra);
+  const tier = [...bundles].reverse().find((b) => b.qty <= qty && b.price < base * b.qty) || null;
+  if (!tier) return { total: unit * qty, tier: null, saved: 0 };
+  const total = Math.max(0, tier.price + extra * tier.qty) + (qty - tier.qty) * unit;
+  return { total, tier, saved: unit * qty - total };
+}
+
+export function bundleTitle(b, lang) {
+  return b.label[lang] || '';
+}
+
+const OFFER_TEXT = {
+  ar: (n) => `عرض ${n} ${n <= 10 ? 'قطع' : 'قطعة'}`,
+  fr: (n) => `Offre ${n} pièces`,
+  en: (n) => `${n}-piece offer`,
+};
+
+// What an order line shows next to the product name: the colour/size and, when it applied, the offer.
+export function lineText(line, lang) {
+  const parts = [choiceText(line.choice, lang)];
+  if (line.bundle) parts.push(bundleTitle(line.bundle, lang) || (OFFER_TEXT[lang] || OFFER_TEXT.fr)(line.bundle.qty));
+  return parts.filter(Boolean).join(' · ');
+}
+
+// Order lines are stored with a whole-dirham price per piece. When an offer doesn't divide evenly
+// (3 for 500 DH), the line is split into two rows (1 × 166 + 2 × 167) so the rows still add up exactly.
+export function splitLine(total, qty) {
+  const low = Math.floor(total / qty);
+  const high = total - low * qty;
+  return [
+    { price: low, qty: qty - high },
+    { price: low + 1, qty: high },
+  ].filter((r) => r.qty > 0);
 }
 
 export function optionGroupName(g, lang) {
@@ -270,7 +349,8 @@ export async function quote(db, rawItems, city, settings) {
       }
     }
     used.set(p.id, (used.get(p.id) || 0) + qty);
-    lines.push({ product: p, id: p.id, option, choice, qty, price: unit, total: unit * qty });
+    const deal = bundleTotal(productBundles(p), p.price, choice.extra, qty);
+    lines.push({ product: p, id: p.id, option, choice, qty, price: unit, total: deal.total, bundle: deal.tier, saved: deal.saved });
   }
   const subtotal = lines.reduce((s, l) => s + l.total, 0);
   // Delivery is included in the product prices (free delivery, cash on delivery), so nothing is added on top.

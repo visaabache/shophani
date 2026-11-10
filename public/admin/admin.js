@@ -120,6 +120,13 @@
         value: 'القيمة', valuePh: 'مثال: أحمر، XL، 128GB', extra: 'فرق الثمن (درهم)', addValue: 'إضافة قيمة', removeGroup: 'حذف هذا الخيار',
         needValue: 'أضف قيمة واحدة على الأقل لكل خيار، أو احذفه.',
       },
+      offers: 'عروض الكمية (مثال: 2 بـ 340 درهم)',
+      bun: {
+        hint: 'تظهر كبطاقات يختار منها الزبون في صفحة المنتج: قطعة واحدة بالثمن العادي، ثم العروض. الثمن هو ثمن كل القطع معًا، ويُحسب التوفير تلقائيًا.',
+        qty: 'عدد القطع', price: 'ثمن الكل (درهم)', title: 'عنوان البطاقة (اختياري)', titlePh: 'مثال: جوج طقوم بـ 340 درهم', hot: 'الأكثر طلبًا 🔥',
+        add: 'إضافة عرض', save: (x) => `توفير ${x}`, notCheaper: 'ليس أرخص من الثمن العادي، لن يظهر',
+        bad: 'كل عرض يحتاج عدد قطع من 2 إلى 20 وثمنًا، وعددًا مختلفًا عن العروض الأخرى.',
+      },
       photos: 'الصور', addPhotos: 'اختيار صور', takePhoto: 'التقاط صورة',
       dropHere: 'اسحب الصور هنا أو اخترها من جهازك', dropHint: 'JPG، PNG، WEBP… تُصغَّر تلقائيًا قبل الرفع. الصورة الأولى هي الرئيسية.',
       mainPhoto: 'رئيسية', moveBefore: 'تقديم', moveAfter: 'تأخير', pasteLinks: 'أو الصق روابط صور',
@@ -307,6 +314,13 @@
         groupName: 'Nom de l’option', type: 'Type', typeText: 'Boutons texte', typeColor: 'Couleurs',
         value: 'Valeur', valuePh: 'ex. Rouge, XL, 128 Go', extra: 'Écart de prix (DH)', addValue: 'Ajouter une valeur', removeGroup: 'Supprimer cette option',
         needValue: 'Ajoutez au moins une valeur à chaque option, ou supprimez-la.',
+      },
+      offers: 'Offres par quantité (ex. 2 pour 340 DH)',
+      bun: {
+        hint: 'Affichées en cartes à choisir sur la page produit : 1 pièce au prix normal, puis vos offres. Le prix est celui de toutes les pièces ensemble ; l’économie est calculée toute seule.',
+        qty: 'Pièces', price: 'Prix du lot (DH)', title: 'Titre de la carte (facultatif)', titlePh: 'ex. 2 sets pour 340 DH', hot: 'Le plus choisi 🔥',
+        add: 'Ajouter une offre', save: (x) => `Économie ${x}`, notCheaper: 'Pas moins cher que le prix normal : ne sera pas affichée',
+        bad: 'Chaque offre demande de 2 à 20 pièces et un prix, avec un nombre de pièces différent des autres offres.',
       },
       photos: 'Photos', addPhotos: 'Choisir des photos', takePhoto: 'Prendre une photo',
       dropHere: 'Glissez vos photos ici ou choisissez-les sur votre appareil', dropHint: 'JPG, PNG, WEBP… réduites automatiquement avant l’envoi. La première photo est la photo principale.',
@@ -847,9 +861,26 @@
     for (let q = 0.75; blob.size > 0.95 * 1024 * 1024 && q > 0.4; q -= 0.15) blob = await encode(blob.type, q);
     return blob;
   }
-  function parseOptions(raw) {
+  // products.options holds the list of groups, or { groups, bundles } when the product has quantity offers.
+  function parseBundles(raw) {
     const text = String(raw || '').trim();
+    if (!text.startsWith('{')) return [];
+    try {
+      return (JSON.parse(text).bundles || []).map((b) => ({ qty: b.qty, price: b.price, label: { ar: '', fr: '', en: '', ...b.label }, hot: Boolean(b.hot) }));
+    } catch {
+      return [];
+    }
+  }
+  function parseOptions(raw) {
+    let text = String(raw || '').trim();
     if (!text) return [];
+    if (text.startsWith('{')) {
+      try {
+        text = JSON.stringify(JSON.parse(text).groups || []);
+      } catch {
+        return [];
+      }
+    }
     if (text.startsWith('[')) {
       try {
         return JSON.parse(text).map((g) => ({ name: { ar: '', fr: '', en: '', ...g.name }, type: g.type === 'color' ? 'color' : 'text', values: (g.values || []).map((v) => ({ label: v.label || '', price: v.price || 0, color: v.color || '#cccccc' })) }));
@@ -883,6 +914,11 @@
           <button type="button" class="btn ghost" data-opt-add="size">${icon('plus', 18)}<span>${L.opt.size}</span></button>
           <button type="button" class="btn ghost" data-opt-add="other">${icon('plus', 18)}<span>${L.opt.other}</span></button>
         </div>
+      </div>
+      <div class="card"><h2>${L.offers}</h2>
+        <p class="muted small">${L.bun.hint}</p>
+        <div id="bundles"></div>
+        <div class="actions"><button type="button" class="btn ghost" data-bun-add>${icon('plus', 18)}<span>${L.bun.add}</span></button></div>
       </div>
       <div class="card"><h2>${L.photos}</h2>
         <div class="photos" id="photos"></div>
@@ -1057,6 +1093,64 @@
         .join('');
     };
     drawOpts();
+    // Quantity offers builder.
+    const bundles = parseBundles(p.options);
+    const bunBox = document.getElementById('bundles');
+    const basePrice = () => Math.round(Number(f.price.value) || 0);
+    const bunNote = (b) => {
+      const was = basePrice() * (b.qty || 0);
+      if (!b.qty || !b.price || !was) return '';
+      return b.price < was ? `<span class="bun-save">${L.bun.save(dh(was - b.price))}</span>` : `<span class="bun-warn">${L.bun.notCheaper}</span>`;
+    };
+    const drawBundles = () => {
+      bunBox.innerHTML = bundles
+        .map(
+          (b, bi) => `<div class="bun" data-b="${bi}">
+          <div class="bun-row">
+            <label>${L.bun.qty}<input data-k="qty" type="number" min="2" max="20" step="1" inputmode="numeric" value="${b.qty || ''}" dir="ltr"></label>
+            <label>${L.bun.price}<input data-k="price" type="number" min="1" step="1" inputmode="numeric" value="${b.price || ''}" dir="ltr"></label>
+            <label class="switch"><input type="checkbox" data-k="hot"${b.hot ? ' checked' : ''}><span></span> ${L.bun.hot}</label>
+            <button type="button" class="x" data-bun-del title="${L.remove}" aria-label="${L.remove}">✕</button>
+          </div>
+          <p class="bun-note small" data-bun-note>${bunNote(b)}</p>
+          <details${contentLangs().some((l) => b.label[l]) ? ' open' : ''}><summary class="muted small">${L.bun.title}</summary>
+            <div class="cols3">${contentLangs().map((l) => `<label>${LANG_LABEL[l]}<input data-k="label" data-l="${l}" value="${esc(b.label[l] || '')}" placeholder="${L.bun.titlePh}" ${dirOf(l)} maxlength="60"></label>`).join('')}</div>
+          </details>
+        </div>`,
+        )
+        .join('');
+    };
+    drawBundles();
+    const refreshNotes = () => bunBox.querySelectorAll('[data-b]').forEach((el) => (el.querySelector('[data-bun-note]').innerHTML = bunNote(bundles[Number(el.dataset.b)])));
+    f.price.addEventListener('input', refreshNotes);
+    bunBox.addEventListener('input', (e) => {
+      const el = e.target;
+      const b = bundles[Number(el.closest('[data-b]')?.dataset.b)];
+      if (!b) return;
+      if (el.dataset.k === 'qty') b.qty = Math.round(Number(el.value) || 0);
+      else if (el.dataset.k === 'price') b.price = Math.round(Number(el.value) || 0);
+      else if (el.dataset.k === 'hot') b.hot = el.checked;
+      else if (el.dataset.k === 'label') b.label[el.dataset.l] = el.value;
+      refreshNotes();
+    });
+    bunBox.addEventListener('change', (e) => {
+      if (e.target.dataset.k !== 'hot' || !e.target.checked) return;
+      // Only one offer is "most popular".
+      bundles.forEach((b, i) => (b.hot = i === Number(e.target.closest('[data-b]').dataset.b)));
+      drawBundles();
+    });
+    f.addEventListener('click', (e) => {
+      if (e.target.closest('[data-bun-add]')) {
+        const last = bundles[bundles.length - 1];
+        const qty = Math.min(20, last ? last.qty + 1 : 2);
+        bundles.push({ qty, price: 0, label: { ar: '', fr: '', en: '' }, hot: false });
+        drawBundles();
+        bunBox.querySelector(`[data-b="${bundles.length - 1}"] [data-k="price"]`)?.focus();
+      } else if (e.target.closest('[data-bun-del]')) {
+        bundles.splice(Number(e.target.closest('[data-b]').dataset.b), 1);
+        drawBundles();
+      }
+    });
     optsBox.addEventListener('input', (e) => {
       const el = e.target;
       const g = opts[Number(el.closest('[data-g]')?.dataset.g)];
@@ -1108,6 +1202,9 @@
       const groups = opts.map((g) => ({ ...g, values: g.values.filter((v) => v.label.trim()) }));
       if (groups.some((g) => !g.values.length)) return toast(L.opt.needValue, true);
       data.options = JSON.stringify(groups);
+      const qtys = bundles.map((b) => b.qty);
+      if (bundles.some((b) => !(b.qty >= 2 && b.qty <= 20) || !(b.price > 0)) || new Set(qtys).size !== qtys.length) return toast(L.bun.bad, true);
+      data.bundles = bundles;
       try {
         await api(p.id ? `/products/${p.id}` : '/products', { method: p.id ? 'PUT' : 'POST', body: data });
         toast(L.productSaved);
