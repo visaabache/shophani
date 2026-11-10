@@ -1,4 +1,4 @@
-// Store admin in Arabic (default, right-to-left) and French: dashboard, orders, products, categories
+// Store admin in Arabic (default, right-to-left), French and English: dashboard, orders, products, categories
 // and settings. Talks to /api/admin/*. Pages are addressed by the URL hash (#dashboard, #orders,
 // #order-12…) so links and the back button work. The chosen language is remembered in localStorage.
 (() => {
@@ -26,7 +26,6 @@
       loginHint: 'سجّل الدخول لإدارة طلباتك.',
       password: 'كلمة السر',
       signIn: 'دخول',
-      switchTo: 'Français',
       errors: {
         wrong_password: 'كلمة السر غير صحيحة.',
         locked: 'محاولات كثيرة خاطئة. تم إيقاف الدخول من هذا الجهاز مؤقتًا، حاول لاحقًا.',
@@ -221,7 +220,6 @@
       loginHint: 'Connectez-vous pour gérer vos commandes.',
       password: 'Mot de passe',
       signIn: 'Se connecter',
-      switchTo: 'العربية',
       errors: {
         wrong_password: 'Mot de passe incorrect.',
         locked: 'Trop d’essais ratés. La connexion depuis cet appareil est bloquée un moment, réessayez plus tard.',
@@ -395,6 +393,200 @@
       testSent: (to) => `E-mail de test envoyé à ${to}`,
       fr: 'Français', ar: 'العربية', en: 'English',
     },
+    en: {
+      locale: 'en-GB',
+      status: { new: 'New', confirmed: 'Confirmed', shipped: 'Shipped', delivered: 'Delivered', cancelled: 'Cancelled', returned: 'Returned' },
+      nav: { dashboard: 'Dashboard', orders: 'Orders', products: 'Products', categories: 'Categories', blog: 'Blog', settings: 'Settings' },
+      navShort: { dashboard: 'Home' },
+      blog: {
+        postTitle: 'Title', date: 'Date', newPost: 'New post', editPost: 'Edit post',
+        count: (n) => (n === 1 ? '1 post' : `${n} posts`),
+        noPosts: 'No posts yet. Write the first one to bring in visitors from Google.',
+        excerpt: 'Short summary', excerptHint: 'One or two sentences shown in Google and in the post list (300 characters max). Use the words your customers search for.',
+        cover: 'Cover photo', coverHint: 'Shown at the top of the post and when it is shared on WhatsApp or Facebook.', uploadCover: 'Upload a photo', coverLink: 'Or an image link',
+        body: 'Post text', published: 'Published on the site', saved: 'Post saved', deleted: 'Post deleted', confirmDelete: 'Delete this post?',
+      },
+      seo: 'Google (search)', seoHint: 'The sitemap is published automatically at /sitemap.xml, with your current products, categories and posts. To connect the store to Google Search Console, paste the verification code here.',
+      googleVerify: 'Google Search Console verification code', googleHow: 'In Search Console, choose “URL prefix”, then the “HTML tag” method, and copy the whole tag or just the content value.',
+      viewStore: 'View store',
+      logout: 'Log out',
+      sellerSpace: 'Seller space',
+      loginHint: 'Sign in to manage your orders.',
+      password: 'Password',
+      signIn: 'Sign in',
+      errors: {
+        wrong_password: 'Wrong password.',
+        locked: 'Too many failed attempts. Sign-in from this device is blocked for a while, try again later.',
+        bad_origin: 'Request refused.',
+        slug_taken: 'This address (slug) is already used.',
+        name_required: 'Add at least one name.',
+        title_required: 'Add at least one title.',
+        price_required: 'Enter a price.',
+        not_enough_stock: 'Not enough stock to reopen this order.',
+        bad_shipping_rates: 'Rates by city: invalid format.',
+        no_r2: 'Photo storage (R2) is not set up.',
+        too_large: 'Photo too large (5 MB max).',
+        video_too_large: 'Video too large (5 MB max).',
+        bad_type: 'Photo format not supported.',
+        no_email_key: 'The Brevo key is not installed yet (see the steps below).',
+        no_email_from: 'Enter the sender address (verified in Brevo).',
+        no_notify_email: 'Enter the address that receives the alerts.',
+        email_failed: 'Brevo refused to send.',
+        generic: 'Error',
+      },
+      ago: { now: 'just now', min: (n) => `${n} min ago`, hour: (n) => `${n} h ago`, day: (n) => `${n} d ago` },
+      hello: ['Good morning', 'Good afternoon', 'Good evening'],
+      pending: (n) => `${n} order${n > 1 ? 's' : ''} to confirm.`,
+      pendingHint: 'Call or message on WhatsApp before shipping.',
+      sales30: 'Sales · 30 days',
+      orders30: 'Orders · 30 d',
+      today: 'Today',
+      aov: 'Average order',
+      excludingCancelled: 'excluding cancelled',
+      collected30: 'Collected · 30 d',
+      deliveredOrders: 'orders delivered',
+      deliveredRate: (n) => `${n} % delivered of closed orders`,
+      isNew: 'New',
+      salesPerDay: 'Sales per day',
+      last30dh: 'Last 30 days, in DH',
+      days30: '30 days',
+      salesChartLabel: 'Sales per day over 30 days',
+      ordersN: (n) => `${n} order${n > 1 ? 's' : ''}`,
+      pipeline: 'Order pipeline',
+      noOrdersMonth: 'No orders yet this month.',
+      cities: 'Cities',
+      ordersShort30: 'orders, 30 d',
+      nothingYet: 'Nothing to show yet.',
+      bestSellers: 'Best sellers',
+      bestSellersEmpty: 'Your best-selling products will appear here.',
+      latestOrders: 'Latest orders',
+      seeAll: 'See all',
+      noOrdersYet: 'No orders yet. Share your store link!',
+      lowStock: 'Low stock',
+      left: (n) => `${n} left`,
+      soldOut: 'Sold out',
+      emails: 'Automatic emails',
+      emailsOn: 'On',
+      emailsOff: 'To set up',
+      emailsOnText: (to) => `Confirmation to the customer and an alert to <strong>${to}</strong> for every order.`,
+      emailsOffText: 'Send your customers a confirmation and get an alert for every order.',
+      emailSettings: 'Email settings',
+      setUp: 'Set up in 5 minutes',
+      exportCsv: 'Export CSV',
+      total: (n) => `${n} in total`,
+      all: 'All',
+      searchOrders: 'No., name, phone, city',
+      thOrder: 'Order', thCustomer: 'Customer', thCity: 'City', thTotal: 'Total', thStatus: 'Status',
+      noMatch: 'No orders match.',
+      orderAt: 'Order',
+      language: 'Language',
+      phone: 'Phone', email: 'Email', city: 'City', address: 'Address', note: 'Note',
+      call: 'Call',
+      delivery: 'Delivery', free: 'Free', toCollect: 'To collect',
+      adminNote: 'Internal note', adminNoteHint: 'Only visible to you',
+      changeStatus: 'Change status',
+      statusEmailHint: 'The customer gets an email when the order moves to Confirmed, Shipped, Delivered or Cancelled.',
+      updated: 'Order updated',
+      updatedEmailed: 'Order updated · email sent to the customer',
+      noteSaved: 'Note saved',
+      close: 'Close',
+      thProduct: 'Product', thCategory: 'Category', thPrice: 'Price', thStock: 'Stock', thState: 'State',
+      home: '★ Home', online: 'Online', hidden: 'Hidden',
+      noProducts: 'No products. Add the first one.',
+      nProducts: (n) => `${n} product${n > 1 ? 's' : ''}`,
+      add: 'Add',
+      editProduct: 'Edit product', newProduct: 'New product',
+      name: 'Name', priceStock: 'Price and stock',
+      price: 'Price (DH)', comparePrice: 'Old price (crossed out, optional)', stock: 'Stock (empty = unlimited)', category: 'Category',
+      options: 'Options (colours, sizes…)',
+      opt: {
+        hint: 'Add what the customer picks before ordering: colour, size, capacity… Their choice appears in the order and the emails.',
+        color: 'Colour', size: 'Size', other: 'Other option',
+        colorName: 'Colour', sizeName: 'Size',
+        groupName: 'Option name', type: 'Type', typeText: 'Text buttons', typeColor: 'Colours',
+        value: 'Value', valuePh: 'e.g. Red, XL, 128 GB', extra: 'Price difference (DH)', addValue: 'Add a value', removeGroup: 'Remove this option',
+        needValue: 'Add at least one value to each option, or remove it.',
+      },
+      offers: 'Quantity offers (e.g. 2 for 340 DH)',
+      bun: {
+        hint: 'Shown as cards to pick on the product page: 1 piece at the normal price, then your offers. The price is for all the pieces together; the saving is worked out for you.',
+        qty: 'Pieces', price: 'Bundle price (DH)', title: 'Card title (optional)', titlePh: 'e.g. 2 sets for 340 DH', hot: 'Most popular 🔥',
+        add: 'Add an offer', save: (x) => `Save ${x}`, notCheaper: 'Not cheaper than the normal price: it will not be shown',
+        bad: 'Each offer needs 2 to 20 pieces and a price, with a number of pieces different from the other offers.',
+      },
+      photos: 'Photos', addPhotos: 'Choose photos', takePhoto: 'Take a photo',
+      dropHere: 'Drag your photos here or choose them on your device', dropHint: 'JPG, PNG, WEBP… shrunk automatically before upload. The first photo is the main photo.',
+      mainPhoto: 'Main', moveBefore: 'Move earlier', moveAfter: 'Move later', pasteLinks: 'Or paste image links',
+      uploadFailed: (n) => `Upload of ${n} failed`, notImage: (n) => `${n} is not a supported image`, waitUploads: 'Wait for the photos to finish uploading.',
+      photoLinks: 'Photo links (one per line)', remove: 'Remove',
+      description: 'Description', display: 'Display',
+      rte: {
+        toolbar: 'Formatting', bold: 'Bold', italic: 'Italic', underline: 'Underline', strike: 'Strikethrough',
+        h2: 'Heading', h3: 'Subheading', para: 'Normal text', quote: 'Quote', ul: 'Bulleted list', ol: 'Numbered list',
+        left: 'Align left', center: 'Center', right: 'Align right', justify: 'Justify', textSize: 'Text size', sizes: [['1', 'Very small'], ['2', 'Small'], ['3', 'Normal'], ['4', 'Large'], ['5', 'Very large'], ['6', 'Huge'], ['7', 'Giant heading']], color: 'Text colour', colorMore: 'More colours', colorAuto: 'Automatic', colorTheme: 'Theme colours', colorStandard: 'Standard colours', colorStore: 'Store colours', colorRecent: 'Recent colours', colorCustom: 'More colours…', colorApply: 'Apply', link: 'Link', hr: 'Divider',
+        clear: 'Clear formatting', photo: 'Photo / GIF', video: 'Video', undo: 'Undo', redo: 'Redo', full: 'Full screen', size: 'Size', smaller: 'Smaller', bigger: 'Bigger', dragSize: 'Drag to resize', resetShape: 'Original shape',
+        linkPrompt: 'Link address (https://…)', placeholder: 'Write the product description here…',
+        hint: 'Write like in Word: format the text and add photos (1 MB max), GIFs and videos (5 MB max) wherever you like. You can also drag or paste them straight in. Click a photo or video to change its size.',
+        uploading: (n) => `Uploading ${n}…`, gifTooBig: (n) => `The GIF ${n} is over 5 MB.`,
+      },
+      descMedia: 'Description photos and videos', addMedia: 'Add photos or a video',
+      descMediaHint: 'Shown under the description text on the product page. Photos up to 1 MB (shrunk automatically), MP4, WebM or MOV videos up to 5 MB.',
+      videoTooBig: (n) => `The video ${n} is over 5 MB. Make it smaller and try again.`, photoTooBig: (n) => `The photo ${n} is over 1 MB.`,
+      notMedia: (n) => `${n} is not a supported photo or video`,
+      slug: 'Page address (slug)', auto: 'automatic', sort: 'Display order',
+      featured: 'Feature on the home page', active: 'Online (visible in the store)',
+      cancel: 'Cancel', view: 'View', del: 'Delete', save: 'Save',
+      confirmDeleteProduct: 'Delete this product? Past orders are kept.',
+      productDeleted: 'Product deleted', productSaved: 'Product saved',
+      uploading: (n) => `Uploading ${n}…`,
+      catsSub: 'The aisles of your store',
+      thPhoto: 'Photo', thPhotoLink: 'Photo link', thSort: 'Order', thProducts: 'Products',
+      newCategory: 'New category', ok: 'OK',
+      catSaved: 'Category saved',
+      confirmDeleteCat: 'Delete this category? Its products stay online, without a category.',
+      store: 'Store', storeName: 'Store name', whatsapp: 'WhatsApp number (e.g. 212612345678)', contactEmail: 'Contact email (customers reply to it)',
+      emailsIntro: 'For every order, the customer gets a confirmation in their language (if they gave their email) and you get an alert. The customer is also told when their order is confirmed, shipped, delivered or cancelled.',
+      keyOk: 'Brevo key installed', keyMissing: 'Brevo key missing',
+      emailFrom: 'Sender address (verified in Brevo)', notifyEmail: 'Send order alerts to (several addresses allowed, separated by commas)',
+      statusUpdates: 'Tell the customer at every status change',
+      currency: 'Currency', autoCurrency: 'Show prices in the visitor’s country currency (euro, dollar, pound…)',
+      currencyHint: 'The customer always pays in dirhams on delivery: converted prices are a guide, with rates updated every 12 hours. Orders and the admin stay in dirhams.',
+      weakPassword: 'The admin password is short. Use at least 12 characters (npx wrangler secret put ADMIN_PASSWORD).',
+      social: 'Social networks',
+      socialHint: 'Paste the page link or just the account name (e.g. @shophani). The icons show at the bottom of the store.',
+      pixels: 'Ad pixels',
+      pixelsHint: 'Paste only the ID, not the full code. No pixel loads until the visitor accepts cookies.',
+      metaPixel: 'Meta Pixel ID (Facebook and Instagram)',
+      metaHow: 'Facebook: Meta Events Manager → Data sources → your pixel → the 15 or 16 digit ID (Dataset ID).',
+      tiktokPixel: 'TikTok Pixel ID',
+      tiktokHow: 'TikTok: TikTok Ads Manager → Tools → Events → Web Events → your pixel → the ID (e.g. C4ABC…).',
+      legal: 'Legal information',
+      legalHint: 'Shown in the privacy policy and terms of sale. These texts are a draft: have an accountant or lawyer review them.',
+      legalName: 'Company or personal name (auto-entrepreneur)',
+      legalIce: 'ICE',
+      legalRc: 'RC or auto-entrepreneur no.',
+      legalAddress: 'Address',
+      legalCndp: 'CNDP declaration no. (if available)',
+      viewPages: 'See the pages:',
+      legalPrivacy: 'Privacy',
+      legalTerms: 'Terms of sale',
+      sendTest: 'Send a test', howItWorks: 'How does it work?',
+      steps: [
+        'Create a free account on <a href="https://www.brevo.com" target="_blank" rel="noopener">brevo.com</a> (300 free emails a day).',
+        'In Brevo, open <em>Senders, domains and dedicated IPs</em> and add your sender address (for example your Gmail). Click the verification link you receive.',
+        'In Brevo, open <em>SMTP and API → API keys</em> and create a key. Do not share it with anyone.',
+        'On your PC, in the store folder, run <code>npx wrangler secret put BREVO_API_KEY</code> and paste the key when asked.',
+        'Enter the verified address below, save, then click “Send a test”.',
+      ],
+      shipping: 'Delivery', shippingIncluded: 'Free delivery to every city: it is included in the product prices, the customer only pays the price shown, on delivery.', shippingFee: 'Default delivery fee (DH)', freeOver: 'Free delivery from (DH, 0 = never)',
+      rates: 'Rates by city (one line per city: City = price)',
+      banner: 'Announcement bar', bannerHint: 'The message that scrolls at the top of every page.',
+      homePage: 'Home page', homeHint: 'Leave empty to keep the default text.',
+      heroTitle: 'Title', heroText: 'Subtitle',
+      saveSettings: 'Save settings', settingsSaved: 'Settings saved',
+      testSent: (to) => `Test email sent to ${to}`,
+      fr: 'French', ar: 'Arabic', en: 'English',
+    },
   };
 
   const savedLang = (() => {
@@ -420,6 +612,7 @@
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const num = (n) => String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const colon = () => (lang === 'fr' ? ' : ' : ': ');
   const dh = (n) => (lang === 'ar' ? `${num(n)} درهم` : `${num(n)} DH`);
   const date = (s) => new Date(`${s.replace(' ', 'T')}Z`);
   const when = (s) => date(s).toLocaleString(L.locale, { dateStyle: 'short', timeStyle: 'short', numberingSystem: 'latn' });
@@ -435,7 +628,9 @@
   const LANG_LABEL = { ar: 'العربية', fr: 'Français', en: 'English' };
   const dirOf = (l) => (l === 'ar' ? 'dir="rtl" lang="ar"' : `dir="ltr" lang="${l}"`);
   // Translations are entered with the admin's own language first.
-  const contentLangs = () => (lang === 'ar' ? ['ar', 'fr', 'en'] : ['fr', 'ar', 'en']);
+  const contentLangs = () => ({ ar: ['ar', 'fr', 'en'], fr: ['fr', 'ar', 'en'], en: ['en', 'fr', 'ar'] })[lang];
+  // A name in the admin's language, else the nearest other one.
+  const pick = (x, k) => contentLangs().map((l) => x[`${k}_${l}`]).find(Boolean);
   let state = { page: 'dashboard', status: '', q: '', images: false, emails: false, settings: {}, categories: [] };
 
   // Line icons, 24×24, stroke = currentColor.
@@ -495,8 +690,10 @@
     return data;
   }
 
-  const other = () => (lang === 'ar' ? 'fr' : 'ar');
-  const langButton = (cls = '') => `<button type="button" class="lang-switch ${cls}" data-lang="${other()}" lang="${other()}">${icon('globe', 18)}<span>${L.switchTo}</span></button>`;
+  // Language switcher: one button per admin language, the current one highlighted.
+  const ADMIN_LANGS = [['ar', 'عربي'], ['fr', 'FR'], ['en', 'EN']];
+  const langButton = (cls = '') =>
+    `<div class="lang-switch ${cls}" role="group" aria-label="${L.language}">${icon('globe', 18)}${ADMIN_LANGS.map(([l, t]) => `<button type="button" data-lang="${l}" lang="${l}" title="${LANG_LABEL[l]}" aria-pressed="${l === lang}"${l === lang ? ' class="on"' : ''}>${t}</button>`).join('')}</div>`;
 
   // Login
   function login() {
@@ -533,7 +730,7 @@
         <a href="#dashboard" class="side-logo"><img src="/admin/logo-dark.svg" alt="${esc(state.settings.store_name || 'Shop Hani')}"></a>
         <nav class="side-nav">${nav}</nav>
         <div class="side-foot">
-          <button class="nav-item" data-lang="${other()}" lang="${other()}">${icon('globe')}<span>${L.switchTo}</span></button>
+          ${langButton('side-lang')}
           <a href="/${lang}/" target="_blank" rel="noopener" class="nav-item">${icon('external')}<span>${L.viewStore}</span></a>
           <button class="nav-item" data-logout>${icon('logout')}<span>${L.logout}</span></button>
         </div>
@@ -590,8 +787,8 @@
   }
 
   const loading = (title) => shell(title, '<div class="skeleton-grid"><div></div><div></div><div></div><div></div></div>');
-  const catName = (c) => (lang === 'ar' ? c.name_ar || c.name_fr : c.name_fr || c.name_ar) || '—';
-  const prodName = (p) => (lang === 'ar' ? p.name_ar || p.name_fr || p.name_en : p.name_fr || p.name_ar || p.name_en);
+  const catName = (c) => pick(c, 'name') || '—';
+  const prodName = (p) => pick(p, 'name');
 
   // Dashboard
   function trend(now, prev) {
@@ -691,8 +888,8 @@
       `${hello} 👋`,
       `${s.new_orders ? `<a href="#orders" class="callout" data-filter="new">${icon('alert')}<span><strong>${L.pending(s.new_orders)}</strong> ${L.pendingHint}</span>${icon('arrow', 18)}</a>` : ''}
       <section class="kpis">
-        <div class="kpi kpi-hero"><span class="kpi-label">${L.sales30}</span><strong class="kpi-value">${dh(s.sales_30d)}</strong>${trend(s.sales_30d || 0, s.sales_prev || 0)}<span class="kpi-foot">${L.today} : ${dh(s.today_sales)}</span></div>
-        <div class="kpi"><span class="kpi-label">${L.orders30}</span><strong class="kpi-value">${num(s.orders_30d)}</strong>${trend(s.orders_30d || 0, s.orders_prev || 0)}<span class="kpi-foot">${L.today} : ${num(s.today)}</span></div>
+        <div class="kpi kpi-hero"><span class="kpi-label">${L.sales30}</span><strong class="kpi-value">${dh(s.sales_30d)}</strong>${trend(s.sales_30d || 0, s.sales_prev || 0)}<span class="kpi-foot">${L.today}${colon()}${dh(s.today_sales)}</span></div>
+        <div class="kpi"><span class="kpi-label">${L.orders30}</span><strong class="kpi-value">${num(s.orders_30d)}</strong>${trend(s.orders_30d || 0, s.orders_prev || 0)}<span class="kpi-foot">${L.today}${colon()}${num(s.today)}</span></div>
         <div class="kpi"><span class="kpi-label">${L.aov}</span><strong class="kpi-value">${dh(aov)}</strong><span class="kpi-foot">${L.excludingCancelled}</span></div>
         <div class="kpi"><span class="kpi-label">${L.collected30}</span><strong class="kpi-value">${dh(s.revenue_30d)}</strong><span class="kpi-foot">${rate == null ? L.deliveredOrders : L.deliveredRate(rate)}</span></div>
       </section>
@@ -701,7 +898,7 @@
         <div class="card"><div class="card-head"><h2>${L.pipeline}</h2><span class="muted small">${L.days30}</span></div>${pipeline(s.by_status)}</div>
         <div class="card"><div class="card-head"><h2>${L.cities}</h2><span class="muted small">${L.ordersShort30}</span></div>${hbars(s.top_cities, (r) => esc(r.city), (r) => r.n, (r) => r.n)}</div>
         <div class="card"><div class="card-head"><h2>${L.bestSellers}</h2><span class="muted small">${L.days30}</span></div>
-          ${s.top_products.length ? `<ol class="top">${s.top_products.map((p, i) => `<li><span class="rank">${i + 1}</span><img src="${esc(p.image || '/assets/placeholder.svg')}" alt=""><span class="grow">${esc((lang === 'ar' && p.name_ar) || p.name)}<small>${dh(p.sales)}</small></span><b dir="ltr">${p.qty}×</b></li>`).join('')}</ol>` : `<p class="empty-small">${L.bestSellersEmpty}</p>`}
+          ${s.top_products.length ? `<ol class="top">${s.top_products.map((p, i) => `<li><span class="rank">${i + 1}</span><img src="${esc(p.image || '/assets/placeholder.svg')}" alt=""><span class="grow">${esc((lang !== 'fr' && p[`name_${lang}`]) || p.name)}<small>${dh(p.sales)}</small></span><b dir="ltr">${p.qty}×</b></li>`).join('')}</ol>` : `<p class="empty-small">${L.bestSellersEmpty}</p>`}
         </div>
         <div class="card"><div class="card-head"><h2>${L.latestOrders}</h2><a href="#orders" class="link-arrow">${L.seeAll} ${icon('arrow', 16)}</a></div>
           ${s.recent.length ? `<ul class="recent">${s.recent.map((o) => `<li><a href="#order-${o.id}"><span class="avatar">${esc((o.name || '?').trim().charAt(0).toUpperCase())}</span><span class="grow"><strong><bdi>${esc(o.name)}</bdi></strong><small><bdi>${esc(o.city)}</bdi> · ${ago(o.created_at)}</small></span><span class="end"><b>${dh(o.total)}</b><span class="status s-${o.status}">${L.status[o.status]}</span></span></a></li>`).join('')}</ul>` : `<p class="empty-small">${L.noOrdersYet}</p>`}
@@ -1716,7 +1913,7 @@
 
   // Categories
   // Blog: articles bring visitors from Google whatever products are in the shop.
-  const postTitle = (x) => (lang === 'ar' ? x.title_ar || x.title_fr || x.title_en : x.title_fr || x.title_ar || x.title_en) || '—';
+  const postTitle = (x) => pick(x, 'title') || '—';
   async function blog() {
     loading(L.nav.blog);
     const B = L.blog;
