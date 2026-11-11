@@ -1,17 +1,32 @@
-// Storefront script: the cart (kept in localStorage), add-to-cart, the cart page and checkout.
+// Storefront script: the cart (kept in localStorage), add-to-cart, the cart page and checkout,
+// plus the home slideshow, the product gallery and scroll reveals.
 // Prices shown in the cart always come from the server (/api/quote), never from localStorage.
 (() => {
+  document.documentElement.classList.add('js');
   const KEY = 'cart.v1';
   const i18n = JSON.parse(document.getElementById('i18n')?.textContent || '{}');
   const lang = i18n.lang || document.documentElement.lang || 'fr';
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  function money(n) {
+  // Dirhams, the currency the courier collects.
+  function mad(n) {
     const d = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, lang === 'en' ? ',' : ' ');
     return lang === 'ar' ? `${d} درهم` : lang === 'en' ? `MAD ${d}` : `${d} DH`;
   }
+  // Amounts in the visitor's currency (set by the server from their country or choice); MAD otherwise.
+  const cur = i18n.cur || 'MAD';
+  const converted = cur !== 'MAD' && i18n.rate > 0;
+  const decimals = cur === 'KWD' ? 3 : 2;
+  const curFmt = converted
+    ? new Intl.NumberFormat({ ar: 'ar-MA', fr: 'fr-FR', en: 'en-US' }[lang] || 'fr-FR', { style: 'currency', currency: cur, minimumFractionDigits: decimals, maximumFractionDigits: decimals, numberingSystem: 'latn' })
+    : null;
+  const money = (n) => (converted ? curFmt.format(n * i18n.rate) : mad(n));
+  // Footer currency menu: switch as soon as a currency is picked.
+  $$('[data-cur]').forEach((sel) => sel.addEventListener('change', () => sel.form.submit()));
+  const small = (url) => (/^\/assets\/photos\/[a-z0-9-]+\.webp$/.test(url) && !url.endsWith('-sm.webp') ? url.replace(/\.webp$/, '-sm.webp') : url);
 
   function load() {
     try {
@@ -27,22 +42,27 @@
     } catch {}
     badge();
   }
-  function badge() {
+  function badge(bump) {
     const n = load().reduce((s, i) => s + (i.qty || 0), 0);
     $$('.cart-count').forEach((el) => {
       el.textContent = n;
       el.hidden = n === 0;
+      if (bump) {
+        el.classList.remove('bump');
+        void el.offsetWidth;
+        el.classList.add('bump');
+      }
     });
   }
 
   let toastTimer;
-  function toast(text) {
+  function toast(text, withCartLink) {
     const el = $('.toast');
     if (!el) return;
-    el.textContent = text;
+    el.innerHTML = `<span>${esc(text)}</span>${withCartLink ? `<a href="/${lang}/cart">${esc(i18n.viewCart)}</a>` : ''}`;
     el.hidden = false;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => (el.hidden = true), 2200);
+    toastTimer = setTimeout(() => (el.hidden = true), 2800);
   }
 
   function add(item) {
@@ -51,11 +71,78 @@
     if (same) same.qty = Math.min(20, same.qty + item.qty);
     else items.push(item);
     save(items);
+    badge(true);
   }
+
+  // Scroll reveals.
+  const reveals = $$('.reveal');
+  if ('IntersectionObserver' in window && !reduceMotion) {
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => e.isIntersecting && (e.target.classList.add('in'), io.unobserve(e.target))),
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
+    );
+    reveals.forEach((el) => io.observe(el));
+  } else reveals.forEach((el) => el.classList.add('in'));
+
+  // Home slideshow.
+  const hero = $('.hero');
+  if (hero) {
+    const slides = $$('.slide', hero);
+    const dots = $$('.hero-dots button', hero);
+    let at = 0;
+    let timer;
+    const show = (i) => {
+      at = (i + slides.length) % slides.length;
+      slides.forEach((s, j) => {
+        s.classList.toggle('on', j === at);
+        s.setAttribute('aria-hidden', String(j !== at));
+        $$('a', s).forEach((a) => (a.tabIndex = j === at ? 0 : -1));
+        if (j === at) $$('img[loading=lazy]', s).forEach((img) => (img.loading = 'eager'));
+      });
+      dots.forEach((d, j) => d.setAttribute('aria-selected', String(j === at)));
+    };
+    const start = () => {
+      clearInterval(timer);
+      if (!reduceMotion && slides.length > 1) timer = setInterval(() => show(at + 1), 6500);
+    };
+    dots.forEach((d, i) =>
+      d.addEventListener('click', () => {
+        show(i);
+        start();
+      }),
+    );
+    let x0 = null;
+    hero.addEventListener('touchstart', (e) => (x0 = e.touches[0].clientX), { passive: true });
+    hero.addEventListener('touchend', (e) => {
+      if (x0 == null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 50) {
+        show(at + ((dx < 0) !== (document.dir === 'rtl') ? 1 : -1));
+        start();
+      }
+      x0 = null;
+    });
+    document.addEventListener('visibilitychange', () => (document.hidden ? clearInterval(timer) : start()));
+    start();
+  }
+
+  // Sorting on listings.
+  $$('[data-autosubmit]').forEach((s) => s.addEventListener('change', () => s.form.submit()));
+
+  // Quick add (products without options).
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-add]');
+    if (!b) return;
+    add({ id: Number(b.dataset.add), option: '', qty: 1, name: b.dataset.name, price: Number(b.dataset.price), image: b.dataset.image, slug: b.dataset.slug });
+    b.classList.add('done');
+    setTimeout(() => b.classList.remove('done'), 1200);
+    toast(i18n.added, true);
+  });
 
   // Product page: quantity steppers, add to cart, order now.
   $$('.qty').forEach((box) => {
     const input = $('input', box);
+    if (!input) return;
     box.addEventListener('click', (e) => {
       const step = Number(e.target.closest('[data-step]')?.dataset.step || 0);
       if (!step) return;
@@ -64,49 +151,288 @@
     });
   });
 
+  // Options (colour, size…): one radio group per fieldset. The cart keeps the picked labels as "Rouge / M".
+  function readChoice(form) {
+    const sets = $$('.options', form);
+    const picked = sets.map((fs) => $('input:checked', fs));
+    const missing = sets[picked.findIndex((x) => !x)] || null;
+    return {
+      missing,
+      key: missing ? '' : picked.map((x) => x.value).join(' / '),
+      extra: picked.reduce((s, x) => s + (Number(x?.dataset.extra) || 0), 0),
+    };
+  }
+  function askChoice(fs) {
+    toast(i18n.chooseOption);
+    fs.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+    fs.classList.add('shake');
+    setTimeout(() => fs.classList.remove('shake'), 500);
+  }
+  // Quantity offers ("2 for 340 DH"): the picked card sets the quantity. A colour or size that costs more
+  // is added to every piece, so the cards are re-priced when it changes (the server prices it again anyway).
+  function offerPick(form) {
+    const input = $('[data-offers] input:checked', form);
+    if (!input) return null;
+    const qty = Number(input.value) || 1;
+    const total = Math.max(0, Number(input.dataset.price) + readChoice(form).extra * qty);
+    return { qty, total };
+  }
+  // Total for the current choice: the offer's price, or the unit price times the quantity.
+  function buyTotal(form) {
+    const offer = offerPick(form);
+    if (offer) return offer;
+    const qty = Math.max(1, Math.min(20, Number(form.qty.value) || 1));
+    return { qty, total: Math.max(0, Number(form.dataset.price) + readChoice(form).extra) * qty };
+  }
+  function priceOffers(form) {
+    const box = $('[data-offers]', form);
+    if (!box) return;
+    const extra = readChoice(form).extra;
+    const unit = Math.max(0, Number(form.dataset.price) + extra);
+    $$('input', box).forEach((input) => {
+      const card = input.closest('.offer');
+      const qty = Number(input.value) || 1;
+      const now = Math.max(0, Number(input.dataset.price) + extra * qty);
+      $('[data-offer-now]', card).textContent = money(now);
+      const was = $('[data-offer-was]', card);
+      if (was) was.textContent = money(unit * qty);
+      const save = $('[data-offer-save]', card);
+      if (save) save.textContent = `${(i18n.offerSave || '{amount}').replace('{amount}', money(unit * qty - now))}${card.classList.contains('hot') ? ' 🔥' : ''}`;
+    });
+    const pick = offerPick(form);
+    $$('[data-bar-total]').forEach((el) => (el.textContent = money(pick ? pick.total : unit)));
+    // Price under the product name: the picked offer, with the normal price of those pieces struck through.
+    const was = unit * (pick ? pick.qty : 1);
+    const now = pick ? pick.total : unit;
+    $$('[data-top-was]').forEach((el) => {
+      el.textContent = money(was);
+      el.hidden = now >= was;
+    });
+    $$('[data-top-save]').forEach((el) => {
+      el.textContent = `−${Math.round((1 - now / was) * 100)}%`;
+      el.hidden = now >= was;
+    });
+  }
   $$('form.buy').forEach((form) => {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const go = e.submitter?.value || 'cart';
-      const options = $$('input[name=option]', form);
-      const chosen = options.find((o) => o.checked);
-      if (options.length && !chosen) {
-        toast(i18n.chooseOption);
-        $('.options', form)?.classList.add('shake');
-        setTimeout(() => $('.options', form)?.classList.remove('shake'), 500);
+    const base = Number(form.dataset.price);
+    form.addEventListener('change', (e) => {
+      if (e.target.closest('[data-offers]')) {
+        form.qty.value = e.target.value;
+        priceOffers(form);
         return;
       }
-      add({
-        id: Number(form.dataset.product),
-        option: chosen ? chosen.value : '',
-        qty: Math.max(1, Math.min(20, Number(form.qty.value) || 1)),
-        name: form.dataset.name,
-        price: Number(form.dataset.price),
-        image: form.dataset.image,
-        slug: form.dataset.slug,
-      });
-      if (go === 'checkout') location.href = `/${lang}/checkout`;
-      else toast(i18n.added);
+      const fs = e.target.closest('.options');
+      if (!fs) return;
+      const picked = $('[data-picked]', fs);
+      if (picked) picked.textContent = `: ${e.target.value}`;
+      const unit = Math.max(0, base + readChoice(form).extra);
+      $$('[data-unit]').forEach((el) => (el.textContent = money(unit)));
+      priceOffers(form);
     });
   });
 
-  // Gallery dots follow the swipe.
+  function submitBuy(form, go) {
+    const choice = readChoice(form);
+    if (choice.missing) return askChoice(choice.missing);
+    const item = {
+      id: Number(form.dataset.product),
+      option: choice.key,
+      qty: Math.max(1, Math.min(20, Number(form.qty.value) || 1)),
+      name: form.dataset.name,
+      price: Math.max(0, Number(form.dataset.price) + choice.extra),
+      image: form.dataset.image,
+      slug: form.dataset.slug,
+    };
+    add(item);
+    window.shTrack?.('AddToCart', { value: buyTotal(form).total, items: [item] });
+    if (go === 'checkout') location.href = `/${lang}/checkout`;
+    else toast(i18n.added, true);
+  }
+
+  // Product page order form: the visitor orders this product right here, without the cart.
+  const fieldError = (input, msg) => {
+    const label = input.closest('label');
+    let p = label.querySelector('.field-error');
+    if (!msg) return p?.remove();
+    if (!p) {
+      p = document.createElement('span');
+      p.className = 'field-error';
+      label.append(p);
+    }
+    p.textContent = msg;
+  };
+  const phoneOk = (v) => /^(?:(?:\+|00)212|0)?[5-7]\d{8}$/.test(v.replace(/[\s.\-()]/g, ''));
+
+  function quickOrder(form) {
+    const quick = $('.quick', form);
+    const unitPrice = () => Math.max(0, Number(form.dataset.price) + readChoice(form).extra);
+    const cityOf = () => form.city.value.trim();
+    const item = () => ({
+      id: Number(form.dataset.product),
+      option: readChoice(form).key,
+      qty: Math.max(1, Math.min(20, Number(form.qty.value) || 1)),
+    });
+    let seq = 0;
+    const quote = async () => {
+      const n = ++seq;
+      const it = item();
+      const unit = unitPrice();
+      const { total } = buyTotal(form);
+      $('[data-q-sub]', quick).textContent = it.qty > 1 && total === unit * it.qty ? `${it.qty} × ${money(unit)}` : money(total);
+      $('[data-q-total]', quick).textContent = money(total);
+      try {
+        const res = await fetch(`/api/quote?lang=${lang}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ items: [it], city: cityOf() }),
+        });
+        const q = await res.json();
+        // No line back means the size or colour isn't picked yet: keep the product price showing.
+        if (n !== seq || !res.ok || !q.lines.length) return;
+        const known = Boolean(cityOf());
+        const ship = $('[data-q-ship]', quick);
+        ship.textContent = !q.shipping ? i18n.free : known ? money(q.shipping) : i18n.quickShipAfter;
+        ship.classList.toggle('free', !q.shipping);
+        const el = $('[data-q-total]', quick);
+        el.textContent = money(known || !q.shipping ? q.total : q.subtotal);
+        el.classList.remove('pop');
+        void el.offsetWidth;
+        el.classList.add('pop');
+      } catch {}
+    };
+    form.city.addEventListener('change', quote);
+    form.qty.addEventListener('change', quote);
+    $$('[data-step]', form).forEach((b) => b.addEventListener('click', () => setTimeout(quote)));
+    $$('.options input, [data-offers] input', form).forEach((o) => o.addEventListener('change', () => setTimeout(quote)));
+    quote();
+    form.addEventListener('input', (e) => e.target.closest('label')?.querySelector('.field-error')?.remove());
+    let started = false;
+    form.addEventListener('focusin', (e) => {
+      if (started || !quick.contains(e.target)) return;
+      started = true;
+      const it = item();
+      const unit = unitPrice();
+      window.shTrack?.('InitiateCheckout', { value: buyTotal(form).total, items: [{ ...it, name: form.dataset.name, price: unit }] });
+    });
+
+    return async function send() {
+      const err = $('.form-error', quick);
+      err.hidden = true;
+      const choice = readChoice(form);
+      if (choice.missing) return askChoice(choice.missing);
+      let bad = null;
+      for (const [input, ok, msg] of [
+        [form.name, form.name.value.trim().length >= 2, i18n.required],
+        [form.city, Boolean(cityOf()), i18n.required],
+        [form.address, form.address.value.trim().length >= 4, i18n.required],
+        [form.phone, phoneOk(form.phone.value), i18n.badPhone],
+      ]) {
+        fieldError(input, ok ? '' : msg);
+        if (!ok && !bad) bad = input;
+      }
+      if (bad) return bad.focus();
+      const btn = $('.quick-go', quick);
+      const label = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span>${esc(i18n.sending)}</span>`;
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            items: [item()],
+            name: form.name.value,
+            phone: form.phone.value,
+            city: cityOf(),
+            address: form.address.value,
+            website: form.website.value,
+            lang,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 201) {
+          location.href = data.url;
+          return;
+        }
+        if (res.status === 409) {
+          err.textContent = i18n.issueStock;
+          err.hidden = false;
+        } else if (res.status === 429) {
+          err.textContent = i18n.tooMany;
+          err.hidden = false;
+        } else if (res.status === 422 && data.fields) {
+          for (const [k, v] of Object.entries(data.fields)) if (form[k]) fieldError(form[k], v === 'phone' ? i18n.badPhone : i18n.required);
+        } else {
+          err.textContent = i18n.error;
+          err.hidden = false;
+        }
+      } catch {
+        err.textContent = i18n.error;
+        err.hidden = false;
+      }
+      btn.disabled = false;
+      btn.innerHTML = label;
+    };
+  }
+
+  $$('form.buy').forEach((form) => {
+    const order = $('.quick', form) ? quickOrder(form) : null;
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const go = e.submitter?.value || (order ? 'order' : 'cart');
+      if (go === 'order' && order) order();
+      else submitBuy(form, go);
+    });
+    // Sticky "order now" bar on phones while the order form is out of view: it brings the visitor back to it.
+    const bar = $('.buy-bar');
+    if (bar) {
+      $('[data-buy-now]', bar).addEventListener('click', (e) => {
+        const quick = $('.quick', form);
+        if (!quick) return;
+        e.preventDefault();
+        quick.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+        setTimeout(() => form.name.focus({ preventScroll: true }), reduceMotion ? 0 : 450);
+      });
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(([e]) => {
+          const show = !e.isIntersecting;
+          bar.classList.toggle('show', show);
+          document.body.classList.toggle('bar-up', show);
+        }).observe($('.quick', form) || form);
+      }
+    }
+  });
+
+  // Gallery: thumbnails and swipe.
   $$('.gallery').forEach((g) => {
     const track = $('.gallery-track', g);
-    const dots = $$('.dots span', g);
-    if (!dots.length) return;
-    const update = () => {
-      const i = Math.round(Math.abs(track.scrollLeft) / track.clientWidth);
-      dots.forEach((d, j) => d.classList.toggle('on', i === j));
-    };
-    track.addEventListener('scroll', update, { passive: true });
-    update();
+    const thumbs = $$('.thumbs button', g);
+    if (!thumbs.length) return;
+    const width = () => track.clientWidth;
+    thumbs.forEach((b) =>
+      b.addEventListener('click', () => {
+        const i = Number(b.dataset.go);
+        track.scrollTo({ left: (document.dir === 'rtl' ? -1 : 1) * i * width(), behavior: reduceMotion ? 'auto' : 'smooth' });
+      }),
+    );
+    track.addEventListener(
+      'scroll',
+      () => {
+        const i = Math.round(Math.abs(track.scrollLeft) / width());
+        thumbs.forEach((b, j) => b.classList.toggle('on', i === j));
+      },
+      { passive: true },
+    );
   });
 
   // Cart page and checkout summary.
   const box = $('#cart');
   const checkout = $('#checkout');
   let lastQuote = null;
+  if (checkout && load().length) {
+    const items = load();
+    window.shTrack?.('InitiateCheckout', { value: items.reduce((n, i) => n + i.price * i.qty, 0), items });
+  }
 
   async function fetchQuote(city) {
     const items = load().map(({ id, option, qty }) => ({ id, option, qty }));
@@ -126,26 +452,27 @@
 
   function selectedCity() {
     if (!checkout) return '';
-    const v = checkout.city.value;
-    return v === '__other' ? checkout.city_other.value.trim() : v;
+    return checkout.city.value.trim();
   }
+
+  const STAR = '<svg class="burst-star" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.5 14.6 5h4.4v4.4L22.5 12 19 14.6V19h-4.4L12 22.5 9.4 19H5v-4.4L1.5 12 5 9.4V5h4.4L12 1.5Zm0 6a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>';
 
   function render(q) {
     lastQuote = q;
     const view = box.dataset.view;
     if (!q.lines.length) {
-      box.innerHTML = `<p class="empty">${esc(i18n.emptyCart)}</p><p class="center"><a class="btn" href="/${lang}/shop">←</a></p>`;
+      box.innerHTML = `<div class="cart-empty">${STAR}<p>${esc(i18n.emptyCart)}</p><a class="btn btn-accent" href="/${lang}/shop">${esc(i18n.startShopping)}</a></div>`;
       if (checkout) $('button[type=submit]', checkout).disabled = true;
       return;
     }
     const editable = view === 'cart';
     const lines = q.lines
       .map(
-        (l, idx) => `<li class="line" data-idx="${idx}">
-        <a href="/${lang}/p/${esc(l.slug)}"><img src="${esc(l.image)}" alt="" width="72" height="72"></a>
+        (l, idx) => `<li class="line" data-idx="${idx}" style="animation-delay:${idx * 50}ms">
+        <a href="/${lang}/p/${esc(l.slug)}"><img src="${esc(small(l.image))}" alt="" width="76" height="95"></a>
         <div class="line-info">
           <a href="/${lang}/p/${esc(l.slug)}">${esc(l.name)}</a>
-          ${l.option ? `<small>${esc(l.option)}</small>` : ''}
+          ${l.option ? `<small>${esc(l.optionLabel || l.option)}</small>` : ''}
           ${editable ? `<div class="qty small"><button type="button" data-d="-1" aria-label="−">−</button><span>${l.qty}</span><button type="button" data-d="1" aria-label="+">+</button></div>` : `<small>× ${l.qty}</small>`}
         </div>
         <div class="line-end"><strong>${money(l.total)}</strong>${editable ? `<button type="button" class="link" data-remove>${esc(i18n.remove)}</button>` : ''}</div>
@@ -154,14 +481,22 @@
       .join('');
     const cityKnown = view === 'cart' ? false : Boolean(selectedCity());
     const shipping = !cityKnown && q.shipping > 0 ? esc(i18n.shippingAfterCity) : q.shipping ? money(q.shipping) : esc(i18n.free);
-    const freeHint = q.freeOver && q.subtotal < q.freeOver ? `<p class="hint">${esc(i18n.freeOverText.replace('{amount}', money(q.freeOver)))}</p>` : '';
+    let meter = '';
+    if (q.freeOver) {
+      const pct = Math.min(100, Math.round((q.subtotal / q.freeOver) * 100));
+      const label = q.subtotal >= q.freeOver ? i18n.freeReached : i18n.freeLeft.replace('{amount}', money(q.freeOver - q.subtotal));
+      meter = `<div class="free-meter">${esc(label)}<div class="bar"><span style="width:${pct}%"></span></div></div>`;
+    }
     box.innerHTML = `<ul class="lines">${lines}</ul>
+      ${meter}
       <ul class="totals">
         <li><span>${esc(i18n.subtotal)}</span><span>${money(q.subtotal)}</span></li>
         <li><span>${esc(i18n.shipping)}</span><span>${shipping}</span></li>
         <li class="total"><span>${esc(i18n.total)}</span><span>${money(cityKnown || !q.shipping ? q.total : q.subtotal)}</span></li>
-      </ul>${freeHint}
-      ${editable ? `<a class="btn btn-block btn-accent" href="/${lang}/checkout">${esc(i18n.checkout)}</a>` : ''}`;
+        ${converted ? `<li class="pay-mad"><span>${esc(i18n.payMad)}</span><strong>${mad(cityKnown || !q.shipping ? q.total : q.subtotal)}</strong></li>` : ''}
+      </ul>
+      ${converted ? `<p class="cur-note">${esc(i18n.curNote.replace('{cur}', cur))}</p>` : ''}
+      ${editable ? `<a class="btn btn-block btn-accent btn-lg" href="/${lang}/checkout">${esc(i18n.checkout)}</a>` : ''}`;
     if (checkout) $('button[type=submit]', checkout).disabled = false;
   }
 
@@ -192,26 +527,9 @@
   }
 
   if (checkout) {
-    const other = $('.other-city', checkout);
-    checkout.city.addEventListener('change', () => {
-      other.hidden = checkout.city.value !== '__other';
-      refresh();
-    });
-    checkout.city_other.addEventListener('change', refresh);
+    checkout.city.addEventListener('change', refresh);
 
-    const fieldError = (input, msg) => {
-      const label = input.closest('label');
-      let p = label.querySelector('.field-error');
-      if (!msg) return p?.remove();
-      if (!p) {
-        p = document.createElement('span');
-        p.className = 'field-error';
-        label.append(p);
-      }
-      p.textContent = msg;
-    };
     checkout.addEventListener('input', (e) => e.target.closest('label')?.querySelector('.field-error')?.remove());
-    const phoneOk =(v) => /^(?:(?:\+|00)212|0)?[5-7]\d{8}$/.test(v.replace(/[\s.\-()]/g, ''));
 
     checkout.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -221,9 +539,9 @@
       let bad = null;
       for (const [input, ok, msg] of [
         [f.name, f.name.value.trim().length >= 2, i18n.required],
-        [f.phone, phoneOk(f.phone.value), i18n.badPhone],
         [f.city, Boolean(selectedCity()), i18n.required],
         [f.address, f.address.value.trim().length >= 4, i18n.required],
+        [f.phone, phoneOk(f.phone.value), i18n.badPhone],
       ]) {
         fieldError(input, ok ? '' : msg);
         if (!ok && !bad) bad = input;
@@ -243,7 +561,6 @@
             phone: f.phone.value,
             city: selectedCity(),
             address: f.address.value,
-            note: f.note.value,
             website: f.website.value,
             lang,
           }),
@@ -256,8 +573,11 @@
         }
         if (res.status === 409) {
           await refresh();
+        } else if (res.status === 429) {
+          err.textContent = i18n.tooMany;
+          err.hidden = false;
         } else if (res.status === 422 && data.fields) {
-          for (const [k, v] of Object.entries(data.fields)) if (f[k]) fieldError(f[k], v === 'phone' ? i18n.badPhone : i18n.required);
+          for (const [k, v] of Object.entries(data.fields)) if (f[k]) fieldError(f[k], v === 'phone' ? i18n.badPhone : v === 'email' ? i18n.badEmail : i18n.required);
         } else {
           err.textContent = i18n.error;
           err.hidden = false;
@@ -271,6 +591,196 @@
     });
   }
 
+  // WhatsApp button: a small panel of ready-made messages instead of jumping straight to the app.
+  const wa = $('[data-wa]');
+  if (wa) {
+    const panel = $('.wa-panel', wa);
+    const toggle = $('[data-wa-toggle]', wa);
+    const setOpen = (open) => {
+      panel.hidden = !open;
+      wa.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      if (open) {
+        try { localStorage.setItem('wa_seen', '1'); } catch {}
+        wa.classList.add('seen');
+        $('.wa-chips a', panel)?.focus({ preventScroll: true });
+      }
+    };
+    try { if (localStorage.getItem('wa_seen')) wa.classList.add('seen'); } catch {}
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      setOpen(panel.hidden);
+    });
+    $('[data-wa-close]', wa).addEventListener('click', () => { setOpen(false); toggle.focus(); });
+    $$('a', panel).forEach((a) => a.addEventListener('click', () => setOpen(false)));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { setOpen(false); toggle.focus(); } });
+    document.addEventListener('click', (e) => { if (!panel.hidden && !wa.contains(e.target)) setOpen(false); });
+  }
+
+  // Hide floating buttons while the keyboard is up, so they never sit on top of a text box.
+  const typing = (e) => e.target.matches?.('input:not([type=radio]):not([type=checkbox]), textarea, select');
+  document.addEventListener('focusin', (e) => { if (typing(e)) document.body.classList.add('typing'); });
+  document.addEventListener('focusout', (e) => { if (typing(e)) document.body.classList.remove('typing'); });
+
+  // Search tab: focus the shop's search box (on the shop page the tap itself opens the keyboard).
+  $$('[data-search-tab]').forEach((a) =>
+    a.addEventListener('click', (e) => {
+      const q = $('#q');
+      if (q) {
+        e.preventDefault();
+        q.scrollIntoView({ block: 'center' });
+        q.focus();
+      }
+    }),
+  );
+  if (location.hash === '#q') $('#q')?.focus({ preventScroll: true });
+
+  // Product page: expected delivery window (24 to 72 h from today).
+  $$('[data-eta]').forEach((el) => {
+    const fmt = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-GB' : 'fr-MA', { weekday: 'short', day: 'numeric', month: 'short' });
+    const day = (n) => fmt.format(new Date(Date.now() + n * 86400000));
+    el.textContent = (i18n.eta || '').replace('{a}', day(1)).replace('{b}', day(3));
+    el.hidden = false;
+  });
+  $$('[data-copy]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(b.dataset.copy);
+        toast(i18n.copied);
+      } catch {
+        toast(b.dataset.copy);
+      }
+    }),
+  );
+
+  // City field: suggestions from the first letter, matched on the French or Arabic name or a common spelling
+  // ("casa", "كازا"), towns starting with the letters first. Any other town can be typed in full.
+  $$('.city-ac').forEach((box) => {
+    const input = $('input', box);
+    const list = $('.city-list', box);
+    let cities = [];
+    try {
+      cities = JSON.parse(box.dataset.cities || '[]');
+    } catch {}
+    const key = (v) =>
+      String(v ?? '')
+        .normalize('NFD')
+        .replace(/[̀-ًͯ-ٟ]/g, '')
+        .toLowerCase()
+        .replace(/[أإآ]/g, 'ا')
+        .replace(/ة/g, 'ه')
+        .replace(/ى/g, 'ي')
+        .replace(/[^a-z0-9ء-ي ]/g, '')
+        .trim();
+    const index = cities.map(([name, ar, more]) => ({
+      show: lang === 'ar' ? ar : name,
+      other: lang === 'ar' ? name : ar,
+      // Arabic names also without "ال", so "م" finds المحمدية.
+      words: [name, ar, ar.replace(/(^| )ال/g, '$1'), ...String(more || '').split(' ')].map(key).filter(Boolean),
+    }));
+    const listId = `cities-${Math.random().toString(36).slice(2, 8)}`;
+    list.id = listId;
+    input.setAttribute('aria-controls', listId);
+    let shown = [];
+    let active = -1;
+    const close = () => {
+      list.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+      active = -1;
+    };
+    const mark = (i) => {
+      active = i;
+      $$('li', list).forEach((li, j) => li.setAttribute('aria-selected', String(j === i)));
+      if (i >= 0) input.setAttribute('aria-activedescendant', `${listId}-${i}`);
+      else input.removeAttribute('aria-activedescendant');
+    };
+    const pick = (c) => {
+      input.value = c.show;
+      close();
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.closest('label')?.querySelector('.field-error')?.remove();
+    };
+    // 0: the whole name, 1: the name starts with it, 2: a word of the name does, 3: it's inside the name.
+    const rank = (c, q) => {
+      const qs = q.replace(/ /g, '');
+      let best = 9;
+      for (const w of c.words) {
+        const flat = w.replace(/ /g, '');
+        if (flat === qs) return 0;
+        if (flat.startsWith(qs)) best = Math.min(best, 1);
+        else if (w.split(' ').some((part) => part.startsWith(q))) best = Math.min(best, 2);
+        else if (qs.length >= 3 && flat.includes(qs)) best = Math.min(best, 3);
+      }
+      return best;
+    };
+    const search = () => {
+      const q = key(input.value);
+      if (!q) return close();
+      shown = index
+        .map((c, i) => ({ c, r: rank(c, q), i }))
+        .filter((x) => x.r < 9)
+        .sort((a, b) => a.r - b.r || a.i - b.i)
+        .slice(0, 6)
+        .map((x) => x.c);
+      // Nothing to suggest, or the city is already typed in full: no list.
+      if (!shown.length || (shown.length === 1 && key(shown[0].show) === q)) return close();
+      list.innerHTML = shown.map((c, i) => `<li role="option" id="${listId}-${i}" aria-selected="false"><span>${esc(c.show)}</span><small>${esc(c.other)}</small></li>`).join('');
+      list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      mark(0);
+    };
+    input.addEventListener('input', search);
+    input.addEventListener('focus', () => input.value && search());
+    input.addEventListener('keydown', (e) => {
+      if (list.hidden) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        mark((active + (e.key === 'ArrowDown' ? 1 : -1) + shown.length) % shown.length);
+      } else if (e.key === 'Enter' && active >= 0) {
+        e.preventDefault();
+        pick(shown[active]);
+      } else if (e.key === 'Escape') close();
+    });
+    // pointerdown keeps the focus in the field, so the list doesn't close before the tap lands.
+    list.addEventListener('pointerdown', (e) => e.preventDefault());
+    list.addEventListener('click', (e) => {
+      const li = e.target.closest('li');
+      if (li) pick(shown[[...list.children].indexOf(li)]);
+    });
+    input.addEventListener('blur', () => setTimeout(close, 150));
+  });
+
+  // Product page: each visitor gets 24 hours from their first visit ("the offer ends in 23:59:59").
+  // The start time is kept in this browser; when the 24 hours run out, a new 24 hours starts.
+  $$('[data-countdown]').forEach((bar) => {
+    const out = $('[data-cd]', bar);
+    const DAY = 86400000;
+    const KEY_CD = 'offer.start.v1';
+    let start = Date.now();
+    try {
+      const saved = Number(localStorage.getItem(KEY_CD));
+      if (saved > 0 && saved <= Date.now()) start = saved;
+      else localStorage.setItem(KEY_CD, String(start));
+    } catch {}
+    const two = (n) => String(n).padStart(2, '0');
+    const tick = () => {
+      const now = Date.now();
+      if (now - start >= DAY) {
+        start = now - ((now - start) % DAY); // a new 24 hours, counted from when the last one ended
+        try {
+          localStorage.setItem(KEY_CD, String(start));
+        } catch {}
+      }
+      const left = DAY - (now - start);
+      const secs = Math.max(0, Math.ceil(left / 1000));
+      out.textContent = `${two(Math.floor(secs / 3600))}:${two(Math.floor((secs % 3600) / 60))}:${two(secs % 60)}`;
+    };
+    tick();
+    bar.hidden = false;
+    setInterval(tick, 1000);
+  });
+
   badge();
-  window.addEventListener('storage', badge);
+  window.addEventListener('storage', () => badge());
 })();
