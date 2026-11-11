@@ -751,26 +751,30 @@
     input.addEventListener('blur', () => setTimeout(close, 150));
   });
 
-  // Product page: countdown to midnight, Morocco time ("today's offer ends in 05:42:10").
+  // Product page: each visitor gets 24 hours from their first visit ("the offer ends in 23:59:59").
+  // The start time is kept in this browser; when the 24 hours run out, a new 24 hours starts.
   $$('[data-countdown]').forEach((bar) => {
     const out = $('[data-cd]', bar);
-    let fmt = null;
+    const DAY = 86400000;
+    const KEY_CD = 'offer.start.v1';
+    let start = Date.now();
     try {
-      fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Casablanca', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+      const saved = Number(localStorage.getItem(KEY_CD));
+      if (saved > 0 && saved <= Date.now()) start = saved;
+      else localStorage.setItem(KEY_CD, String(start));
     } catch {}
-    const secondsLeft = () => {
-      const now = new Date();
-      let [h, m, s] = [now.getHours(), now.getMinutes(), now.getSeconds()];
-      if (fmt) {
-        const p = Object.fromEntries(fmt.formatToParts(now).map((x) => [x.type, Number(x.value)]));
-        [h, m, s] = [p.hour % 24, p.minute, p.second];
-      }
-      return 86400 - (h * 3600 + m * 60 + s);
-    };
     const two = (n) => String(n).padStart(2, '0');
     const tick = () => {
-      const left = secondsLeft();
-      out.textContent = `${two(Math.floor(left / 3600))}:${two(Math.floor((left % 3600) / 60))}:${two(left % 60)}`;
+      const now = Date.now();
+      if (now - start >= DAY) {
+        start = now - ((now - start) % DAY); // a new 24 hours, counted from when the last one ended
+        try {
+          localStorage.setItem(KEY_CD, String(start));
+        } catch {}
+      }
+      const left = DAY - (now - start);
+      const secs = Math.max(0, Math.ceil(left / 1000));
+      out.textContent = `${two(Math.floor(secs / 3600))}:${two(Math.floor((secs % 3600) / 60))}:${two(secs % 60)}`;
     };
     tick();
     bar.hidden = false;
