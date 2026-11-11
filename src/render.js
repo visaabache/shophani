@@ -500,7 +500,7 @@ function cityField(t, quick) {
   return `<div class="city-ac" data-cities="${esc(JSON.stringify(CITY_SUGGEST))}">${quick ? `<label class="qf">${icon('pin', 20)}${input}</label>` : `<label>${esc(t.city)}${input}</label>`}<ul class="city-list" role="listbox" hidden></ul></div>`;
 }
 
-// Countdown to midnight (Morocco time) at the top of a product with an offer: "Today's offer ends in 05:42:10".
+// 24-hour countdown at the top of a product with an offer, from the visitor's first visit: "The offer ends in 23:59:59".
 // Shown by store.js, so it stays hidden without JavaScript. On by default; it can be turned off in admin settings.
 function countdownBar(ctx) {
   if (ctx.settings.countdown === '0') return '';
