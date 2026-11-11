@@ -125,6 +125,7 @@
         qty: 'عدد القطع', price: 'ثمن الكل (درهم)', title: 'عنوان البطاقة (اختياري)', titlePh: 'مثال: جوج طقوم بـ 340 درهم', hot: 'الأكثر طلبًا 🔥',
         add: 'إضافة عرض', save: (x) => `توفير ${x}`, notCheaper: 'ليس أرخص من الثمن العادي، لن يظهر',
         bad: 'كل عرض يحتاج عدد قطع من 2 إلى 20 وثمنًا، وعددًا مختلفًا عن العروض الأخرى.',
+        left: 'بقي غير X قطع (لهذا المنتج)', leftHint: 'كيظهر "بقي غير 7 قطع من عرض الـ2" وكينقص مع كل طلب. فارغ = العدد العام من الإعدادات، 0 = إخفاء.',
       },
       photos: 'الصور', addPhotos: 'اختيار صور', takePhoto: 'التقاط صورة',
       dropHere: 'اسحب الصور هنا أو اخترها من جهازك', dropHint: 'JPG، PNG، WEBP… تُصغَّر تلقائيًا قبل الرفع. الصورة الأولى هي الرئيسية.',
@@ -162,6 +163,10 @@
       emailFrom: 'عنوان الإرسال (مؤكد في Brevo)', notifyEmail: 'استقبال تنبيهات الطلبات على (يمكن عدة عناوين مفصولة بفاصلة)',
       statusUpdates: 'إخبار الزبون عند كل تغيير في الحالة',
       currency: 'العملة', autoCurrency: 'عرض الأثمنة بعملة بلد الزائر (يورو، دولار، جنيه…)',
+      urgency: 'الاستعجال في صفحة المنتج',
+      urgencyHint: 'عداد تنازلي في أعلى صفحة كل منتج فيه عرض، يعاود من جديد كل نهار مع نص الليل (بتوقيت المغرب). وجملة "بقي غير X قطع من العرض" فوق العروض، كتنقص بوحدها مع كل طلب.',
+      countdownOn: 'إظهار العداد التنازلي "ينتهي عرض اليوم خلال…"',
+      offerLeftAll: 'عدد القطع المتبقية فالعرض (لكل المنتجات)', offerLeftAllHint: 'مثال: 7. اتركه فارغًا لإخفاء الجملة. يمكن تغييره لكل منتج في صفحة المنتج.',
       currencyHint: 'الزبون يدفع دائمًا بالدرهم عند الاستلام: الأثمنة المحوّلة للتوضيح فقط، وتُحدَّث أسعار الصرف كل 12 ساعة. الطلبات والإدارة تبقى بالدرهم.',
       weakPassword: 'كلمة سر الإدارة قصيرة. استعمل 12 حرفًا على الأقل (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'مواقع التواصل',
@@ -319,6 +324,7 @@
         qty: 'Pièces', price: 'Prix du lot (DH)', title: 'Titre de la carte (facultatif)', titlePh: 'ex. 2 sets pour 340 DH', hot: 'Le plus choisi 🔥',
         add: 'Ajouter une offre', save: (x) => `Économie ${x}`, notCheaper: 'Pas moins cher que le prix normal : ne sera pas affichée',
         bad: 'Chaque offre demande de 2 à 20 pièces et un prix, avec un nombre de pièces différent des autres offres.',
+        left: 'Pièces restantes (ce produit)', leftHint: 'Affiche « Plus que 7 pièces pour l’offre 2 pièces » et baisse à chaque commande. Vide = le nombre des réglages, 0 = masqué.',
       },
       photos: 'Photos', addPhotos: 'Choisir des photos', takePhoto: 'Prendre une photo',
       dropHere: 'Glissez vos photos ici ou choisissez-les sur votre appareil', dropHint: 'JPG, PNG, WEBP… réduites automatiquement avant l’envoi. La première photo est la photo principale.',
@@ -356,6 +362,10 @@
       emailFrom: 'Adresse d’envoi (vérifiée dans Brevo)', notifyEmail: 'Recevoir les alertes de commande sur (plusieurs adresses possibles, séparées par des virgules)',
       statusUpdates: 'Prévenir le client à chaque changement de statut',
       currency: 'Devise', autoCurrency: 'Afficher les prix dans la devise du pays du visiteur (euro, dollar, livre…)',
+      urgency: 'Urgence sur la page produit',
+      urgencyHint: 'Un compte à rebours en haut de chaque produit avec une offre, qui repart chaque jour à minuit (heure du Maroc). Et la phrase « Plus que X pièces pour l’offre » au-dessus des offres, qui baisse toute seule à chaque commande.',
+      countdownOn: 'Afficher le compte à rebours « L’offre du jour se termine dans… »',
+      offerLeftAll: 'Pièces restantes dans l’offre (tous les produits)', offerLeftAllHint: 'ex. 7. Laissez vide pour masquer la phrase. Modifiable produit par produit.',
       currencyHint: 'Le client paie toujours en dirhams à la livraison : les prix convertis sont indicatifs, avec des taux mis à jour toutes les 12 heures. Commandes et administration restent en dirhams.',
       weakPassword: 'Le mot de passe admin est court. Utilisez au moins 12 caractères (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'Réseaux sociaux',
@@ -513,6 +523,7 @@
         qty: 'Pieces', price: 'Bundle price (DH)', title: 'Card title (optional)', titlePh: 'e.g. 2 sets for 340 DH', hot: 'Most popular 🔥',
         add: 'Add an offer', save: (x) => `Save ${x}`, notCheaper: 'Not cheaper than the normal price: it will not be shown',
         bad: 'Each offer needs 2 to 20 pieces and a price, with a number of pieces different from the other offers.',
+        left: 'Pieces left (this product)', leftHint: 'Shows “Only 7 pieces left in the 2-piece offer” and goes down with each order. Empty = the number from the settings, 0 = hidden.',
       },
       photos: 'Photos', addPhotos: 'Choose photos', takePhoto: 'Take a photo',
       dropHere: 'Drag your photos here or choose them on your device', dropHint: 'JPG, PNG, WEBP… shrunk automatically before upload. The first photo is the main photo.',
@@ -550,6 +561,10 @@
       emailFrom: 'Sender address (verified in Brevo)', notifyEmail: 'Send order alerts to (several addresses allowed, separated by commas)',
       statusUpdates: 'Tell the customer at every status change',
       currency: 'Currency', autoCurrency: 'Show prices in the visitor’s country currency (euro, dollar, pound…)',
+      urgency: 'Urgency on the product page',
+      urgencyHint: 'A countdown at the top of every product with an offer, starting again each day at midnight (Morocco time). And the line “Only X pieces left in the offer” above the offers, which goes down by itself with each order.',
+      countdownOn: 'Show the countdown “Today’s offer ends in…”',
+      offerLeftAll: 'Pieces left in the offer (all products)', offerLeftAllHint: 'e.g. 7. Leave empty to hide the line. Can be changed for each product.',
       currencyHint: 'The customer always pays in dirhams on delivery: converted prices are a guide, with rates updated every 12 hours. Orders and the admin stay in dirhams.',
       weakPassword: 'The admin password is short. Use at least 12 characters (npx wrangler secret put ADMIN_PASSWORD).',
       social: 'Social networks',
@@ -1068,6 +1083,17 @@
       return [];
     }
   }
+  // The product's own "pieces left in the offer" number, or '' when it uses the one from the settings.
+  function parseLeft(raw) {
+    const text = String(raw || '').trim();
+    if (!text.startsWith('{')) return '';
+    try {
+      const n = JSON.parse(text).left;
+      return Number.isInteger(n) && n >= 0 ? n : '';
+    } catch {
+      return '';
+    }
+  }
   function parseOptions(raw) {
     let text = String(raw || '').trim();
     if (!text) return [];
@@ -1116,6 +1142,8 @@
         <p class="muted small">${L.bun.hint}</p>
         <div id="bundles"></div>
         <div class="actions"><button type="button" class="btn ghost" data-bun-add>${icon('plus', 18)}<span>${L.bun.add}</span></button></div>
+        <label class="offer-left">${L.bun.left}<input name="offer_left" type="number" min="0" max="9999" step="1" inputmode="numeric" value="${parseLeft(p.options)}"></label>
+        <p class="muted small">${L.bun.leftHint}</p>
       </div>
       <div class="card"><h2>${L.photos}</h2>
         <div class="photos" id="photos"></div>
@@ -2099,6 +2127,11 @@
       <div class="card"><h2>${L.currency}</h2><p class="muted small">${L.currencyHint}</p>
         <label class="switch"><input type="checkbox" name="auto_currency"${s.auto_currency !== '0' ? ' checked' : ''}><span></span> ${L.autoCurrency}</label>
       </div>
+      <div class="card"><h2>${L.urgency}</h2><p class="muted small">${L.urgencyHint}</p>
+        <label class="switch"><input type="checkbox" name="countdown"${s.countdown !== '0' ? ' checked' : ''}><span></span> ${L.countdownOn}</label>
+        <label>${L.offerLeftAll}<input name="offer_left" value="${esc(s.offer_left ?? '7')}" type="number" min="0" max="9999" step="1" inputmode="numeric" placeholder="7"></label>
+        <p class="muted small">${L.offerLeftAllHint}</p>
+      </div>
       <div class="card"><h2>${L.banner}</h2><p class="muted small">${L.bannerHint}</p>
         ${contentLangs().map((l) => field(`announcement_${l}`, LANG_LABEL[l], dirOf(l))).join('')}
       </div>
@@ -2114,6 +2147,7 @@
       data.whatsapp = data.whatsapp.replace(/\D/g, '').replace(/^0(?=[5-7])/, '212');
       data.email_status_updates = f.email_status_updates.checked ? '1' : '0';
       data.auto_currency = f.auto_currency.checked ? '1' : '0';
+      data.countdown = f.countdown.checked ? '1' : '0';
       data.meta_pixel_id = data.meta_pixel_id.trim();
       data.tiktok_pixel_id = data.tiktok_pixel_id.trim().toUpperCase();
       await api('/settings', { method: 'PUT', body: data });

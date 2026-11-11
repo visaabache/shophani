@@ -2,7 +2,7 @@
 // the admin API (/api/admin/*), product photos from R2 or D1 (/img/*) and static files (public/).
 
 import { T } from './i18n.js';
-import { LANGS, DEFAULT_LANG, CITIES, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName, visitorId, recentHits, addHit, sameOrigin, parseJSON, lineText, splitLine } from './lib.js';
+import { LANGS, DEFAULT_LANG, matchCity, storeLeft, json, esc, getSettings, quote, normalizePhone, orderNumber, randomToken, productName, visitorId, recentHits, addHit, sameOrigin, parseJSON, lineText, splitLine } from './lib.js';
 import { homePage, listingPage, productPage, cartPage, checkoutPage, orderPage, notFoundPage, creditsPage, legalPage, aboutPage, blogIndexPage, blogPostPage, catName } from './render.js';
 
 const ORDER_BY = { price_asc: 'price ASC, id DESC', price_desc: 'price DESC, id DESC' };
@@ -242,8 +242,7 @@ async function handleApi(request, env, url, ctx) {
     if (!city) errors.city = 'required';
     if (address.length < 4) errors.address = 'required';
     if (Object.keys(errors).length) return json({ error: 'invalid', fields: errors }, 422);
-    const known = CITIES.find((c) => c.toLowerCase() === city.toLowerCase());
-    if (known) city = known;
+    city = matchCity(city); // "casa" or "الدار البيضاء" is saved as "Casablanca"
 
     const db = env.DB;
     // Fake-order protection: at most 3 orders per phone number and 6 per visitor each hour, 15 per visitor a day.
@@ -275,6 +274,14 @@ async function handleApi(request, env, url, ctx) {
       }
       // The CHECK (stock >= 0) on products makes this fail, and the whole order roll back, if stock ran out meanwhile.
       statements.push(db.prepare('UPDATE products SET stock = stock - ? WHERE id = ? AND stock IS NOT NULL').bind(l.qty, l.id));
+      // "Only X pieces left in the offer" goes down with each order (starting from the store-wide number when the
+      // product has none of its own), and stops at 0, where the note is no longer shown.
+      const startLeft = storeLeft(settings);
+      statements.push(
+        db
+          .prepare("UPDATE products SET options = json_set(options, '$.left', CAST(MAX(0, COALESCE(json_extract(options, '$.left'), ?1) - ?2) AS INTEGER)) WHERE id = ?3 AND json_valid(options) AND json_type(options) = 'object' AND COALESCE(json_extract(options, '$.left'), ?1) IS NOT NULL")
+          .bind(startLeft, l.qty, l.id),
+      );
     }
     try {
       await db.batch(statements);

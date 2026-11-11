@@ -15,6 +15,66 @@ export const CITIES = [
   'Laâyoune', 'Dakhla', 'Guelmim', 'Tiznit', 'Taroudant', 'Inezgane', 'Khémisset', 'Berkane',
 ];
 
+// Every city the order form suggests as the customer types: [name used in orders, Arabic name, other spellings].
+// The first ones are the CITIES above; the rest are smaller towns. Any other town can still be typed in full.
+const CITY_DATA = [
+  ['Casablanca', 'الدار البيضاء', 'casa kaza dar el beida كازا كازابلانكا'], ['Rabat', 'الرباط', ''], ['Salé', 'سلا', 'sale sla'],
+  ['Témara', 'تمارة', 'temara'], ['Kénitra', 'القنيطرة', 'kenitra'], ['Mohammedia', 'المحمدية', 'fedala'],
+  ['Marrakech', 'مراكش', 'marrakesh marrakch'], ['Fès', 'فاس', 'fes fez'], ['Meknès', 'مكناس', 'meknes'],
+  ['Tanger', 'طنجة', 'tangier tanja'], ['Tétouan', 'تطوان', 'tetouan tetuan'], ['Agadir', 'أكادير', 'agadir'],
+  ['Oujda', 'وجدة', 'wjda'], ['El Jadida', 'الجديدة', 'jadida'], ['Safi', 'آسفي', 'asfi'],
+  ['Béni Mellal', 'بني ملال', 'beni mellal'], ['Khouribga', 'خريبكة', ''], ['Settat', 'سطات', ''],
+  ['Berrechid', 'برشيد', ''], ['Nador', 'الناظور', ''], ['Al Hoceïma', 'الحسيمة', 'al hoceima hoceima'],
+  ['Larache', 'العرائش', ''], ['Ksar El Kébir', 'القصر الكبير', 'ksar el kebir'], ['Taza', 'تازة', ''],
+  ['Errachidia', 'الرشيدية', 'rachidia'], ['Ouarzazate', 'ورزازات', ''], ['Essaouira', 'الصويرة', 'souira'],
+  ['Laâyoune', 'العيون', 'laayoune layoune'], ['Dakhla', 'الداخلة', ''], ['Guelmim', 'كلميم', 'goulmim'],
+  ['Tiznit', 'تيزنيت', ''], ['Taroudant', 'تارودانت', ''], ['Inezgane', 'إنزكان', ''],
+  ['Khémisset', 'الخميسات', 'khemisset'], ['Berkane', 'بركان', ''],
+  ['Aït Melloul', 'أيت ملول', 'ait melloul'], ['Bouskoura', 'بوسكورة', ''], ['Dar Bouazza', 'دار بوعزة', ''],
+  ['Aïn Harrouda', 'عين حرودة', 'ain harrouda'], ['Tit Mellil', 'تيط مليل', ''], ['Médiouna', 'مديونة', 'mediouna'],
+  ['Had Soualem', 'حد السوالم', ''], ['Bouznika', 'بوزنيقة', ''], ['Benslimane', 'بنسليمان', 'ben slimane'],
+  ['Skhirat', 'الصخيرات', ''], ['Tamesna', 'تامسنا', ''], ['Azemmour', 'أزمور', ''], ['Sidi Bennour', 'سيدي بنور', ''],
+  ['Youssoufia', 'اليوسفية', ''], ['Ben Guerir', 'ابن جرير', 'benguerir'], ['Kelâat Sraghna', 'قلعة السراغنة', 'kelaa sraghna'],
+  ['Fquih Ben Salah', 'الفقيه بن صالح', ''], ['Kasba Tadla', 'قصبة تادلة', ''], ['Oued Zem', 'وادي زم', ''],
+  ['Khénifra', 'خنيفرة', 'khenifra'], ['Azrou', 'أزرو', ''], ['Ifrane', 'إفران', ''], ['Midelt', 'ميدلت', ''],
+  ['El Hajeb', 'الحاجب', ''], ['Sefrou', 'صفرو', ''], ['Taounate', 'تاونات', ''], ['Sidi Kacem', 'سيدي قاسم', ''],
+  ['Sidi Slimane', 'سيدي سليمان', ''], ['Souk El Arbaa', 'سوق الأربعاء', ''], ['Ouazzane', 'وزان', ''],
+  ['Chefchaouen', 'شفشاون', 'chaouen'], ['Asilah', 'أصيلة', 'assilah'], ['Fnideq', 'الفنيدق', ''], ['Martil', 'مرتيل', ''],
+  ['M’diq', 'المضيق', 'mdiq'], ['Guercif', 'جرسيف', ''], ['Taourirt', 'تاوريرت', ''], ['Jerada', 'جرادة', ''],
+  ['Zaïo', 'زايو', 'zaio'], ['Al Aroui', 'العروي', ''], ['Driouch', 'الدريوش', ''], ['Imzouren', 'إمزورن', ''],
+  ['Figuig', 'فكيك', ''], ['Zagora', 'زاكورة', ''], ['Tinghir', 'تنغير', ''], ['Biougra', 'بيوكرى', ''],
+  ['Oulad Teima', 'أولاد تايمة', ''], ['Tan-Tan', 'طانطان', 'tantan'], ['Smara', 'السمارة', ''], ['Boujdour', 'بوجدور', ''],
+];
+
+// For matching what a customer typed: no accents, no case, no spaces or dashes, and one spelling of the Arabic letters
+// that are often typed differently (أ إ آ → ا, ة → ه, ى → ي).
+export function cityKey(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f\u064b-\u065f]/g, '')
+    .toLowerCase()
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[^a-z0-9\u0621-\u064a]/g, '');
+}
+
+// The list sent to the order form's suggestions: [name, Arabic name, other spellings].
+export const CITY_SUGGEST = CITY_DATA;
+
+// A typed city in its usual spelling ("casa", "الدار البيضاء", "FES" → "Casablanca", "Casablanca", "Fès"),
+// or the text as typed when it is a town that isn't in the list.
+export function matchCity(input) {
+  const text = String(input ?? '').trim().replace(/\s+/g, ' ').slice(0, 60);
+  const k = cityKey(text);
+  if (!k) return text;
+  for (const [name, ar, more] of CITY_DATA) {
+    // "محمدية" is also "المحمدية".
+    if (cityKey(name) === k || cityKey(ar) === k || cityKey(ar.replace(/^ال/, '')) === k || more.split(' ').some((m) => m && cityKey(m) === k)) return name;
+  }
+  return text;
+}
+
 export function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
@@ -223,11 +283,32 @@ export function productBundles(p) {
   return cleanBundles(p.options || '');
 }
 
-// What goes in products.options: the plain list of groups, or an object when the product has offers.
-export function packOptions(groups, bundles) {
+// "Only 7 pieces left in the offer": a number set per product in admin, counted down by each order.
+// null when the product has none of its own (the store-wide number from the settings is then used).
+export function cleanLeft(value) {
+  if (value === '' || value == null) return null;
+  const n = Math.floor(Number(value));
+  return Number.isFinite(n) && n >= 0 ? Math.min(n, 9999) : null;
+}
+
+// The store-wide number from the settings: 7 until the owner saves another one (empty hides the line).
+export const DEFAULT_OFFER_LEFT = 7;
+export function storeLeft(settings) {
+  return settings?.offer_left === undefined ? DEFAULT_OFFER_LEFT : cleanLeft(settings.offer_left);
+}
+
+export function productLeft(p) {
+  const data = optionsData(p.options || '');
+  return data && !Array.isArray(data) && typeof data === 'object' ? cleanLeft(data.left) : null;
+}
+
+// What goes in products.options: the plain list of groups, or an object when the product has offers
+// or its own "pieces left" number.
+export function packOptions(groups, bundles, left = null) {
   const g = cleanOptions(groups);
   const b = cleanBundles({ bundles });
-  if (b.length) return JSON.stringify({ groups: g, bundles: b });
+  const l = cleanLeft(left);
+  if (b.length || l != null) return JSON.stringify({ groups: g, bundles: b, ...(l != null ? { left: l } : {}) });
   return g.length ? JSON.stringify(g) : '';
 }
 
