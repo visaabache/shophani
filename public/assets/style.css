@@ -708,3 +708,22 @@ textarea { resize: vertical; }
 .rich { width: 100%; overflow-x: clip; }
 .rich img, .rich video, .desc-media img, .desc-media video { max-width: 100% !important; height: auto !important; min-width: 0; }
 .rich figure { margin: 12px 0; }
+
+/* Countdown at the top of a product with an offer, "only X left in the offer" note, city suggestions. */
+.countdown { background: linear-gradient(90deg, var(--accent-dark), var(--accent)); color: #fff; }
+.countdown .wrap { display: flex; align-items: center; justify-content: center; gap: 8px; padding-block: 9px; font-weight: 700; font-size: 0.95rem; text-align: center; }
+.countdown b { font-family: var(--font-display); font-variant-numeric: tabular-nums; font-size: 1.15rem; letter-spacing: 0.04em; background: rgb(0 0 0 / 0.18); padding: 2px 10px; border-radius: 8px; }
+.countdown[hidden] { display: none; }
+.scarce { margin: 18px 0 0; padding: 10px 14px; border-radius: var(--radius-sm); background: #fff4ef; border: 1.5px solid rgb(255 106 61 / 0.35); }
+.scarce p { margin: 0 0 8px; font-weight: 700; color: var(--accent-dark); font-size: 0.95rem; }
+.scarce p b { font-size: 1.1rem; }
+.scarce-bar { display: block; height: 7px; border-radius: 4px; background: rgb(255 106 61 / 0.15); overflow: hidden; }
+.scarce-bar i { display: block; height: 100%; width: var(--w, 30%); border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); animation: scarce-pulse 1.8s ease-in-out infinite; }
+@keyframes scarce-pulse { 50% { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .scarce-bar i { animation: none; } }
+.city-ac { position: relative; }
+.city-list { position: absolute; z-index: 20; inset-inline: 0; top: calc(100% + 4px); margin: 0; padding: 6px; list-style: none; background: #fff; border: 1.5px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-lg); max-height: 290px; overflow-y: auto; }
+.city-list[hidden] { display: none; }
+.city-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; }
+.city-list li small { color: var(--muted); font-weight: 500; }
+.city-list li[aria-selected='true'], .city-list li:hover { background: var(--brand-soft); color: var(--brand-dark); }

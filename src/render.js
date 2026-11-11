@@ -7,7 +7,7 @@ import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
 import { legalDoc } from './legal.js';
 import { CURRENCIES, formatPrice } from './currency.js';
 import { pixelConfig } from './pixels.js';
-import { CITIES, LANGS, esc, money, productName, productDesc, productImages, productOptions, liveBundles, bundleTitle, optionGroupName, richDescHtml, htmlToText } from './lib.js';
+import { CITIES, CITY_SUGGEST, LANGS, esc, money, productName, productDesc, productImages, productOptions, productLeft, storeLeft, liveBundles, bundleTitle, optionGroupName, richDescHtml, htmlToText } from './lib.js';
 
 const PLACEHOLDER = '/assets/placeholder.svg';
 const OG_LOCALE = { fr: 'fr_FR', en: 'en_US', ar: 'ar_MA' };
@@ -493,6 +493,34 @@ function offerCards(ctx, p, bundles, image) {
     .join('')}</fieldset>`;
 }
 
+// City as a text field: suggestions from the first letter typed (in Arabic or Latin letters, see store.js),
+// and any town not in the list can be typed in full.
+function cityField(t, quick) {
+  const input = `<input name="city" required maxlength="60" autocomplete="off" autocapitalize="words" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false"${quick ? ` placeholder="${esc(t.cityType)}" aria-label="${esc(t.city)}"` : ` placeholder="${esc(t.cityTypeShort)}"`}>`;
+  return `<div class="city-ac" data-cities="${esc(JSON.stringify(CITY_SUGGEST))}">${quick ? `<label class="qf">${icon('pin', 20)}${input}</label>` : `<label>${esc(t.city)}${input}</label>`}<ul class="city-list" role="listbox" hidden></ul></div>`;
+}
+
+// Countdown to midnight (Morocco time) at the top of a product with an offer: "Today's offer ends in 05:42:10".
+// Shown by store.js, so it stays hidden without JavaScript. On by default; it can be turned off in admin settings.
+function countdownBar(ctx) {
+  if (ctx.settings.countdown === '0') return '';
+  const t = T[ctx.lang];
+  return `<div class="countdown" data-countdown hidden><div class="wrap">${icon('clock', 20)}<span>${esc(t.countdownText)}</span><b data-cd dir="ltr">--:--:--</b></div></div>`;
+}
+
+// "Only 7 pieces left in the 2-piece offer": the product's own number, or the store-wide one, never more than the stock.
+function scarcityLine(ctx, p, bundles) {
+  if (!bundles.length) return '';
+  let left = productLeft(p);
+  if (left == null) left = storeLeft(ctx.settings);
+  if (left == null || left <= 0) return '';
+  if (p.stock != null) left = Math.min(left, p.stock);
+  if (left <= 0) return '';
+  const t = T[ctx.lang];
+  const pct = Math.max(8, Math.min(100, Math.round((left / 20) * 100)));
+  return `<div class="scarce"><p>🔥 ${t.offerLeft(`<b>${left}</b>`, defaultOffer(bundles).qty)}</p><span class="scarce-bar" style="--w:${pct}%"><i></i></span></div>`;
+}
+
 export function productPage(ctx, p, category, related) {
   const { lang, origin, settings } = ctx;
   const t = T[lang];
@@ -534,8 +562,9 @@ export function productPage(ctx, p, category, related) {
     ...(category ? { category: catName(category, lang) } : {}),
   };
   const wa = waLink(settings.whatsapp, `${name} — ${money(p.price, lang)}\n${origin}/${lang}/p/${p.slug}`);
+  const scarce = soldOut ? '' : scarcityLine(ctx, p, bundles);
   const stockLine = soldOut ? '' : p.stock != null && p.stock <= 5 ? `<p class="stock stock-low"><span class="dot"></span>${esc(t.onlyLeft(p.stock))}</p>` : `<p class="stock"><span class="dot"></span>${esc(t.inStock)}</p>`;
-  const body = `<nav class="crumbs wrap" aria-label="breadcrumb"><a href="/${lang}/">${esc(t.home)}</a><span>/</span>${category ? `<a href="/${lang}/c/${esc(category.slug)}">${esc(catName(category, lang))}</a><span>/</span>` : ''}<span aria-current="page">${esc(name)}</span></nav>
+  const body = `${!soldOut && (bundles.length || onSale) ? countdownBar(ctx) : ''}<nav class="crumbs wrap" aria-label="breadcrumb"><a href="/${lang}/">${esc(t.home)}</a><span>/</span>${category ? `<a href="/${lang}/c/${esc(category.slug)}">${esc(catName(category, lang))}</a><span>/</span>` : ''}<span aria-current="page">${esc(name)}</span></nav>
 <section class="wrap product">
   <div class="gallery" aria-label="${esc(name)}">
     <div class="gallery-track">${images.map((u, i) => `<img src="${esc(u)}" alt="${esc(name)}${i ? ` ${i + 1}` : ''}" width="1000" height="1250"${i ? ' loading="lazy"' : ' fetchpriority="high"'}>`).join('')}</div>
@@ -558,7 +587,7 @@ export function productPage(ctx, p, category, related) {
     ${soldOut ? '' : `<div class="eta">${icon('truck', 22)}<div><strong>${esc(t.deliveryLong)}</strong><span data-eta hidden></span></div></div>`}
     <form class="buy" novalidate data-product="${p.id}" data-name="${esc(name)}" data-price="${p.price}" data-image="${esc(images[0])}" data-slug="${esc(p.slug)}">
       ${options.map((g, gi) => optionFieldset(ctx, g, gi)).join('')}
-      ${bundles.length && !soldOut ? `${offerCards(ctx, p, bundles, images[0])}<input type="hidden" name="qty" value="${defaultOffer(bundles).qty}">` : `<div class="qty-row">
+      ${bundles.length && !soldOut ? `${scarce}${offerCards(ctx, p, bundles, images[0])}<input type="hidden" name="qty" value="${defaultOffer(bundles).qty}">` : `<div class="qty-row">
         <label for="qty">${esc(t.quantity)}</label>
         <div class="qty"><button type="button" data-step="-1" aria-label="−">−</button><input id="qty" name="qty" type="number" inputmode="numeric" min="1" max="${p.stock != null ? Math.max(1, Math.min(20, p.stock)) : 20}" value="1"><button type="button" data-step="1" aria-label="+">+</button></div>
       </div>`}
@@ -566,8 +595,7 @@ export function productPage(ctx, p, category, related) {
         <p class="quick-lead">${esc(t.quickText)}<span class="finger" aria-hidden="true">👇</span></p>
         <div class="quick-fields">
           <label class="qf">${icon('user', 20)}<input name="name" autocomplete="name" required maxlength="80" placeholder="${esc(t.fullName)}" aria-label="${esc(t.fullName)}"></label>
-          <label class="qf">${icon('pin', 20)}<select name="city" required aria-label="${esc(t.city)}"><option value="">${esc(t.chooseCity)}</option>${CITIES.map((c) => `<option>${esc(c)}</option>`).join('')}<option value="__other">${esc(t.otherCity)}</option></select></label>
-          <label class="qf other-city" hidden>${icon('pin', 20)}<input name="city_other" maxlength="60" placeholder="${esc(t.otherCity)}" aria-label="${esc(t.otherCity)}"></label>
+          ${cityField(t, true)}
           <label class="qf">${icon('home', 20)}<input name="address" required maxlength="300" autocomplete="street-address" placeholder="${esc(t.address)}" aria-label="${esc(t.address)}"></label>
           <label class="qf">${icon('phone', 20)}<input name="phone" type="tel" inputmode="tel" autocomplete="tel" required maxlength="20" dir="ltr" placeholder="${esc(t.phone)} · ${esc(t.phoneHint)}" aria-label="${esc(t.phone)}"></label>
           <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -579,8 +607,7 @@ export function productPage(ctx, p, category, related) {
         </ul>
         <button class="btn btn-block btn-accent btn-lg quick-go" type="submit" name="go" value="order">${icon('check', 22)}<span>${esc(t.buyNow)}</span></button>
         <p class="form-error" role="alert" hidden></p>
-      </div>
-      <button class="btn btn-block btn-outline" type="submit" name="go" value="cart">${icon('cart', 20)} ${esc(t.addToCart)}</button>`}
+      </div>`}
     </form>
     <ul class="perks">
       <li>${icon('cash', 22)}<span><strong>${esc(t.cod)}</strong>${esc(t.codText)}</span></li>
@@ -629,7 +656,6 @@ export function cartPage(ctx) {
 export function checkoutPage(ctx) {
   const { lang } = ctx;
   const t = T[lang];
-  const cities = CITIES.map((c) => `<option>${esc(c)}</option>`).join('');
   const body = `<section class="wrap section">
   ${stepsBar(lang, 1)}
   <h1 class="center">${esc(t.checkout)}</h1>
@@ -637,8 +663,7 @@ export function checkoutPage(ctx) {
     <div class="form card-box">
       <h2>${esc(t.yourDetails)}</h2>
       <label>${esc(t.fullName)}<input name="name" autocomplete="name" required maxlength="80"></label>
-      <label>${esc(t.city)}<select name="city" required><option value="">${esc(t.chooseCity)}</option>${cities}<option value="__other">${esc(t.otherCity)}</option></select></label>
-      <label class="other-city" hidden>${esc(t.otherCity)}<input name="city_other" maxlength="60"></label>
+      ${cityField(t, false)}
       <label>${esc(t.address)}<textarea name="address" rows="2" placeholder="${esc(t.addressHint)}" required maxlength="300"></textarea></label>
       <label>${esc(t.phone)}<input name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="${esc(t.phoneHint)}" required maxlength="20" dir="ltr"></label>
       <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">

@@ -12,7 +12,7 @@ const SETTING_KEYS = [
   'store_name', 'whatsapp', 'contact_email', 'shipping_fee', 'shipping_rates', 'free_shipping_over',
   'announcement_ar', 'announcement_fr', 'announcement_en',
   'hero_title_ar', 'hero_title_fr', 'hero_title_en', 'hero_text_ar', 'hero_text_fr', 'hero_text_en',
-  'email_from', 'notify_email', 'email_status_updates', 'auto_currency',
+  'email_from', 'notify_email', 'email_status_updates', 'auto_currency', 'countdown', 'offer_left',
   'instagram', 'facebook', 'tiktok', 'meta_pixel_id', 'tiktok_pixel_id', 'google_verify',
   'legal_name', 'legal_ice', 'legal_rc', 'legal_address', 'legal_cndp',
 ];
@@ -434,7 +434,7 @@ async function saveProduct(db, id, b) {
     slug, int(b.category_id), names.ar, names.fr, names.en,
     cleanDesc(b.desc_ar), cleanDesc(b.desc_fr), cleanDesc(b.desc_en),
     price, int(b.compare_price), stock == null ? null : Math.max(0, stock),
-    packOptions(b.options, b.bundles),
+    packOptions(b.options, b.bundles, b.offer_left),
     JSON.stringify(images), b.featured ? 1 : 0, b.active === false || b.active === 0 ? 0 : 1, int(b.sort, 0),
     JSON.stringify(descMedia(b.desc_media)),
   ];

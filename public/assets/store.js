@@ -266,7 +266,7 @@
   function quickOrder(form) {
     const quick = $('.quick', form);
     const unitPrice = () => Math.max(0, Number(form.dataset.price) + readChoice(form).extra);
-    const cityOf = () => (form.city.value === '__other' ? form.city_other.value.trim() : form.city.value);
+    const cityOf = () => form.city.value.trim();
     const item = () => ({
       id: Number(form.dataset.product),
       option: readChoice(form).key,
@@ -300,12 +300,7 @@
         el.classList.add('pop');
       } catch {}
     };
-    form.city.addEventListener('change', () => {
-      $('.other-city', form).hidden = form.city.value !== '__other';
-      if (form.city.value === '__other') form.city_other.focus();
-      quote();
-    });
-    form.city_other.addEventListener('change', quote);
+    form.city.addEventListener('change', quote);
     form.qty.addEventListener('change', quote);
     $$('[data-step]', form).forEach((b) => b.addEventListener('click', () => setTimeout(quote)));
     $$('.options input, [data-offers] input', form).forEach((o) => o.addEventListener('change', () => setTimeout(quote)));
@@ -457,8 +452,7 @@
 
   function selectedCity() {
     if (!checkout) return '';
-    const v = checkout.city.value;
-    return v === '__other' ? checkout.city_other.value.trim() : v;
+    return checkout.city.value.trim();
   }
 
   const STAR = '<svg class="burst-star" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.5 14.6 5h4.4v4.4L22.5 12 19 14.6V19h-4.4L12 22.5 9.4 19H5v-4.4L1.5 12 5 9.4V5h4.4L12 1.5Zm0 6a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>';
@@ -533,12 +527,7 @@
   }
 
   if (checkout) {
-    const other = $('.other-city', checkout);
-    checkout.city.addEventListener('change', () => {
-      other.hidden = checkout.city.value !== '__other';
-      refresh();
-    });
-    checkout.city_other.addEventListener('change', refresh);
+    checkout.city.addEventListener('change', refresh);
 
     checkout.addEventListener('input', (e) => e.target.closest('label')?.querySelector('.field-error')?.remove());
 
@@ -663,6 +652,130 @@
       }
     }),
   );
+
+  // City field: suggestions from the first letter, matched on the French or Arabic name or a common spelling
+  // ("casa", "كازا"), towns starting with the letters first. Any other town can be typed in full.
+  $$('.city-ac').forEach((box) => {
+    const input = $('input', box);
+    const list = $('.city-list', box);
+    let cities = [];
+    try {
+      cities = JSON.parse(box.dataset.cities || '[]');
+    } catch {}
+    const key = (v) =>
+      String(v ?? '')
+        .normalize('NFD')
+        .replace(/[̀-ًͯ-ٟ]/g, '')
+        .toLowerCase()
+        .replace(/[أإآ]/g, 'ا')
+        .replace(/ة/g, 'ه')
+        .replace(/ى/g, 'ي')
+        .replace(/[^a-z0-9ء-ي ]/g, '')
+        .trim();
+    const index = cities.map(([name, ar, more]) => ({
+      show: lang === 'ar' ? ar : name,
+      other: lang === 'ar' ? name : ar,
+      // Arabic names also without "ال", so "م" finds المحمدية.
+      words: [name, ar, ar.replace(/(^| )ال/g, '$1'), ...String(more || '').split(' ')].map(key).filter(Boolean),
+    }));
+    const listId = `cities-${Math.random().toString(36).slice(2, 8)}`;
+    list.id = listId;
+    input.setAttribute('aria-controls', listId);
+    let shown = [];
+    let active = -1;
+    const close = () => {
+      list.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+      active = -1;
+    };
+    const mark = (i) => {
+      active = i;
+      $$('li', list).forEach((li, j) => li.setAttribute('aria-selected', String(j === i)));
+      if (i >= 0) input.setAttribute('aria-activedescendant', `${listId}-${i}`);
+      else input.removeAttribute('aria-activedescendant');
+    };
+    const pick = (c) => {
+      input.value = c.show;
+      close();
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.closest('label')?.querySelector('.field-error')?.remove();
+    };
+    // 0: the whole name, 1: the name starts with it, 2: a word of the name does, 3: it's inside the name.
+    const rank = (c, q) => {
+      const qs = q.replace(/ /g, '');
+      let best = 9;
+      for (const w of c.words) {
+        const flat = w.replace(/ /g, '');
+        if (flat === qs) return 0;
+        if (flat.startsWith(qs)) best = Math.min(best, 1);
+        else if (w.split(' ').some((part) => part.startsWith(q))) best = Math.min(best, 2);
+        else if (qs.length >= 3 && flat.includes(qs)) best = Math.min(best, 3);
+      }
+      return best;
+    };
+    const search = () => {
+      const q = key(input.value);
+      if (!q) return close();
+      shown = index
+        .map((c, i) => ({ c, r: rank(c, q), i }))
+        .filter((x) => x.r < 9)
+        .sort((a, b) => a.r - b.r || a.i - b.i)
+        .slice(0, 6)
+        .map((x) => x.c);
+      // Nothing to suggest, or the city is already typed in full: no list.
+      if (!shown.length || (shown.length === 1 && key(shown[0].show) === q)) return close();
+      list.innerHTML = shown.map((c, i) => `<li role="option" id="${listId}-${i}" aria-selected="false"><span>${esc(c.show)}</span><small>${esc(c.other)}</small></li>`).join('');
+      list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      mark(0);
+    };
+    input.addEventListener('input', search);
+    input.addEventListener('focus', () => input.value && search());
+    input.addEventListener('keydown', (e) => {
+      if (list.hidden) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        mark((active + (e.key === 'ArrowDown' ? 1 : -1) + shown.length) % shown.length);
+      } else if (e.key === 'Enter' && active >= 0) {
+        e.preventDefault();
+        pick(shown[active]);
+      } else if (e.key === 'Escape') close();
+    });
+    // pointerdown keeps the focus in the field, so the list doesn't close before the tap lands.
+    list.addEventListener('pointerdown', (e) => e.preventDefault());
+    list.addEventListener('click', (e) => {
+      const li = e.target.closest('li');
+      if (li) pick(shown[[...list.children].indexOf(li)]);
+    });
+    input.addEventListener('blur', () => setTimeout(close, 150));
+  });
+
+  // Product page: countdown to midnight, Morocco time ("today's offer ends in 05:42:10").
+  $$('[data-countdown]').forEach((bar) => {
+    const out = $('[data-cd]', bar);
+    let fmt = null;
+    try {
+      fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Casablanca', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+    } catch {}
+    const secondsLeft = () => {
+      const now = new Date();
+      let [h, m, s] = [now.getHours(), now.getMinutes(), now.getSeconds()];
+      if (fmt) {
+        const p = Object.fromEntries(fmt.formatToParts(now).map((x) => [x.type, Number(x.value)]));
+        [h, m, s] = [p.hour % 24, p.minute, p.second];
+      }
+      return 86400 - (h * 3600 + m * 60 + s);
+    };
+    const two = (n) => String(n).padStart(2, '0');
+    const tick = () => {
+      const left = secondsLeft();
+      out.textContent = `${two(Math.floor(left / 3600))}:${two(Math.floor((left % 3600) / 60))}:${two(left % 60)}`;
+    };
+    tick();
+    bar.hidden = false;
+    setInterval(tick, 1000);
+  });
 
   badge();
   window.addEventListener('storage', () => badge());
