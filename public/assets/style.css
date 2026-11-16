@@ -203,14 +203,16 @@ h3 { font-size: 1.15rem; }
 .card-img .alt { opacity: 0; }
 .card:hover .card-img img { transform: scale(1.05); }
 .card:hover .card-img .alt { opacity: 1; }
-.card-body { padding: 12px 4px 0; }
+.card-body { padding: 12px 4px 0; display: flex; flex-direction: column; flex: 1; }
+.card-cart { width: 100%; min-height: 44px; margin-top: auto; padding: 0 12px; gap: 8px; font-size: 0.92rem; background: var(--accent); border-color: var(--accent); }
+.card-cart:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+.card-cart:hover .icon { transform: none; }
+.card-cart.done { background: var(--green); border-color: var(--green); }
+.card .price { margin-bottom: 10px; }
 .card h3 { font-family: var(--font-body); font-size: 0.96rem; font-weight: 600; margin: 0 0 2px; line-height: 1.35; }
 .card h3 a { text-decoration: none; }
 .badge { position: absolute; top: 10px; inset-inline-start: 10px; background: var(--accent); color: #fff; font-size: 0.74rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; z-index: 1; }
 .badge.muted { background: rgb(17 24 39 / 0.75); }
-.quick-add { position: absolute; z-index: 2; top: 0; margin-top: calc(125% - 54px); inset-inline-end: 10px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgb(255 255 255 / 0.95); color: var(--ink); display: grid; place-items: center; cursor: pointer; box-shadow: var(--shadow); transition: transform 0.25s var(--ease), background 0.2s; }
-.quick-add:hover { transform: scale(1.08); background: var(--sun); }
-.quick-add.done { background: var(--green); color: #fff; }
 .price { font-weight: 800; color: var(--ink); margin: 0; }
 .price s { color: var(--muted); font-weight: 500; font-size: 0.85em; margin-inline-start: 6px; }
 .price.big { font-size: 1.8rem; font-family: var(--font-display); font-weight: 700; }
