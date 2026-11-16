@@ -198,8 +198,8 @@ h3 { font-size: 1.15rem; }
 /* Product grid */
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 12px; }
 .card { position: relative; display: flex; flex-direction: column; }
-.card-img { position: relative; display: block; aspect-ratio: 4 / 5; border-radius: var(--radius); overflow: hidden; background: var(--line); }
-.card-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.9s var(--ease), opacity 0.5s; }
+.card-img { position: relative; display: block; aspect-ratio: 1; border-radius: var(--radius); overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
+.card-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: transform 0.9s var(--ease), opacity 0.5s; }
 .card-img .alt { opacity: 0; }
 .card:hover .card-img img { transform: scale(1.05); }
 .card:hover .card-img .alt { opacity: 1; }
@@ -280,14 +280,16 @@ textarea { resize: vertical; }
 /* Pasted descriptions must never widen the page (Safari sizes grid columns from photo widths). */
 .product > *, .product-info, .accordion, .desc-block { min-width: 0; max-width: 100%; }
 .desc-block { contain: inline-size; }
-.gallery { position: relative; margin-inline: -16px; }
+/* Edge to edge on phones: max-width none, or `.product > *` caps it and the photo slides off one side in Arabic. */
+.gallery { position: relative; margin-inline: -16px; max-width: none; }
 .gallery-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; scroll-behavior: smooth; }
 .gallery-track::-webkit-scrollbar { display: none; }
-.gallery-track img { flex: none; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; scroll-snap-align: start; background: var(--line); }
+/* Product photos are shown whole (square box, nothing cropped), on white like the photos themselves. */
+.gallery-track img { flex: none; width: 100%; aspect-ratio: 1; object-fit: contain; scroll-snap-align: start; background: #fff; }
 .thumbs { display: flex; gap: 8px; padding: 10px 16px 0; overflow-x: auto; }
 .thumbs button { flex: none; border: 2px solid transparent; border-radius: 10px; padding: 0; overflow: hidden; cursor: pointer; width: 64px; opacity: 0.6; transition: opacity 0.2s, border-color 0.2s; background: none; }
 .thumbs button.on { border-color: var(--ink); opacity: 1; }
-.thumbs img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+.thumbs img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #fff; display: block; }
 .product-info h1 { font-size: clamp(1.9rem, 6vw, 2.8rem); }
 .stock { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--green); margin: 6px 0 0; font-size: 0.92rem; }
 .stock .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 4px rgb(22 163 74 / 0.18); animation: pulse 2s infinite; }
@@ -318,8 +320,8 @@ textarea { resize: vertical; }
 .offer:has(input:focus-visible) { box-shadow: 0 0 0 3px var(--sun); }
 .offer input { appearance: none; -webkit-appearance: none; margin: 0; padding: 0; box-sizing: border-box; width: 22px; height: 22px; min-width: 22px; max-width: 22px; min-height: 0; aspect-ratio: 1; border: 2px solid var(--accent); border-radius: 50%; background: var(--surface); flex: none; cursor: pointer; }
 .offer input:checked { border-color: var(--brand); background: radial-gradient(circle, var(--brand) 0 5px, var(--surface) 6px); }
-.offer-pic { position: relative; display: block; width: 56px; height: 64px; border-radius: 10px; overflow: hidden; background: var(--bg); }
-.offer-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.offer-pic { position: relative; display: block; width: 60px; height: 60px; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
+.offer-pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .offer-pic b { position: absolute; bottom: 3px; inset-inline-end: 3px; background: var(--ink); color: #fff; font-size: 0.72rem; line-height: 1; padding: 3px 6px; border-radius: 999px; direction: ltr; }
 .offer-main { display: grid; gap: 4px; min-width: 0; }
 .offer-main strong { font-size: 1rem; line-height: 1.3; }
@@ -426,7 +428,7 @@ textarea { resize: vertical; }
 .lines, .totals { list-style: none; padding: 0; margin: 0; }
 .line { display: grid; grid-template-columns: 76px 1fr auto; gap: 14px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); animation: fadein 0.4s var(--ease) both; }
 @keyframes fadein { from { opacity: 0; transform: translateY(8px); } }
-.line img { border-radius: 12px; width: 76px; height: 95px; object-fit: cover; background: var(--line); }
+.line img { border-radius: 12px; width: 76px; height: 76px; object-fit: contain; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
 .line-info { display: grid; gap: 4px; justify-items: start; }
 .line-info a { text-decoration: none; font-weight: 700; }
 .line-info small { color: var(--muted); }
