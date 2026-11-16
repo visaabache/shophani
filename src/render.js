@@ -213,11 +213,11 @@ ${verify ? `<meta name="google-site-verification" content="${esc(verify)}">` : '
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=21">
+<link rel="stylesheet" href="/assets/style.css?v=22">
 <script src="/assets/js-on.js"></script>
 ${pixels ? `<script type="application/json" id="pixels">${JSON.stringify({ ...px, page: track }).replace(/</g, '\\u003c')}</script>
 <script src="/assets/pixels.js?v=1" defer></script>` : ''}
-<script src="/assets/store.js?v=14" defer></script>
+<script src="/assets/store.js?v=15" defer></script>
 </head>
 <body data-lang="${lang}" class="page-${page || 'default'}">
 <a class="skip" href="#main">${esc(t.allProducts)}</a>
@@ -286,7 +286,9 @@ ${pixels ? `<div class="consent-bar" id="consent" role="dialog" aria-label="${es
 </html>`;
 }
 
-export function productCard(p, ctx, i = 0) {
+// `cart` (home and shop listings only) puts a labelled "Add to cart" button under the price.
+// Other grids (related products on the product page, blog) show the card without it.
+export function productCard(p, ctx, i = 0, { cart = false } = {}) {
   const { lang } = ctx;
   const t = T[lang];
   const imgs = productImages(p);
@@ -295,24 +297,31 @@ export function productCard(p, ctx, i = 0) {
   const soldOut = p.stock != null && p.stock <= 0;
   const onSale = p.compare_price && p.compare_price > p.price;
   const off = onSale ? Math.round((1 - p.price / p.compare_price) * 100) : 0;
-  const quickAdd = !soldOut && !productOptions(p).length;
+  const hasOptions = productOptions(p).length > 0;
+  const action = !cart
+    ? ''
+    : soldOut
+      ? `<button class="btn card-cart" type="button" disabled>${esc(t.outOfStock)}</button>`
+      : hasOptions
+        ? `<a class="btn card-cart" href="/${lang}/p/${esc(p.slug)}">${icon('cart', 18)}<span>${esc(t.choose)}</span></a>`
+        : `<button class="btn card-cart" type="button" data-add="${p.id}" data-name="${esc(name)}" data-price="${p.price}" data-image="${esc(img)}" data-slug="${esc(p.slug)}" aria-label="${esc(t.addToCart)}: ${esc(name)}">${icon('cart', 18)}<span>${esc(t.addToCart)}</span></button>`;
   return `<article class="card reveal" style="--d:${(i % 4) * 70}ms">
   <a href="/${lang}/p/${esc(p.slug)}" class="card-img">
     <img src="${esc(small(img))}"${srcset(img)} sizes="(min-width: 900px) 25vw, 50vw" alt="${esc(name)}" loading="lazy" width="480" height="600">
     ${imgs[1] ? `<img class="alt" src="${esc(small(imgs[1]))}" alt="" loading="lazy" width="480" height="600">` : ''}
     ${soldOut ? `<span class="badge muted">${esc(t.outOfStock)}</span>` : onSale ? `<span class="badge">−${off}%</span>` : ''}
   </a>
-  ${quickAdd ? `<button class="quick-add" type="button" data-add="${p.id}" data-name="${esc(name)}" data-price="${p.price}" data-image="${esc(img)}" data-slug="${esc(p.slug)}" aria-label="${esc(t.addToCart)}: ${esc(name)}">${icon('plus', 20)}</button>` : ''}
   <div class="card-body">
     <h3><a href="/${lang}/p/${esc(p.slug)}">${esc(name)}</a></h3>
     <p class="price">${esc(price(ctx, p.price))}${onSale ? ` <s>${esc(price(ctx, p.compare_price))}</s>` : ''}</p>
+    ${action}
   </div>
 </article>`;
 }
 
-function grid(products, ctx, emptyText) {
+function grid(products, ctx, emptyText, opts) {
   return products.length
-    ? `<div class="grid">${products.map((p, i) => productCard(p, ctx, i)).join('')}</div>`
+    ? `<div class="grid">${products.map((p, i) => productCard(p, ctx, i, opts)).join('')}</div>`
     : `<p class="empty">${esc(emptyText)}</p>`;
 }
 
@@ -381,7 +390,7 @@ export function homePage(ctx, featured, latest) {
 </section>
 <div class="wrap trust-wrap">${trust(lang, 'trust-float')}</div>
 ${cats}
-${featured.length ? `<section class="section wrap">${sectionHead(t.featured, t.shop, `/${lang}/shop`, t.viewAll)}${grid(featured, ctx, t.noProducts)}</section>` : ''}
+${featured.length ? `<section class="section wrap">${sectionHead(t.featured, t.shop, `/${lang}/shop`, t.viewAll)}${grid(featured, ctx, t.noProducts, { cart: true })}</section>` : ''}
 <section class="story">
   <div class="wrap story-grid">
     <div class="story-img reveal"><img src="/assets/photos/delivery.webp" alt="" loading="lazy" width="1000" height="1250"></div>
@@ -393,7 +402,7 @@ ${featured.length ? `<section class="section wrap">${sectionHead(t.featured, t.s
     </div>
   </div>
 </section>
-${latest.length ? `<section class="section wrap">${sectionHead(t.newArrivals, t.shop, `/${lang}/shop`, t.viewAll)}${grid(latest, ctx, t.noProducts)}</section>` : ''}
+${latest.length ? `<section class="section wrap">${sectionHead(t.newArrivals, t.shop, `/${lang}/shop`, t.viewAll)}${grid(latest, ctx, t.noProducts, { cart: true })}</section>` : ''}
 <section class="banner reveal">
   <img src="/assets/photos/kitchen-wide.webp" alt="" loading="lazy" width="1800" height="900">
   <div class="banner-text wrap">
@@ -442,7 +451,7 @@ export function listingPage(ctx, { title, path, products, q = '', sort = '', des
     <noscript><button class="btn btn-small">OK</button></noscript>
   </form>
   <p class="count">${esc(t.productsCount(products.length))}</p>
-  ${grid(products, ctx, q ? t.noResults : t.noProducts)}
+  ${grid(products, ctx, q ? t.noResults : t.noProducts, { cart: true })}
 </section>`;
   const query = new URLSearchParams();
   if (q) query.set('q', q);
