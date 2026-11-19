@@ -153,7 +153,7 @@
       productDeleted: 'تم حذف المنتج', productSaved: 'تم حفظ المنتج',
       uploading: (n) => `جارٍ رفع ${n}…`,
       catsSub: 'أقسام متجرك',
-      thPhoto: 'الصورة', thPhotoLink: 'رابط الصورة', thSort: 'الترتيب', thProducts: 'المنتجات',
+      catCoverHint: 'صورة الغلاف تظهر في بطاقة الصنف بالصفحة الرئيسية وفي أعلى صفحة الصنف. صورة عمودية (4:5) تعطي أحسن نتيجة.', catUpload: 'إضافة صورة الغلاف', catChange: 'تغيير الصورة', catRemove: 'حذف الصورة', catLink: 'أو رابط صورة', thPhoto: 'الصورة', thPhotoLink: 'رابط الصورة', thSort: 'الترتيب', thProducts: 'المنتجات',
       newCategory: 'صنف جديد', ok: 'حفظ',
       catSaved: 'تم حفظ الصنف',
       confirmDeleteCat: 'حذف هذا الصنف؟ تبقى منتجاته معروضة بدون صنف.',
@@ -352,7 +352,7 @@
       productDeleted: 'Produit supprimé', productSaved: 'Produit enregistré',
       uploading: (n) => `Envoi de ${n}…`,
       catsSub: 'Les rayons de votre boutique',
-      thPhoto: 'Photo', thPhotoLink: 'Lien de la photo', thSort: 'Ordre', thProducts: 'Produits',
+      catCoverHint: 'La photo de couverture s’affiche sur la carte de la catégorie en page d’accueil et en haut de la page de la catégorie. Une photo verticale (4:5) rend le mieux.', catUpload: 'Ajouter une couverture', catChange: 'Changer la photo', catRemove: 'Retirer la photo', catLink: 'Ou lien d’une image', thPhoto: 'Photo', thPhotoLink: 'Lien de la photo', thSort: 'Ordre', thProducts: 'Produits',
       newCategory: 'Nouvelle catégorie', ok: 'OK',
       catSaved: 'Catégorie enregistrée',
       confirmDeleteCat: 'Supprimer cette catégorie ? Ses produits restent en ligne, sans catégorie.',
@@ -551,7 +551,7 @@
       productDeleted: 'Product deleted', productSaved: 'Product saved',
       uploading: (n) => `Uploading ${n}…`,
       catsSub: 'The aisles of your store',
-      thPhoto: 'Photo', thPhotoLink: 'Photo link', thSort: 'Order', thProducts: 'Products',
+      catCoverHint: 'The cover photo shows on the category card on the home page and at the top of the category page. A portrait photo (4:5) looks best.', catUpload: 'Add a cover photo', catChange: 'Change photo', catRemove: 'Remove photo', catLink: 'Or an image link', thPhoto: 'Photo', thPhotoLink: 'Photo link', thSort: 'Order', thProducts: 'Products',
       newCategory: 'New category', ok: 'OK',
       catSaved: 'Category saved',
       confirmDeleteCat: 'Delete this category? Its products stay online, without a category.',
@@ -2044,19 +2044,59 @@
   async function categories() {
     state.categories = (await api('/categories')).categories;
     const cols = contentLangs();
-    const inputs = (c) => cols.map((l) => `<td><input name="name_${l}" ${dirOf(l)} value="${esc(c[`name_${l}`] || '')}"${!c.id && l === lang ? ` placeholder="${L.newCategory}"` : ''}></td>`).join('');
-    shell(
-      L.nav.categories,
-      `<div class="card flush"><table class="table cats"><thead><tr><th>${L.thPhoto}</th>${cols.map((l) => `<th>${LANG_LABEL[l]}</th>`).join('')}<th>${L.thPhotoLink}</th><th>${L.thSort}</th><th>${L.thProducts}</th><th></th></tr></thead><tbody>
-      ${state.categories.map((c) => `<tr data-cat="${c.id}"><td><img class="thumb" src="${esc(c.image || '/assets/placeholder.svg')}" alt=""></td>${inputs(c)}<td><input name="image" dir="ltr" value="${esc(c.image || '')}" placeholder="/img/… https://…"></td><td><input name="sort" type="number" value="${c.sort}" class="num"></td><td>${c.products}</td><td class="nowrap"><button class="btn small" data-save>${L.ok}</button> <button class="link" data-del>${L.del}</button></td></tr>`).join('')}
-      <tr data-cat="" class="new-row"><td></td>${inputs({})}<td><input name="image" dir="ltr" placeholder="/img/… https://…"></td><td><input name="sort" type="number" value="0" class="num"></td><td></td><td><button class="btn small" data-save>${L.add}</button></td></tr>
-      </tbody></table></div>`,
-      { sub: L.catsSub },
-    );
-    app.querySelectorAll('[data-cat]').forEach((tr) => {
-      const id = tr.dataset.cat;
-      tr.querySelector('[data-save]').addEventListener('click', async () => {
-        const data = Object.fromEntries([...tr.querySelectorAll('input')].map((i) => [i.name, i.value]));
+    const card = (c) => `<form class="card cat-card${c.id ? '' : ' new-cat'}" data-cat="${c.id || ''}">
+        ${c.id ? '' : `<h2>${L.newCategory}</h2>`}
+        <div class="cat-grid">
+          <div class="cat-cover">
+            <label class="cat-pic" title="${L.catUpload}"><img src="${esc(c.image || '/assets/placeholder.svg')}" alt=""><span class="cat-pic-btn">${icon('camera', 18)}<span>${c.image ? L.catChange : L.catUpload}</span></span><input type="file" accept="image/*" hidden data-cover></label>
+            <button type="button" class="link small" data-remove-cover${c.image ? '' : ' hidden'}>${L.catRemove}</button>
+          </div>
+          <div class="cat-fields">
+            <p class="muted small">${L.catCoverHint}</p>
+            <div class="cols3">${cols.map((l) => `<label>${LANG_LABEL[l]}<input name="name_${l}" ${dirOf(l)} value="${esc(c[`name_${l}`] || '')}"></label>`).join('')}</div>
+            <details class="cat-more"${c.image && !c.image.startsWith('/img/') ? ' open' : ''}><summary>${L.catLink}</summary><input name="image" dir="ltr" value="${esc(c.image || '')}" placeholder="https://…"></details>
+            <div class="cat-foot"><label class="cat-sort">${L.thSort}<input name="sort" type="number" value="${c.id ? c.sort : 0}" class="num"></label>${c.id ? `<span class="muted small">${L.thProducts}: <b>${c.products}</b></span>` : ''}
+              <span class="grow"></span>${c.id ? `<button type="button" class="link danger" data-del>${L.del}</button>` : ''}<button class="btn small">${c.id ? L.save : L.add}</button></div>
+          </div>
+        </div>
+      </form>`;
+    shell(L.nav.categories, `<div class="cat-list">${state.categories.map(card).join('')}${card({})}</div>`, { sub: L.catsSub });
+    app.querySelectorAll('[data-cat]').forEach((f) => {
+      const id = f.dataset.cat;
+      const img = f.querySelector('.cat-pic img');
+      const btnText = f.querySelector('.cat-pic-btn span');
+      const remove = f.querySelector('[data-remove-cover]');
+      let busy = false;
+      const show = (url) => {
+        img.src = url || '/assets/placeholder.svg';
+        btnText.textContent = url ? L.catChange : L.catUpload;
+        remove.hidden = !url;
+      };
+      f.image.addEventListener('input', () => show(f.image.value.trim()));
+      remove.addEventListener('click', () => {
+        f.image.value = '';
+        show('');
+      });
+      f.querySelector('[data-cover]').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        busy = true;
+        f.classList.add('uploading');
+        try {
+          const { url } = await api('/images', { method: 'POST', raw: await shrink(file) });
+          f.image.value = url;
+          show(url);
+        } catch (err) {
+          toast(err.message || L.uploadFailed(file.name || ''), true);
+        }
+        busy = false;
+        f.classList.remove('uploading');
+      });
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (busy) return toast(L.waitUploads, true);
+        const data = Object.fromEntries([...f.querySelectorAll('input[name]')].map((i) => [i.name, i.value]));
         if (id) data.slug = state.categories.find((c) => c.id === Number(id)).slug;
         try {
           await api(id ? `/categories/${id}` : '/categories', { method: id ? 'PUT' : 'POST', body: data });
@@ -2066,7 +2106,7 @@
           toast(err.message, true);
         }
       });
-      tr.querySelector('[data-del]')?.addEventListener('click', async () => {
+      f.querySelector('[data-del]')?.addEventListener('click', async () => {
         if (!confirm(L.confirmDeleteCat)) return;
         try {
           await api(`/categories/${id}`, { method: 'DELETE' });
