@@ -9,7 +9,8 @@
     "db:migrate": "wrangler d1 migrations apply shophani --remote",
     "db:seed": "wrangler d1 execute shophani --remote --file seed/sample.sql",
     "deploy": "wrangler deploy",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "db:reset:local": "node -e \"require('fs').rmSync('.wrangler/state',{recursive:true,force:true})\" && npm run db:migrate:local && npm run db:seed:local"
   },
   "devDependencies": {
     "wrangler": "^4.152.0"
