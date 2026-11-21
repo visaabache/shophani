@@ -99,6 +99,9 @@ h3 { font-size: 1.15rem; }
 .logo-light .logo-svg .lg-word { fill: #fff; }
 .logo-light .logo-svg .lg-word2 { fill: #8ea4ff; }
 @media (max-width: 600px) { .top .logo-svg { height: 36px; } }
+.logo-svg.logo-icon { height: 46px; }
+.logo-light .logo-svg.logo-icon { height: 52px; }
+@media (max-width: 600px) { .top .logo-svg.logo-icon { height: 42px; } }
 .main-nav { display: none; gap: 4px; }
 .main-nav a { text-decoration: none; font-weight: 600; padding: 8px 12px; border-radius: 999px; position: relative; }
 .main-nav a::after { content: ''; position: absolute; inset-inline: 14px; bottom: 3px; height: 2px; background: var(--accent); transform: scaleX(0); transition: transform 0.3s var(--ease); }

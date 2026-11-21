@@ -3,7 +3,7 @@
 
 import { T } from './i18n.js';
 import { PHOTO_CREDITS } from './credits.js';
-import { LOGO_ARABIC, LOGO_LATIN } from './logo.js';
+import { LOGO_ICON } from './logo.js';
 import { legalDoc } from './legal.js';
 import { CURRENCIES, formatPrice } from './currency.js';
 import { pixelConfig } from './pixels.js';
@@ -38,10 +38,10 @@ function organizationLd(ctx) {
 }
 const BRAND_OG = '/assets/brand/og-image-v2.jpg';
 
-// The drawn Shop Hani logo, or a sparkle and the plain name when the store has been renamed in admin.
+// The Shop Hani bag icon (no wordmark), or a sparkle and the plain name when the store has been renamed in admin.
 function brandLogo(store, lang) {
   if (!/^shop ?hani$/i.test(store.trim()) && store.trim().toLowerCase() !== 'شوپ هاني') return `${star('logo-star')}<span>${esc(store)}</span>`;
-  return lang === 'ar' ? LOGO_ARABIC : LOGO_LATIN;
+  return LOGO_ICON;
 }
 
 // Line icons (24×24, stroke = currentColor).
