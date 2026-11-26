@@ -1424,8 +1424,8 @@
       const data = Object.fromEntries(new FormData(f));
       data.featured = f.featured.checked;
       data.active = f.active.checked;
-      const groups = opts.map((g) => ({ ...g, values: g.values.filter((v) => v.label.trim()) }));
-      if (groups.some((g) => !g.values.length)) return toast(L.opt.needValue, true);
+      // Options with no values are dropped, so a product such as a pack can be saved without any.
+      const groups = opts.map((g) => ({ ...g, values: g.values.filter((v) => v.label.trim()) })).filter((g) => g.values.length);
       data.options = JSON.stringify(groups);
       const qtys = bundles.map((b) => b.qty);
       if (bundles.some((b) => !(b.qty >= 2 && b.qty <= 20) || !(b.price > 0)) || new Set(qtys).size !== qtys.length) return toast(L.bun.bad, true);
